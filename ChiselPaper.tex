@@ -1,0 +1,72 @@
+%\documentclass{article} % For LaTeX2e
+\documentclass[conference,10pt]{IEEEtran}
+%\usepackage{nips14submit_e,times}
+
+\usepackage[sc]{mathpazo}
+%\linespread{1.05}         % Palatino needs more leading (space between lines)
+\usepackage[T1]{fontenc}
+
+\usepackage{url}
+%\documentstyle[nips13submit_09,times,art10]{article} % For LaTeX 2.09
+
+\usepackage{hyperref}
+\usepackage[usenames,dvipsnames]{color}
+\definecolor{orange}{rgb}{0.8,0.4,0}
+\definecolor{mylink}{RGB}{18,68,115}
+\definecolor{darkgreen}{rgb}{0.3,0.6,0.3}
+
+\usepackage{graphicx}
+%\usepackage[footnotesize]{caption}
+\usepackage[numbers,sort&compress]{natbib}
+
+\hypersetup{letterpaper,bookmarksopen,bookmarksnumbered,
+pdfpagemode=UseOutlines,
+colorlinks=true,
+linkcolor=mylink,
+anchorcolor=blue,
+citecolor=mylink,
+filecolor=blue,
+menucolor=blue,
+urlcolor=mylink,
+}
+%\usepackage{multicol}
+ 
+% Labels in IEEE format
+% Equation
+\newcommand{\eref}[1]{Eq.(\ref{#1})}
+% Figure
+\newcommand{\figref}[1]{Fig.\ref{#1}}
+
+\usepackage{ifthen}
+
+\newboolean{include-notes}
+\setboolean{include-notes}{true}
+% http://en.wikibooks.org/wiki/LaTeX/Colors
+\newcommand{\ssnote}[1]{\ifthenelse{\boolean{include-notes}}%
+ {\textcolor{orange}{\textbf{SS: #1}}}{}}
+\newcommand{\adnote}[1]{\ifthenelse{\boolean{include-notes}}%
+ {\textcolor{LimeGreen}{\textbf{AD: #1}}}{}}
+
+\usepackage[font=footnotesize]{caption}
+\usepackage{subfigure}
+
+%\title{Hilbert Norm Minimization as a \\Generalization of Dynamic Movement Primitives}
+
+\title{\Large Real-time Surface Reconstruction on a Mobile Device \\
+using Chunked Truncated Signed Distance Fields}
+
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+%\nipsfinalcopy % Uncomment for camera-ready version
+\usepackage{amsmath,amssymb,amsthm}
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Abstract
+\end{abstract}
+
+\end{document}
