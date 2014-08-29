@@ -187,9 +187,9 @@ where the sensor is noisy, or has large patches of missing data
 \cite{Klingensmith2014}.
 
 Elfes \cite{Elfes1989} introduced the concept of \emph{Occupancy Grid
-Mapping}, which divides the world into a 2D grid of axis-aligned cells (i.e
-Voxels), each of which contains an occupancy probability. Occupancy grids
-provide a principled alternative to simple point clouds. They preserve local
+Mapping}, which divides the world into a 2D grid of axis-aligned cells
+(\emph{i.e} Voxels), each of which contains an occupancy probability. Occupancy
+grids provide a principled alternative to simple point clouds. They preserve local
 structure, and gracefully handle redundant and missing data.
 Unfortunately, occupancy grids are prohibitively memory intensive in 3D, since
 the amount of memory needed to store the grid increases with the cube of distance 
@@ -207,13 +207,13 @@ they lack information about the interior and exterior of objects, and suffer
 from aliasing. Further, octrees suffer from logarithmic reading, writing, and
 iteration times, and have very poor memory locality characteristics.
 
-Curless \cite{Curless1996} introduced an alternative to occupancy grids which,
-instead of storing the occupancy probability for each voxel, stores an
-approximation of the signed distance field of the scene. The signed distance
+Curless \cite{Curless1996} introduced an alternative to occupancy grids for 3D
+reconstruction which, instead of storing the occupancy probability for each
+voxel, stores an approximation of the signed distance field of the scene. The signed distance
 field is a mapping from $\mathbf{R}^3$ to $\mathbf{R}$ which represents the
 distance to the nearest surface. The SDF is negative inside obstacles, and
 positive outside obstacles. The surface is given implicitly as all points in
-space where the value of the SDF is zer. The structure introduced in
+space where the value of the SDF is zero. The structure introduced in
 \cite{Curless1996} only maintains the distance function within a small distance 
 (called the \emph{truncation distance}) from observed surfaces, and thus is called the
 Truncated Signed Distance Field (TSDF).  While using more memory than occupancy
@@ -239,6 +239,17 @@ triangular mesh. Like Fusion, Kintinuous relies on very high-performance GPU
 computing to create its reconstruction.  By prematurely turning the TSDF into an
 explicit surface mesh, Kintinuous throws away past data -- and thus the user
 cannot return to an area that was previously explored and update the TSDF there.
+
+Our approach uses a TSDF as in
+\cite{Curless1996,Newcombe,Whelan2013,Bylow2013}, to store an
+estimate of the signed distance field of the scene. Unlike Kinect Fusion, and like Kintinuous,
+we store a dynamic representation of the TSDF which grows in size as the sensor
+travels through space. Unlike Kintinuous, we do not prematurely throw away
+distance function data by converting it into a mesh -- instead, we turn small
+areas of the scene into meshes for the purpose of rendering, and preserve the
+underlying distance field data. In this way, we extend the TSDF surface
+reconstruction paradigm to very large scenes when only very limited compute
+power is available.
 
 \section{Approach}
 \begin{itemize}
