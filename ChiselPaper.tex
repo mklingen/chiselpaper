@@ -380,14 +380,49 @@ But what else does the ray tell us? All the points in space along the ray from
 the sensor origin up to the endpoint must be outside of any surface (or else the
 ray would have been occluded by a a surface). Assuming objects have non-zero
 thickness, some part of the space along the ray beyond the endpoint should be
-inside an object.
+inside an object. That is:
 
-So, very near the surface of the object, the signed distance function can be
-approximated by the distance along the ray to the endpoint of the ray. That is:
+$$ \Phi(x - ur) 
+     \begin{cases}
+     > 0 & \text{if } u > 0 \\
+     < 0 & \text{if } u < 0 \\
+     0 & \text{if } u = 0
+     \end{cases}
+     $$
+
+Further, very near the surface of the object, the signed distance function can
+be approximated by the distance along the ray to the endpoint of the ray. This
+is because we know that there is at least one point of the surface, namely the
+endpoint of the ray. Near $x$, the signed distance function scales with the
+distance to $x$. So:
 
 $$ \Phi(x - ur) \approx u $$
 
-\noindent Whenever $u \approx 0$.
+\noindent Whenever $u \approx 0$. This leads us to the Truncated Signed Distance
+Function (TSDF) \cite{Curless1996}. The TSDF is an approximation of the Signed
+Distance Function which stores distances to the surface within a small truncation distance,
+$\tau$. That is:
+
+$$ \Phi_{\tau}(x) \begin{cases}
+	 = \Phi(x) & \text{if } |\Phi(x)| \leq \tau \\
+	 \text{undefined} & \text{otherwise}
+	 \end{cases}
+$$
+
+Following \cite{Curless1996}, to update the TSDF with a particular sensor
+measurement, we integrate along the ray from $u = -\tau$ to $\tau$, and take the
+running average over time. To do this, we introduce a weighting function $w :
+\mathbf{R}^3 \to [0, 1]$ that represents our confidence in the estimate of the
+TSDF.
+
+\begin{align*}
+\Phi_{\tau}(x - ur) \gets w_u\ \Phi_{\tau}(x - ur) + (1 - w_u) \\
+%
+w_u \gets w_u+ \alpha 
+\end{align*}
+
+\noindent Where  $w_u = w(x - ur)$, and $\alpha \in [0, 1]$ is a weighting
+parameter.
 
 
 \section{Results}
