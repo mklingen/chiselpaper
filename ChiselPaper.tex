@@ -251,41 +251,144 @@ underlying distance field data. In this way, we extend the TSDF surface
 reconstruction paradigm to very large scenes when only very limited compute
 power is available.
 
-\section{Approach}
-\begin{itemize}
-    \item We start by getting an accurate probablistic model of the depth error
-    on the sensor by training a quadratic model of the depth and noise per
-    pixel. Depth images are compensated by this model before being passed into
-    our system.
-    \item We get pose by monocular visual-intertial odometry, rather than by
-    directly estimating pose from the depth image.
-    \item Depth comes in at 3-5Hz, as does RGB, but never at the same time.
-    \item Explain the TSDF
-    \item We represent the world as a collection of fixed size 16x16x16
-    \emph{Meta-Voxels} or \emph{Chunks}, aligned next to each other. Chunks are
-    allocated only when rays from the sensor would cause them to be updated.
-    They are garbage collected whenever there is no voxel with no weight in it.
-    \item To update a chunk with depth data, we can do one of two things:
-    \emph{Raycasting}, or \emph{Voxel Projection}. In the raycasting case, we
-    efficiently march rays through voxels in each updated TSDF volume, and
-    update the signed distance and weight there. In the voxel projection case,
-    we project the center of each voxel onto the image, and according to the
-    distance from the center of the voxel as compared with the depth from the
-    sensor, we either add weight to it, carve it, or do nothing to it.
-    \item Raycasting is O(number of rays), while Voxel Projection is O(number
-    of voxels). Voxel projection is an aliased approximation of raycasting. 
-    \item To do color, we project the points along the ray we are updating onto
-    the color image. We then update a separate \emph{Color Chunk} with data from
-    the RGB image.
-    \item We use a dynamic trunction distance based on the sensor model.
-    \item Rendering is handled by incrementally creating meshes of the updated
-    chunks using Marching Cubes. Chunks are frustum culled based on the frustum
-    of the renderer's camera, and only those which are near the camera and
-    inside its frustum are rendered. Faraway chunks are rendered as boxes. This
-    allows us to very efficiently render huge areas using only the fixed
-    function pipeline -- an important feature for devices with limited graphics
-    capability.
-\end{itemize}
+\section{Approach} 
+% \begin{itemize}
+%     \item We start by getting an accurate probablistic model of the depth error
+%     on the sensor by training a quadratic model of the depth and noise per
+%     pixel. Depth images are compensated by this model before being passed into
+%     our system.
+%     \item We get pose by monocular visual-intertial odometry, rather than by
+%     directly estimating pose from the depth image.
+%     \item Depth comes in at 3-5Hz, as does RGB, but never at the same time.
+%     \item Explain the TSDF
+%     \item We represent the world as a collection of fixed size 16x16x16
+%     \emph{Meta-Voxels} or \emph{Chunks}, aligned next to each other. Chunks are
+%     allocated only when rays from the sensor would cause them to be updated.
+%     They are garbage collected whenever there is no voxel with no weight in it.
+%     \item To update a chunk with depth data, we can do one of two things:
+%     \emph{Raycasting}, or \emph{Voxel Projection}. In the raycasting case, we
+%     efficiently march rays through voxels in each updated TSDF volume, and
+%     update the signed distance and weight there. In the voxel projection case,
+%     we project the center of each voxel onto the image, and according to the
+%     distance from the center of the voxel as compared with the depth from the
+%     sensor, we either add weight to it, carve it, or do nothing to it.
+%     \item Raycasting is O(number of rays), while Voxel Projection is O(number
+%     of voxels). Voxel projection is an aliased approximation of raycasting. 
+%     \item To do color, we project the points along the ray we are updating onto
+%     the color image. We then update a separate \emph{Color Chunk} with data from
+%     the RGB image.
+%     \item We use a dynamic trunction distance based on the sensor model.
+%     \item Rendering is handled by incrementally creating meshes of the updated
+%     chunks using Marching Cubes. Chunks are frustum culled based on the frustum
+%     of the renderer's camera, and only those which are near the camera and
+%     inside its frustum are rendered. Faraway chunks are rendered as boxes. This
+%     allows us to very efficiently render huge areas using only the fixed
+%     function pipeline -- an important feature for devices with limited graphics
+%     capability.
+% \end{itemize}
+\subsection{Depth Data and Noise Model}
+We begin by considering the data from the device. We will assume that the device
+has a depth sensor attached. The depth sensor produces a depth image, which is
+a discrete map containing sensed distances from the scene to the image plane.
+
+Consider an ideal pinhole camera model of the depth sensor. We can cast a ray
+from the sensor origin through the image plane to surfaces in the world. The
+length of that ray is the resulting depth at that point in the image plane. Call
+the point on the image plane that the ray intersects $u$. The length of the ray
+through $u$ to the scene is given by $z_u$. 
+
+The depth image may be corrupted by noise, feature nonlinear distortions, and
+have large segments of missing data. Our noise model of the sensor will consider
+Gaussian noise on the depth, and per-pixel quadratic distortion. Call the depth
+ measurement at $u$ the random variable $D_u$. Then,
+ 
+ $$ D_u = z_u + a_u{z_u}^2 + b_u z_u + c_u + \epsilon(z_u)$$
+ 
+ \noindent where $a_u, b_u, c_u$ are coefficients of a quadratic depth
+ distortion model, and $\epsilon(z_u)$ is a random variable drawn from the
+ parametric gaussin distribution function $\mathcal{N}(z_u, \sigma_{z_u})$. 
+ That is, the distribution is mean-centered on $z_u$, and has a depth-dependant
+ standard deviation $\sigma_{z_u}$.
+ 
+ We found that, on our devices, the nonlinear distortion was very severe. At a
+distance of 3 meters, the reading could be distorted by as much as 30
+centimeters. To get an accurate reconstruction of the world, it is critical to
+correct for this distortion.
+ 
+ To train the distortion and noise model, we first calibrate the sensor with the
+ use of a checkerboard calibration target. Images of the target are taken at
+ multiple distances and angles from the camera. We fit an ideal plane to the
+ target to determine what the true distance should be at each pixel. Then, we
+perform quadratic regression on the depth readings against the predicted
+readings from the plane to find the per-pixel distortion coefficients. The
+coefficients are stored in a database for later use.
+
+The function $\sigma_{z_u}$ is computed in a similar way, by computing a
+histogram of standard deviations of the depth readings, and then performing
+quadratic regression on the result. A single function $\sigma_{z_u}$ is used for
+the entire image, unlike the distortion model which is computed on a per-pixel
+basis.
+
+Finally, we preprocess all depth images from the device by inverting the
+distortion model to get an estimate of the true depth at each point on the
+image plane.
+
+\textbf{TODO: DESCRIBE THE ABOVE PROCEDURE IN MORE DETAIL. CITE IVAN'S WORK.
+FIGURES OF DATA? FIGURES OF THE PLANE?}
+
+\subsection{Pose Estimation}
+We will assume we have black-box pose estimation of the sensor from a seperate
+system. Specifically, in our experiments, pose data is estimated from an
+embedded visual-intertial odometry system that fuses data from a wide-angle camera, an
+intertial measurement unit, and a gyroscope at 60 Hz. \textbf{TODO: DESCRIBE
+THIS IN MORE DETAIL AND CITE SOME VIO RESEARCH}
+
+Unlike \textit{Kinect Fusion} \cite{Newcombe} and \textit{Kintinuous}
+\cite{Whelan2013}, Our approach makes no attempt to estimate the pose of the
+sensor directly from depth data. Instead, we use depth data only for surface
+reconstruction.
+
+Call the global pose estimate of the sensor at time $t$,  ${H_{s}}^t$.
+Additionally, assume we have apriori extrinsic pose estimates for the color
+sensor ${H_{c}}^t$ and the depth sensor ${H_{d}}^t$. We will assume that pose
+estimation, depth sensing, and color sensing are asynchronously executed, so we
+may not have all three measurements at a given time.
+
+To deal with asynchronous sensing and pose estimation, we linearly interpolate
+poses over time to determine the pose of a given sensor at any given time.
+\textbf{TODO: DESCRIBE THIS BIT IN DETAIL.}.
+
+\subsection{The Signed Distance Function}
+We model the world as a volumetric function $\Phi(x) : \mathbf{R}^3 \to
+\mathbf{R}$, where, for every 3D point in the world, we have its distance to the
+nearest surface of an object. Inside objects, the value of $\Phi$ is negative.
+Outside objects, the value of $\Phi$ is positive, and on the surface, it is
+zero.
+
+ We will assume that $\Phi$ is static (\textit{i.e} it contains no moving
+ objects aside from the sensor itself). We want to estimate the value of $\Phi$
+ from the depth data and sensor poses over time.
+
+Consider the geometry of the ideal depth sensor. Rays emenate from the sensor
+origin to the scene. Call the origin of the ray $o$, and the endpoint of the ray
+$x$. The direction of the ray is given by $r = \frac{o - x}{\|o - x\|}$.
+
+The endpoint of each ray represents a point on the surface. So if the sensor is
+perfect, we know that the signed distance function $\Phi(x) = 0$ at that point. 
+
+But what else does the ray tell us? All the points in space along the ray from
+the sensor origin up to the endpoint must be outside of any surface (or else the
+ray would have been occluded by a a surface). Assuming objects have non-zero
+thickness, some part of the space along the ray beyond the endpoint should be
+inside an object.
+
+So, very near the surface of the object, the signed distance function can be
+approximated by the distance along the ray to the endpoint of the ray. That is:
+
+$$ \Phi(x - ur) \approx u $$
+
+\noindent Whenever $u \approx 0$.
+
 
 \section{Results}
 \begin{itemize}
