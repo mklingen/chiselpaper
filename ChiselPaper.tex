@@ -398,10 +398,19 @@ distance to $x$. So:
 
 $$ \Phi(x - ur) \approx u $$
 
-\noindent Whenever $u \approx 0$. This leads us to the Truncated Signed Distance
-Function (TSDF) \cite{Curless1996}. The TSDF is an approximation of the Signed
-Distance Function which stores distances to the surface within a small truncation distance,
-$\tau$. That is:
+\noindent Whenever $u \approx 0$.  Now, when the sensor is not ideal, but
+instead has significant noise, this approximation does not hold. Instead, we
+must consider the expected value of $$ \Phi $$ given a specific ray. That is:
+
+$$ E[\Phi(x - ur)] \approx u P(\Phi(x) = 0) $$
+
+\noindent the probablity $P(\Phi(x) = 0)$ cannot be known directly, but instead
+must be inferred from the probability model of the sensor.
+
+This observation leads us to the Truncated Signed Distance Function (TSDF)
+\cite{Curless1996}. The TSDF is an approximation of the  Signed Distance
+Function which stores distances to the surface within a small truncation
+distance, $\tau$. That is:
 
 $$ \Phi_{\tau}(x) \begin{cases}
 	 = \Phi(x) & \text{if } |\Phi(x)| \leq \tau \\
@@ -411,19 +420,319 @@ $$
 
 Following \cite{Curless1996}, to update the TSDF with a particular sensor
 measurement, we integrate along the ray from $u = -\tau$ to $\tau$, and take the
-running average over time. To do this, we introduce a weighting function $w :
-\mathbf{R}^3 \to [0, 1]$ that represents our confidence in the estimate of the
-TSDF.
+weighted running average of distance field estimates over time, weighting by the
+probability distribution of the sensor.
+
+To do this, we introduce a global weighting function $W : \mathbf{R}^3 \to [0,
+1]$ that represents our confidence in the estimate of the TSDF at every point in
+space.
+
+The process begins with 
 
 \begin{align*}
-\Phi_{\tau}(x - ur) \gets w_u\ \Phi_{\tau}(x - ur) + (1 - w_u) \\
+\Phi_{\tau}(x)& = \text{undefined} \;&\forall x  \\
 %
-w_u \gets w_u+ \alpha 
+ W(x)&= 0 \; &\forall x 
 \end{align*}
 
-\noindent Where  $w_u = w(x - ur)$, and $\alpha \in [0, 1]$ is a weighting
-parameter.
+Then, for each ray and $u\in[-\tau, \tau]$:
 
+\begin{subequations}
+\begin{align}
+\Phi_{\tau}(x - ur) \gets \frac{w_u \Phi_{\tau}(x - ur) + \alpha_u u}{w_u
++\alpha_u}
+\\
+%
+w_u \gets w_u+ \alpha _u
+\end{align}
+\label{eqn:update}
+\end{subequations}
+
+\noindent Where  $w_u = W(x - ur)$, and $\alpha_u  = \alpha(u) : [-\tau,\tau]\to
+\mathbf{R} $ is a weighting function . Ideally, the weighting function should be
+determined by the probability distribution of the sensor, and should represent
+the probability that $\Phi(x - ur) = 0$. However, in the literature linear,
+exponential, and constant approximations have been used \cite{Curless1996,
+Newcombe, Whelan2013, Bylow2013}. 
+
+In our work, we simply set $\alpha(u) = 1$, and use the probability distribution
+of the sensor instead to select the value of $\tau$.
+
+\subsection{Colorization}
+To create colored surface reconstructions, we use a method following Bylow et.
+al \cite{Bylow2013}, also used in \textit{Kintinuous} \cite{Whelan2013}, which
+directly stores color information as volumetric data. Alongside the
+truncated signed distance function, we store a volumetric color function
+$C_\tau : \mathbf{R}^3 \to \mathbf{R}^3$, and a color weighting function $W_c :
+\mathbf{R}^3 \to \mathbf{R}$.
+
+Color is updated in exactly the same manner as the TSDF. We assume that each
+depth ray also corresponds to a color in the RGB space. We integrate along the
+ray from $u \in [-\tau, \tau]$, and update the color:
+
+\begin{align*}
+C(x - ur) \gets \frac{C_{w_u} C(x - ur) + C_\alpha_u c}{C_{w_u}
++C_{\alpha_u}}
+\\
+%
+C_{w_u} \gets w_u+ C_{\alpha _u}
+\end{align*}
+
+\noindent where $c \in \mathbf{R}^3$ is the color of the ray in RGB space,
+$C_{\alpha_u}$ is a color weighting function, and $C_{w_u} = C_w(x - ur)$. In
+both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting function is
+proportional to the dot product of the ray's direction and an estimate of the
+surface normal. But since surface normal estimation is computationally
+expensive, we instead use the same weight for both distance and color.
+
+We must also deal with the fact that color images and depth data may be
+asynchronous. In our case, depth data is often delayed behind color data by as
+much as 30 milliseconds. So, for each depth scan, we project the endpoints of
+the rays onto the nearest color image in time to the depth image, disregarding
+occlusion, and use bilinear interpolation on the color image to determine the
+color of each ray.
+
+\subsection{Dynamic Truncation Distance}
+Following the approach of Nguyen et. al \cite{Nguyen2012}, we use a dynamic
+trunction distance based on the noise model of the sensor rather than a fixed
+truncation distance. In this way, we have a trunction function:
+
+$$ \tau(z_u) = \beta\sigma_{z_u}$$
+
+Where $\sigma_{z_u}$ is the standard deviation of the noise for a depth reading
+of $z_u$, and $\beta$ is a scaling parameter which represents the number of
+standard deviations of the noise we want to integrate over.
+
+Using the dynamic truncation distance has the effect that further away from the
+sensor, where depth measurements are less certain and sparser, depth
+measurements are smoothed over a larger area of the distance field; while nearer
+to the sensor, where depth measurments are more certain and closer together, the
+truncation distance is smaller.
+
+\subsection{Space Carving}
+When depth data is highly noisy and sparse, the relative importance of negative
+data (that is, information about what parts of the space do not contain an
+obstacle) increases over positive data \cite{Klingensmith2014}. This is because
+rays passing through empty space constrain possible values of the signed
+distance field to be positive at all points along the ray, wheras rays hitting
+objects only inform us about the presence of a surface very near the endpoint of
+the ray. In this way, rays can be viewed as \textit{constraints} on possible
+values of the distance field.
+
+For this reason, we augment our TSDF algorithm with a \textit{space carving}
+constraint. Along each ray from $u \in [0, \tau - \epsilon]$ (where $\epsilon$
+is a small value that prevents carving of space near surfaces), we set:
+
+\begin{align*}
+\Phi_{\tau}(x - ur) \gets \text{undefined}
+\\
+%
+w_u \gets 0
+\end{align*}
+
+\noindent  The effect is that, as rays pass through previously integrated
+regions of the TSDF, they clear away inconsistent data. Similarly, colors are
+cleared away whenever rays pass through previously colored space.
+
+Space carving gives us two advantages: first, it dramatically improves the
+surface reconstruction in areas of very high noise (especially around the edges
+of objects), and second, it removes some inconsistencies caused by moving
+objects and localization errors. If space carving is not used, moving objects
+appear in the TSDF as permanent blurs, and localization errors result in
+multiple overlapping isosurfaces appearing. With space carving, old inconsistent
+data is removed and only the latest data is used.
+
+\subsection{Implementation: Chunked TSDF}
+We use a discrete approximation of the TSDF which divides the world into
+a uniform 3D grid of voxels. Each voxel contains an estimate of the signed
+distance function and an associated weight. In our implementation, these are
+packed into a single 32-bit integer. The first 16 bits are a fixed-point
+signed distance value, and the last 16 bits  are an unsigned integer weighting
+value. Color is similarly stored as a 32 bit integer, with 8 bits per color
+channel, and an 8 bit weight. A similar method is used in \cite{Newcombe,
+Whelan2013, Bylow2013} to store the TSDF.
+
+Unfortunately, a flat volumetric representation of the world using voxels is
+incredibly memory intensive. The amount of memory storage required grows as
+$\mathcal{O}(N^3)$, where $N$ is the number of voxels per side of the 3D voxel
+array.
+
+For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube would
+occupy 4 Gigabytes of memory. Worse, most of that memory would be uselessly
+storing unseen free space. Further, if we plan on exploring larger and larger
+distances using the mobile sensor, the size of the TSDF array must grow if we
+don't plan on allocating enough memory for the entire space to be explored.
+
+For a large-scale real-time suface reconstruction application, a less
+memory-intensive and more dynamic approach is needed. Confronted with this
+problem, other approaches have either used  octrees \cite{Wurm2010}, or have
+prematurely extracted isosurfaces from a moving TSDF volume to save memory
+\cite{Whelan2013}.
+
+Neither of these approaches is desirable for our application. Octrees, while
+maximally memory efficient, have significant drawbacks when it comes to
+accessing and iterating over the volumetric data.
+
+An octree, like a KD-tree \textbf{TODO: cite KD trees}, compresses volumetric
+data by dividing the space recursively into octants. The leaves of the tree
+contain the underlying volumetric data. Octants which contain no leaves do not
+contain any allocated volumetric data. This allows the octree to be incredibly
+memory efficient if the underlying volumetric data is sparse. 
+
+However, consider that every time an octree is \emph{queried}, one incurs a
+logarithmic $\mathcal{O}(\log K)$ cost, where $K$ is the depth of the Octree. In
+contrast, queries in a flat array are $\mathcal{O}(1)$. This might not seem so
+bad, until one considers the overhead of traversing an octree. If implemented naiively, an
+octree will be implemented by storing pointers to child octants in each parent
+octant, and worse, the octants may be dynamically allocated on the heap. Each
+traversal through the tree requires $\mathcal{O}(\log K)$ heap pointer
+dereferences in the worst case. Even worse, adjacent voxels may not be adjacent
+in memory, resulting in very poor caching performance.
+
+Instead of using an Octree, or a fixed 3D array (as in \cite{Newcombe,
+Whelan2013}), we use a hybrid data structure which maintains some of the
+advantages of both. 
+
+We divide the world into a two-level tree. In the first level we have
+\emph{chunks} of voxels. Each chunk consists of a fixed grid of $N_c^3$ voxels,
+which are stored in a flat 3D array. Chunks are allocated dynamically from a
+growing pool of heap memory as data is added, and are indexed in a hash map.
+
+Since chunks are a fixed size, querying data from the chunked TSDF involves
+rounding (or bit-shifing, if $N_c^3$ is a power of two) a world coordinate to a
+chunk and voxel coordinate, and then doing a hash-map lookup followed by a 3D
+array lookup. Hence, querying is $\mathcal{O}(1)$. Further, since voxels within
+chunks are stored adjacent to one another in memory, cache performance is
+improved while iterating.
+
+By carefully selecting the size of chunks so that they coresponding to $\tau$,
+we only allocate volumetric data near isosurfaces of objects, and do not waste
+memory on empty space.
+
+\subsection{Depth Scan Integration}
+To perform the process described in Eqn. \ref{eqn:update}, it is necessary
+to consider each ray in each depth scan and upate each voxel
+along the ray according to its distance to an observed isosurface.
+
+The most straightfoward way of doing this is to simply iterate over each ray,
+and then use a rasterization algorithm \mathbf{TODO: CITE RASTERIZATION
+ALGORITHM USED} to determine which voxels intersect with the ray. We will call
+this the \textit{Raycasting} approach. However, this approach is extremely
+computationally expensive, having a performance bound by 
+$\mathcal{O}(N_{\text{ray}} \times \mathcal(l)_{\text{ray}})$, where 
+$(N_{\text{ray}}$ is the number of rays ina  scan, and
+$\mathcal(l)_{\text{ray}}$  is  proportional to the length of a ray being
+integrated. If we use a fixed-size truncation distance and do not perform  space
+carving, $\mathcal(l)_{\text{ray}} = \tau$. However, with space-carving, the
+length of a ray being integrated is potentially unbounded.
+
+A well-known approximation of raycasting in the literature is that of projection
+mapping. Used in \cite{Bylow2013, Klingensmith2014}, projection mapping works by
+projecting points in the voxel grid onto the depth image and comparing the depth
+value there with the geometric distance from the center of the voxel to the
+camera plane, and using that to approximate the distance along the ray from the
+camera to the voxel.
+
+For each voxel in a chunk that is to be updated, we take its center $v_c$, and
+project it onto the depth image using the camera intrinsics and a pinhole camera
+model, yielding an image point $[u, v]$. We then use bilinear interpolation of
+the depth values to find an expected depth reading $z_v$. Call origin of the
+sensor  $o_t$,  then the distance from the sensor to the voxel is $\|o_t -
+v_c\|$. 
+
+Now, if the isosurface passes directly through the center of the voxel,
+then we should expect that $z_v = \|o_t - v_c\|$, and, in particular, the
+distance along the ray to the isosurface is approximated by $u' = z_v - \|o_t -
+v_c\|$. We use this value to update the voxel according to Eqn.
+\ref{eqn:update}.
+
+Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
+the number of voxels affected by a depth scan. This value is nearly constant
+over time, and depending on the resolution of the TSDF, may be significantly
+less than the number of points.
+
+However, projection mapping suffers from resolution-dependant aliasing errors,
+because the value of $u'$ taken from projection mapping may differ from the true
+depth of the ray by up to the length of the diagonal of the voxel. Nuanced
+surface information from many adjacent rays passing through a single voxel is
+lost in the projection mapping case. This can be mitigated somewhat by
+\textit{oversampling} each voxel (that is, considering many sampled points
+inside each voxel) and taking the average projected depth over all the samples
+-- but the speed of the approach decreases linearly with the number of
+additional samples taken.
+
+In this work, we consider both the raycasting approach and the projection
+mapping approach and compare their strengths and weaknesses.
+
+\subsection{Frustum Culling and Garbage Collection}
+To determine which chunks should be updated by a depth scan, and which chunks
+should be drawn, we use frustum culling. We first construct a conservative
+geometric convex approximation of the space visible to the depth camera by
+creating a camera frustum (\textit{i.e.} a truncated pyramid) with a far plane
+at the maximum depth reading of the camera, and the near plane at the minimum
+depth of the camera. 
+
+We then take the axis-aligned bounding box of the camera frustum in the global
+frame, and check each chunk inside the axis-aligned bounding box for 
+intersection with the camera. Only those which intersect the frustum are
+updated. If chunks that would intersect the frustum haven't been allocated yet,
+they are allocated before a depth scan is inserted.
+
+Since the frustum is a conservative approximation of the space that could be
+updated by a depth scan, some of the chunks that are visible to the frustum will
+have no depth data associated with them. For this reason, we also store a flag
+inside each chunk indicating whether or not that chunk ever contained the
+endpoint of a ray from the depth camera.
+
+Those chunks which do not get updated during a depth scan are garbage collected
+(deleted from the hash map), reducing memory overhead.
+
+\subsection{Rendering}
+In the original \textit{Kinect Fusion} work \cite{Newcombe}, rendering was
+accomplished by raytracing on the GPU. Raytracing has the advantage of being a
+pixel-perfect representation of the surface, and performance scales only with
+the resolution of the rendering rather than with the size of the space. 
+
+However, real-time raytracting requires intensive GPU computation that we simply
+do not have on the mobile device. For that reason, it is necessary to develop a
+real-time rendering solution that is amenable to the limited graphics
+capabilities of mobile devices.
+
+We have decided to use a technique of incremental Marching Cubes
+\cite{Lorensen1987} to render the TSDF. For each chunk, we store a triangle
+mesh. Triangle meshes are generated at the isosurface $\Phi_{\tau}(x) = 0$
+whenever the chunk has been updated by a depth scan since the last time the
+chunk was rendered. As in \cite{Bylow2013, Whelan2013},  colors are computed for
+each vertex by trilinear interpolation of the color map. At the borders of chunks, vertices are
+duplicated to reduce co-dependence between the chunks, at the expense of
+causing slight seams between chunk meshes.
+
+Only those meshes which are visible to the virtual camera frustum are rendered.
+Meshes that are very far away from the camera are rendered as a colored bounding
+box.
+
+Using incremental Marching Cubes allows us to render the scene using only simple
+fixed function pipeline calls on the device's graphics hardware. This is
+important for many mobile devices where the fixed function pipeline is all that
+is available. It also allows us to produce surface meshes asynchronously from
+depth image updates and rendering, as (except for the edges of  each chunk) the
+surface meshes are indepent of each other.
+
+\subsection{User Interface}
+We developed a simple and intuitive prototype interface to test our approach on
+the device. Users were presented with options for controlling the resolution of
+the reconstruction, and were able to control when the system was active and
+inactive, allowing them to pause when moving objects obscured objects they were
+trying to model.
+
+We present the user with camera controls as well. A virtual first person
+camera mimics the intrinsics of the depth camera. A third-person camera allows
+the user to rotate the virtual camera around their current position and get a
+better look at the quality of the reconstruction; and an orthographic overhead
+camera functions as a global map of where the user has been.
+
+At any time, the user can save the volumetric representation of the TSDF, or a
+surface mesh generated by marching cubes to disk.
 
 \section{Results}
 \begin{itemize}
