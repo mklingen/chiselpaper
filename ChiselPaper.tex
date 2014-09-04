@@ -48,7 +48,7 @@ urlcolor=mylink,
  {\textcolor{LimeGreen}{\textbf{AD: #1}}}{}}
 
 \usepackage[font=footnotesize]{caption}
-\usepackage{subfigure}
+\usepackage{subcaption}
 
 \title{\Large Real-time Surface Reconstruction on a Mobile Device \\
 using Chunked Truncated Signed Distance Fields}
@@ -315,13 +315,32 @@ distance of 3 meters, the reading could be distorted by as much as 30
 centimeters. To get an accurate reconstruction of the world, it is critical to
 correct for this distortion.
  
+ \begin{figure} \centering
+	 \begin{subfigure} {0.3\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/calibration_grey}
+		 \caption{}
+	 \end{subfigure}
+	 \begin{subfigure}{0.3\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/calibration_model}
+		 \caption{}
+	 \end{subfigure}
+	 	 \begin{subfigure}{0.3\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/calibration_data}
+		 \caption{}
+	 \end{subfigure}
+	 \caption{Components collected in our calibration procedure. The greyscale (a)
+	 image is used to compute a linear plane model (b) for depth. That model is
+	 compared to the actual depth data (c) over a series of checkerboard poses.}
+	 \label{fig:calibration}
+ \end{figure}
+ 
  To train the distortion and noise model, we first calibrate the sensor with the
  use of a checkerboard calibration target. Images of the target are taken at
- multiple distances and angles from the camera. We fit an ideal plane to the
- target to determine what the true distance should be at each pixel. Then, we
-perform quadratic regression on the depth readings against the predicted
-readings from the plane to find the per-pixel distortion coefficients. The
-coefficients are stored in a database for later use.
+ multiple distances and angles from the camera (Fig. \ref{fig:calibration}). We
+ fit an ideal plane to the target to determine what the true distance should be
+ at each pixel. Then, we perform quadratic regression on the depth readings
+ against the predicted readings from the plane to find the per-pixel distortion
+ coefficients. The coefficients are stored in a database for later use.
 
 The function $\sigma_{z_u}$ is computed in a similar way, by computing a
 histogram of standard deviations of the depth readings, and then performing
@@ -400,7 +419,7 @@ $$ \Phi(x - ur) \approx u $$
 
 \noindent Whenever $u \approx 0$.  Now, when the sensor is not ideal, but
 instead has significant noise, this approximation does not hold. Instead, we
-must consider the expected value of $$ \Phi $$ given a specific ray. That is:
+must consider the expected value of $ \Phi $ given a specific ray. That is:
 
 $$ E[\Phi(x - ur)] \approx u P(\Phi(x) = 0) $$
 
