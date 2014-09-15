@@ -27,7 +27,7 @@ anchorcolor=blue,
 citecolor=mylink,
 filecolor=blue,
 menucolor=blue,
-urlcolor=mylink,
+urlcolor=mylink, 
 }
 %\usepackage{multicol}
  
@@ -116,9 +116,11 @@ robots: gyroscopes, accelerometers, compasses, GPS units, and high resolution
 sensors are now common place in average market phones. Recently, mobile phone
 manufacturers have expressed interest in using depth sensors in mobile devices;
 this opens up interesting possibilities for 3D reconstruction, mapping,
-and object recognition on such devices that were previously unavailable. Mobile
-devices with depth sensors also provide an attractive, light-weight, integrated
-platform for small mobile robots.
+and object recognition on such devices that were previously unavailable. In
+particular, the devices we use in this work, Google's Tango \cite{Tango} phone
+and tablet use a small active ifrared projection depth sensor combined with
+high-performance IMUs and a wide field of view camera. Mobile devices with depth
+sensors also provide an attractive, light-weight, integrated platform for small mobile robots.
 
 We are interested in the problem of real-time 3D reconstruction. The task is to
 extract the true 3D geometry and color of a real scene from a sequence of noisy
@@ -134,13 +136,17 @@ available on these devices are much more limited than their full-sized
 counterparts; they are typically lower resolution, have slower refresh rates,
 and have much more undesirable nonlinear distortion and noise.
 
-Previous work on high quality real-time 3D reconstruction has focused on much
-more capable and high-powered computing platforms with much more accurate
-sensing, and is therefore not well suited for low-powered mobile devices.
+Previous work on high quality real-time 3D reconstruction \cite{Newcombe,
+Whelan2013, Bylow2013, DTAM} has focused on much more capable and high-powered
+computing platforms with much more accurate sensing, and is therefore not well
+suited for low-powered mobile devices. At the same time, works which perform 3D
+reconstruction on mobile phones have either relied on low quality sparse
+keypoint-based methods \cite{KleinSparse}, or else require intensive offline
+computation \cite{TanskanenMetric} for dense 3D mapping.
 
 In this work, we propose a novel algorithm for efficient real-time 3D
 reconstruction on mobile devices with onboard depth sensors. We show that even
-with a low-powered mobile device with severe limitations on memory usage, 
+with a low-powered mobile device with severe limitations on memory usage,
 processing power, and graphics capabilities, relatively high-quality,
 large-scale real-time 3D reconstruction is feasible.
 
@@ -175,16 +181,25 @@ large-scale real-time 3D reconstruction is feasible.
 %     directly to store colors. We copy the method of \cite{Bylow2013} to colorize
 %     our meshes due to the simplicity and speed of the method.
 % \end{itemize}
-Real-time mapping has long been a research topic in robotics and computer
-vision. One of the simplest means of 3D reconstruction is to simply store a
-\emph{Point Cloud} of the scene. This is done by projecting depth images into
-the scene as points, and then aligning point clouds to the existing scene.
-While simple, point clouds fail to capture local scene structure, are highly
-redundant, noisy, and memory intensive. Additionally, point clouds fail to
-capture \emph{negative} information about the scene : \emph{i.e}, determining
-which parts of the scene are empty. This information is crucial in situations
-where the sensor is noisy, or has large patches of missing data
-\cite{Klingensmith2014}.
+Real-time mapping and localization has long been a research topic in robotics
+and computer vision. Mapping paradigms generally fall into one of two
+categories: landmark-based (or \emph{sparse}) mapping, and high-resolution
+\emph{dense} mapping. The distinction between the two is that sparse mapping
+generates a metrically consistent map of landmarks based on key features in the
+environment, while dense mapping globally registers all sensor data into a
+high-resolution data structure. In this work, we are concerned primarily with
+dense mapping, as at least some components of dense mapping are needed for high
+quality 3D reconstruction. 
+
+One of the simplest means of dense 3D reconstruction is to  store a \emph{Point
+Cloud} of the scene. This is done by projecting depth images into the scene as
+points, and then aligning point clouds to the existing scene; this is done
+either through a local pairwise registrion procedure, or a global optimization
+procedure. While simple, point clouds fail to capture local scene structure, are highly 
+redundant, noisy, and memory intensive.  Additionally, point clouds fail to
+capture \emph{negative} information about the scene :  \emph{i.e}, determining
+which parts of the scene are empty.  This information is crucial in situations
+where the sensor is noisy, or has large patches of missing data \cite{Klingensmith2014}.
 
 Elfes \cite{Elfes1989} introduced the concept of \emph{Occupancy Grid
 Mapping}, which divides the world into a 2D grid of axis-aligned cells
@@ -222,15 +237,15 @@ implicit surface normals can be extracted from the gradient of the function,
 allowing for a higher quality reconstruction.
 
 The \emph{Kinect Fusion} \cite{Newcombe} algorithm uses a TSDF to
-simultanesously extract the pose of a moving depth camera and the geometry of a scene in real-time. Kinect
-Fusion solves the real-time 3D reconstruction problem by using incremental
-estimates of the TSDF to inform the pose of the camera. Making heavy use of the
-GPU for raycasting and rendering, Kinect Fusion is capable of creating extremely
-high-quality, high-resolution surface reconstructions within a small area.
-However, like occupancy grid mapping, the algorithm relies on a single
-fixed-size 3D grid of voxels, and thus is not suitable for reconstructing very
-large scenes. Fusion also suffers from pose drift as small localization errors
-accumulate.
+simultanesously extract the pose of a moving depth camera and the geometry of a
+scene in real-time. Kinect Fusion solves the real-time 3D reconstruction problem
+by using incremental estimates of the TSDF to inform the pose of the camera.
+Making heavy use of the GPU for raycasting and rendering, Kinect Fusion is
+capable of creating extremely high-quality, high-resolution surface 
+reconstructions within a small area. However, like occupancy grid mapping, the
+algorithm relies on a single fixed-size 3D grid of voxels, and thus is not
+suitable for reconstructing very large scenes. Fusion also suffers from pose
+drift as small localization errors accumulate.
 
 The \emph{Kintinuous} \cite{Whelan2013} algorithm extends Kinect Fusion to
 larger scenes by storing only a time-limited moving window of the TSDF. As the camera
@@ -240,16 +255,36 @@ computing to create its reconstruction.  By prematurely turning the TSDF into an
 explicit surface mesh, Kintinuous throws away past data -- and thus the user
 cannot return to an area that was previously explored and update the TSDF there.
 
-Our approach uses a TSDF as in
-\cite{Curless1996,Newcombe,Whelan2013,Bylow2013}, to store an
-estimate of the signed distance field of the scene. Unlike Kinect Fusion, and like Kintinuous,
-we store a dynamic representation of the TSDF which grows in size as the sensor
-travels through space. Unlike Kintinuous, we do not prematurely throw away
-distance function data by converting it into a mesh -- instead, we turn small
-areas of the scene into meshes for the purpose of rendering, and preserve the
-underlying distance field data. In this way, we extend the TSDF surface
-reconstruction paradigm to very large scenes when only very limited compute
-power is available.
+Our approach uses a TSDF as in\cite{Curless1996,Newcombe,Whelan2013,Bylow2013},
+to store an estimate of the signed distance field of the scene. Unlike Kinect
+Fusion, and like Kintinuous, we store a dynamic representation of the TSDF
+which grows in size as the sensor travels through space. Unlike Kintinuous, we
+do not prematurely throw away distance function data by converting it into a
+mesh -- instead, we turn small areas of the scene into meshes for the purpose
+of rendering, while preserving the underlying distance field data. In this way,
+we extend the TSDF surface reconstruction paradigm to very large scenes when only
+very limited compute power is available.
+
+Because mobile phones typically have access only to 2D cameras, previous works
+on dense reconstruction for mobile phones have gone to great lengths to extract
+depth from a series of registered monocular camera images.  Early works on
+real-time reconstruction and navigation on mobile devices relies on a spase
+mapping, \cite{KleinSparse}, and is unable to produce dense 3D surface
+reconstructions.  A recent algorithm by Tanskanen \emph{et. al.}
+\cite{TanskanenMetric} generates impressive 3D reconstructions of small scenes
+by means of monocular stereo computation and keypoint tracking. However,
+because they \cite{TanskanenMetric} must intensively compute a depth map at
+each frame by stereo, each frame capture still takes a few seconds, and only a
+point cloud is stored. Another work by Newcombe \emph{et. al.}, \textit{Dense
+Tracking and} Mapping (DTAM) \cite{DTAM},  creates extremely high quality,
+dense 3D reconstructions of scenes in real time using only a monocular camera
+-- while the camera is attached to a high-performance desktop computer. 
+
+It should be noted that since our work focuses on mobile devices with depth
+cameras attached, such as the Google \emph{Tango} devices \cite{Tango}, we
+luckily do not need to perform costly monocular stereo as a pre-requisite to
+dense reconstruction. This allows us to save our memory and CPU buget for the
+3D reconstruction itself.
 
 \section{Approach} 
 % \begin{itemize}
@@ -294,17 +329,17 @@ a discrete map containing sensed distances from the scene to the image plane.
 Consider an ideal pinhole camera model of the depth sensor. We can cast a ray
 from the sensor origin through the image plane to surfaces in the world. The
 length of that ray is the resulting depth at that point in the image plane. Call
-the point on the image plane that the ray intersects $u$. The length of the ray
-through $u$ to the scene is given by $z_u$. 
+the point on the image plane that the ray intersects $p$. The length of the ray
+through $p$ to the scene is given by $z_p$. 
 
 The depth image may be corrupted by noise, feature nonlinear distortions, and
 have large segments of missing data. Our noise model of the sensor will consider
 Gaussian noise on the depth, and per-pixel quadratic distortion. Call the depth
- measurement at $u$ the random variable $D_u$. Then,
+ measurement at $p$ the random variable $D_p$. Then,
  
- $$ D_u = z_u + a_u{z_u}^2 + b_u z_u + c_u + \epsilon(z_u)$$
+ $$ D_p = z_p + a_p{z_p}^2 + b_p z_p + c_p + \epsilon(z_p)$$
  
- \noindent where $a_u, b_u, c_u$ are coefficients of a quadratic depth
+ \noindent where $a_p, b_p, c_p$ are coefficients of a quadratic depth
  distortion model, and $\epsilon(z_u)$ is a random variable drawn from the
  parametric gaussin distribution function $\mathcal{N}(z_u, \sigma_{z_u})$. 
  That is, the distribution is mean-centered on $z_u$, and has a depth-dependant
@@ -501,15 +536,15 @@ depth ray also corresponds to a color in the RGB space. We integrate along the
 ray from $u \in [-\tau, \tau]$, and update the color:
 
 \begin{align*}
-C(x - ur) \gets \frac{C_{w_u} C(x - ur) + C_\alpha_u c}{C_{w_u}
-+C_{\alpha_u}}
+C(x - ur) \gets \frac{{C_w}_u C(x - ur) + {C_\alpha}_u c}{{C_w}_u}
++{C_\alpha}_u
 \\
 %
-C_{w_u} \gets w_u+ C_{\alpha_u}
+{C_w}_u \gets w_u+ {C_\alpha}_u
 \end{align*}
 
 \noindent where $c \in \mathbf{R}^3$ is the color of the ray in RGB space,
-$C_{\alpha_u}$ is a color weighting function, and $C_{w_u} = C_w(x - ur)$. In
+${C_\alpha}_u$ is a color weighting function, and $C_{w_u} = C_w(x - ur)$. In
 both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting function is
 proportional to the dot product of the ray's direction and an estimate of the
 surface normal. But since surface normal estimation is computationally
