@@ -966,20 +966,22 @@ paused. After mapping is complete, the user can save the map to disk.
 		 \label{fig:dragon_raycast}
 	 \end{subfigure} 
 	 	 \begin{subfigure}{1.0\columnwidth} \centering  
-		 \includegraphics[width=1.0\textwidth]{img/ScanTiming.pdf} 
+		 \includegraphics[width=1.0\textwidth]{img/dragon_closeup.png} 
 		 \caption{}
-		 \label{fig:timing}
+		 \label{fig:dragon_closeup}
 	 \end{subfigure} 
 	 \caption{Different depth scan integration techniques are compared. Fig.
 	 \ref{fig:dragon_color} shows the color image for reference. Fig.
 	 \ref{fig:dragon_projection_nocarve} shows voxel projection without space
 	 carving. Fig. \ref{fig:dragon_projection_carve} shows voxel projection with
 	 space carving, and Fig. \ref{fig:raycast_diagram} shows raycasting without
-	 space carving. During the scan, the user was looking mostly toward the
-	 ceiling, at the colorful dragon. Fig. \ref{fig:timing} shows scan timing for
-	 each of the methods as recorded on a desktop computer.}
+	 space carving. Fig. \ref{fig:dragon_closeup} is a closeup of a lantern
+	 in the scene; counter-clockwise from the top left: color image, projection
+	 mapping without space carving, projection mapping with space carving, and raycasting
+	 without space carving. During the scan, the user was looking mostly toward the
+	 ceiling, at the colorful dragon.}
 	 \label{fig:dragon}
- \end{figure}  
+ \end{figure}   
  
  
 We implemented both the raycasting and voxel projection modes of depth scan
@@ -1009,13 +1011,25 @@ the TSDF volume.
 
 \begin{figure}[t]
   \centering
-    \includegraphics[width=1.0\columnwidth]{img/memoryusage.pdf}
-      \caption{Total memory usage over time for the ``dragon'' dataset (Fig.
-      \ref{fig:dragon}). We compare our chunked approach to a naiive strategy
-      which simply allocates a monolithic block of volume memory for the entire
-      space needed. Memory is recorded for voxels of 3cm resolution, using both
-      surface and color data. Chunks are of $16x16x16$ voxels. This figure does
-      not account for the memory allocated for display meshes.}
+ \begin{subfigure}{1.0\columnwidth} \centering
+\includegraphics[width=1.0\textwidth]{img/timing_data.pdf}
+		 \caption{}
+		 \label{fig:timing}
+	 \end{subfigure} 
+ \begin{subfigure}{1.0\columnwidth} \centering
+\includegraphics[width=1.0\textwidth]{img/memoryusage.pdf}
+		 \caption{}
+		 \label{fig:memory_data}
+	 \end{subfigure}  
+      \caption{Depth scan iming and total memory usage over time for the
+      ``dragon'' dataset (Fig.\ref{fig:dragon}).Fig. \ref{fig:timing} shows scan
+      timing for
+each of the methods as recorded on a desktop computer. We compare our chunked
+      approach to a naiive strategy which simply allocates a monolithic block of
+      volume memory for the entire space needed (Fig. \ref{fig:memory_data}).
+      Memory is recorded for voxels of 3cm resolution, using both surface and
+      color data. Chunks are of $16x16x16$ voxels. This figure does not account
+      for the memory allocated for display meshes. }
   \label{fig:memory}
 \end{figure}
 
