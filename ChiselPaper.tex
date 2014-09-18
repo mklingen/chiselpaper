@@ -294,21 +294,21 @@ a discrete map containing sensed distances from the scene to the image plane.
 Consider an ideal pinhole camera model of the depth sensor. We can cast a ray
 from the sensor origin through the image plane to surfaces in the world. The
 length of that ray is the resulting depth at that point in the image plane. Call
-the point on the image plane that the ray intersects $u$. The length of the ray
-through $u$ to the scene is given by $z_u$. 
+the point on the image plane that the ray intersects $p$. The length of the ray
+through $p$ to the scene is given by $z_p$. 
 
 The depth image may be corrupted by noise, feature nonlinear distortions, and
 have large segments of missing data. Our noise model of the sensor will consider
 Gaussian noise on the depth, and per-pixel quadratic distortion. Call the depth
- measurement at $u$ the random variable $D_u$. Then,
+ measurement at $p$ the random variable $D_p$. Then,
  
- $$ D_u = z_u + a_u{z_u}^2 + b_u z_u + c_u + \epsilon(z_u)$$
+ $$ D_p = z_p + a_p{z_p}^2 + b_p z_p + c_p + \epsilon(z_p)$$
  
- \noindent where $a_u, b_u, c_u$ are coefficients of a quadratic depth
- distortion model, and $\epsilon(z_u)$ is a random variable drawn from the
- parametric gaussin distribution function $\mathcal{N}(z_u, \sigma_{z_u})$. 
- That is, the distribution is mean-centered on $z_u$, and has a depth-dependant
- standard deviation $\sigma_{z_u}$.
+ \noindent where $a_p, b_p, c_p$ are coefficients of a quadratic depth
+ distortion model, and $\epsilon(z_p)$ is a random variable drawn from the
+ parametric gaussin distribution function $\mathcal{N}(z_p, \sigma_{z_p})$. 
+ That is, the distribution is mean-centered on $z_p$, and has a depth-dependant
+ standard deviation $\sigma_{z_p}$.
  
  We found that, on our devices, the nonlinear distortion was very severe. At a
 distance of 3 meters, the reading could be distorted by as much as 30
@@ -649,19 +649,20 @@ and then use a rasterization algorithm \textbf{TODO: CITE RASTERIZATION
 ALGORITHM USED} to determine which voxels intersect with the ray. We will call
 this the \textit{Raycasting} approach. However, this approach is extremely
 computationally expensive, having a performance bound by 
-$\mathcal{O}(N_{\text{ray}} \times \mathcal(l)_{\text{ray}})$, where 
+$\mathcal{O}(N_{\text{ray}} \times l_{\text{ray}})$, where 
 $(N_{\text{ray}}$ is the number of rays ina  scan, and
-$\mathcal(l)_{\text{ray}}$  is  proportional to the length of a ray being
+$l_{\text{ray}}$  is  proportional to the length of a ray being
 integrated. If we use a fixed-size truncation distance and do not perform  space
-carving, $\mathcal(l)_{\text{ray}} = \tau$. However, with space-carving, the
+carving, $l_{\text{ray}} = \tau$. However, with space-carving, the
 length of a ray being integrated is potentially unbounded.
 
-A well-known approximation of raycasting in the literature is that of projection
-mapping. Used in \cite{Bylow2013, Klingensmith2014}, projection mapping works by
-projecting points in the voxel grid onto the depth image and comparing the depth
-value there with the geometric distance from the center of the voxel to the
-camera plane, and using that to approximate the distance along the ray from the
-camera to the voxel.
+A useful approximation of raycasting is called \textit{projection mapping}. Used
+in \cite{Bylow2013, Klingensmith2014}, projection mapping works by projecting
+points in the voxel grid onto the depth image to approximate the length of rays
+emenating from the camera. This is analagous in many ways to shadow mapping
+\cite{scherzer_2010a} in computer graphics, where raycasting of shadow volumes
+is approximated by reprojecting scene pixels onto a virtual depth image
+representing distances from the scene to a light.
 
 For each voxel in a chunk that is to be updated, we take its center $v_c$, and
 project it onto the depth image using the camera intrinsics and a pinhole camera
