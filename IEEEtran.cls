@@ -4642,8 +4642,8 @@ between column types.}%
 
 
 % need a backslash character for typeout output
-{\catcode`\|=0 \catcode`\\=12
-|xdef|@IEEEbackslash{\}}
+%{\catcode`\|=0 \catcode`\\=12
+%|xdef|@IEEEbackslash{\}}}  
 
 
 % hook to allow easy disabling of all legacy warnings

@@ -1,0 +1,14 @@
+#TeXlipse project settings
+#Sat Sep 06 17:24:14 EDT 2014
+markTmpDer=true
+builderNum=2
+outputDir=
+makeIndSty=
+bibrefDir=
+outputFormat=pdf
+tempDir=tmp
+mainTexFile=ChiselPaper.tex
+outputFile=ChiselPaper.pdf
+langSpell=en
+markDer=true
+srcDir=
