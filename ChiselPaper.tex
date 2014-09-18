@@ -322,6 +322,7 @@ dense reconstruction. This allows us to save our memory and CPU buget for the
 %     capability.
 % \end{itemize}
 \subsection{Depth Data and Noise Model}
+\label{subsection:calibration}
 We begin by considering the data from the device. We will assume that the device
 has a depth sensor attached. The depth sensor produces a depth image, which is
 a discrete map containing sensed distances from the scene to the image plane.
@@ -340,17 +341,17 @@ Gaussian noise on the depth, and per-pixel quadratic distortion. Call the depth
  $$ D_p = z_p + a_p{z_p}^2 + b_p z_p + c_p + \epsilon(z_p)$$
  
  \noindent where $a_p, b_p, c_p$ are coefficients of a quadratic depth
- distortion model, and $\epsilon(z_u)$ is a random variable drawn from the
- parametric gaussin distribution function $\mathcal{N}(z_u, \sigma_{z_u})$. 
- That is, the distribution is mean-centered on $z_u$, and has a depth-dependant
- standard deviation $\sigma_{z_u}$.
+ distortion model, and $\epsilon(z_p)$ is a random variable drawn from the
+ parametric gaussin distribution function $\mathcal{N}(z_p, \sigma_{z_p})$. 
+ That is, the distribution is mean-centered on $z_p$, and has a depth-dependant
+ standard deviation $\sigma_{z_p}$.
  
- We found that, on our devices, the nonlinear distortion was very severe. At a
-distance of 3 meters, the reading could be distorted by as much as 30
-centimeters. To get an accurate reconstruction of the world, it is critical to
-correct for this distortion.
+ We found that on the \emph{Tango} \cite{Tango} devices, the nonlinear distortion
+ was very severe. At a distance of 3 meters, the reading could be distorted by as much as
+ 30 centimeters. To get an accurate reconstruction of the world, it is critical
+ to correct for this distortion.
  
- \begin{figure} \centering
+ \begin{figure}[t] \centering
 	 \begin{subfigure} {0.3\columnwidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/calibration_grey}
 		 \caption{}
@@ -377,9 +378,9 @@ correct for this distortion.
  against the predicted readings from the plane to find the per-pixel distortion
  coefficients. The coefficients are stored in a database for later use.
 
-The function $\sigma_{z_u}$ is computed in a similar way, by computing a
+The function $\sigma_{z_p}$ is computed in a similar way, by computing a
 histogram of standard deviations of the depth readings, and then performing
-quadratic regression on the result. A single function $\sigma_{z_u}$ is used for
+quadratic regression on the result. A single function $\sigma_{z_p}$ is used for
 the entire image, unlike the distortion model which is computed on a per-pixel
 basis.
 
@@ -388,29 +389,51 @@ distortion model to get an estimate of the true depth at each point on the
 image plane.
 
 \textbf{TODO: DESCRIBE THE ABOVE PROCEDURE IN MORE DETAIL. CITE IVAN'S WORK.
-FIGURES OF DATA? FIGURES OF THE PLANE?}
+FIGURES OF DATA? }
 
 \subsection{Pose Estimation}
 We will assume we have black-box pose estimation of the sensor from a seperate
 system. Specifically, in our experiments, pose data is estimated from an
 embedded visual-intertial odometry system that fuses data from a wide-angle camera, an
 intertial measurement unit, and a gyroscope at 60 Hz. \textbf{TODO: DESCRIBE
-THIS IN MORE DETAIL AND CITE SOME VIO RESEARCH}
+THIS IN MORE DETAIL AND CITE SOME VIO RESEARCH. LIKE THERE SHOULD BE A WHOLE
+SECTION ON THIS}
 
 Unlike \textit{Kinect Fusion} \cite{Newcombe} and \textit{Kintinuous}
-\cite{Whelan2013}, Our approach makes no attempt to estimate the pose of the
+\cite{Whelan2013}, our approach makes no attempt to estimate the pose of the
 sensor directly from depth data. Instead, we use depth data only for surface
-reconstruction.
+reconstruction. Unfortunately, decoupling the pose estimation and surface
+reconstruction results in failure to correct for drift in the pose estimation
+using depth data, and can result in mis-alignment of depth scans. \textbf{TODO:
+SHOW PICTURE OF THIS}
+
+\subsubsection{Pose Interpolation}
+We will assume that pose estimation, depth sensing, and color sensing are
+asynchronously executed, so we may not have all three measurements at a given
+time. To deal with asynchronous sensing and pose estimation, we linearly
+interpolate poses over time to determine the pose of a given sensor at any given time.
 
 Call the global pose estimate of the sensor at time $t$,  ${H_{s}}^t$.
 Additionally, assume we have apriori extrinsic pose estimates for the color
-sensor ${H_{c}}^t$ and the depth sensor ${H_{d}}^t$. We will assume that pose
-estimation, depth sensing, and color sensing are asynchronously executed, so we
-may not have all three measurements at a given time.
+sensor ${E_{c}}$ and the depth sensor ${E_{d}}$. We are given a discrete
+trajectory of pose estimates from the visual-inertial odometry system:
 
-To deal with asynchronous sensing and pose estimation, we linearly interpolate
-poses over time to determine the pose of a given sensor at any given time.
-\textbf{TODO: DESCRIBE THIS BIT IN DETAIL.}.
+$$ {H_{s}}^{t_1}, {H_{s}}^{t_2}, \ldots, {H_{s}}^{t_T} $$
+
+Suppose at time $t'$, we get a color image. Assume that $t'$ is not represented
+in the list of sensor body poses. Then, either $t' < t_1$,  $t' > t_T$, or
+$t_a < t < t_b'$ for some $a, b \in [1, T]$. In the first case ($t' < t_1$), we
+disregard the color image. In the second case ($t' > t_T$), we wait until more data is
+acquired. In the third case, we would interpolate the pose of the color camera
+as:
+
+$$ {H_{c}}^{t'} \approx E_c \cdot \textbf{Interp}\left(H_{s}^{t_a}, H_{s}^{t_b},
+\frac{t' - t_a}{t_b - t_a}\right) $$
+
+Where $\textbf{Interp}$ is a function that  interpolates between two
+poses by linearly interpolating translation while spherically interpolating
+rotation, using $\frac{t' - t_a}{t_b - t_a} \in [0, 1]$ as an interpolation
+parameter. 
 
 \subsection{The Signed Distance Function}
 We model the world as a volumetric function $\Phi(x) : \mathbf{R}^3 \to
@@ -462,13 +485,27 @@ $$ E[\Phi(x - ur)] \approx u P(\Phi(x) = 0) $$
 must be inferred from the probability model of the sensor.
 
 \begin{figure}[t]
-  \centering
-    \includegraphics[width=1.0\columnwidth]{img/Raycast}
-      \caption{A diagram of a ray hitting a surface from the camera, and a
-      voxel that the ray passes through. The length of the ray from the point at
-      which the ray intersects the voxel and the surface, $u$, is an
-      approximation of the signed distance function $\Phi$, when $u$ is small.}
+   \begin{subfigure}{1.0\columnwidth}
+     \centering
+         \includegraphics[width=1.0\textwidth]{img/Raycast}
+      \caption{}
   \label{fig:raycast_diagram}
+   \end{subfigure}
+      \begin{subfigure}{1.0\columnwidth}
+     \centering
+         \includegraphics[ width=1.0\textwidth]{img/tsdf_integration.pdf}
+         \caption{}
+  \label{fig:integration_diagram}
+   \end{subfigure}
+   \caption{(\ref{fig:raycast_diagram}A diagram of a ray hitting a surface from
+   the camera, and a voxel that the ray passes through. The length of the ray from the point at
+      which the ray intersects the voxel and the surface, $u$, is an
+      approximation of the signed distance function $\Phi$, when $u$ is small.
+      (\ref{fig:integration_diagram}) A hypotheticalplot of the hit probability
+      of a ray $P\left(z_p = \|x - u \cdot r\|\right) $, the pass probability $P\left(z_p
+      < \|x - u \cdot r\|\right)$, vs. $u$. The hit integration region is inside $[-\tau,
+      \tau]]$, wheras regions closer to the camera than $\tau + \epsilon$ are in
+      the space carving region (Section \ref{section:carving}). } 
 \end{figure}
 
 
@@ -478,7 +515,7 @@ Function which stores distances to the surface within a small truncation
 distance, $\tau$. That is:
 
 $$ \Phi_{\tau}(x) \begin{cases}
-	 = \Phi(x) & \text{if } |\Phi(x)| \leq \tau \\
+	 = \Phi(x) & \text{if } |\Phi(x)| \leq \tau \\ 
 	 \text{undefined} & \text{otherwise}
 	 \end{cases}
 $$
@@ -521,7 +558,8 @@ exponential, and constant approximations have been used \cite{Curless1996,
 Newcombe, Whelan2013, Bylow2013}. 
 
 In our work, we simply set $\alpha(u) = 1$, and use the probability distribution
-of the sensor instead to select the value of $\tau$.
+of the sensor instead to select the value of $\tau$ (Fig.
+\ref{fig:integration_diagram}).
 
 \subsection{Colorization}
 To create colored surface reconstructions, we use a method following Bylow et.
@@ -536,16 +574,18 @@ depth ray also corresponds to a color in the RGB space. We integrate along the
 ray from $u \in [-\tau, \tau]$, and update the color:
 
 \begin{align*}
-C(x - ur) \gets \frac{{C_w}_u C(x - ur) + {C_\alpha}_u c}{{C_w}_u}
-+{C_\alpha}_u
+C(x - ur) \gets \frac{w_c C(x - ur) + \alpha_c \mathbf{c}}{w_c}
++\alpha_c
 \\
 %
-{C_w}_u \gets w_u+ {C_\alpha}_u
+w_c \gets w_c + \alpha_c
 \end{align*}
 
-\noindent where $c \in \mathbf{R}^3$ is the color of the ray in RGB space,
-${C_\alpha}_u$ is a color weighting function, and $C_{w_u} = C_w(x - ur)$. In
-both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting function is
+\noindent where $\mathbf{c} \in \mathbf{R}^3$ is the color of the ray in RGB
+space, $\alpha_c$ is a color weighting function, and $w_c = W_c(x -
+ur)$.
+
+In both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting function is
 proportional to the dot product of the ray's direction and an estimate of the
 surface normal. But since surface normal estimation is computationally
 expensive, we instead use the same weight for both distance and color.
@@ -575,6 +615,7 @@ to the sensor, where depth measurments are more certain and closer together, the
 truncation distance is smaller.
 
 \subsection{Space Carving}
+\label{section:carving}
 When depth data is highly noisy and sparse, the relative importance of negative
 data (that is, information about what parts of the space do not contain an
 obstacle) increases over positive data \cite{Klingensmith2014}. This is because
@@ -586,7 +627,8 @@ values of the distance field.
 
 For this reason, we augment our TSDF algorithm with a \textit{space carving}
 constraint. Along each ray from $u \in [0, \tau - \epsilon]$ (where $\epsilon$
-is a small value that prevents carving of space near surfaces), we set:
+is a small value that prevents carving of space near surfaces) called the space
+carving region (Fig. \ref{fig:integration_diagram}), we set:
 
 \begin{align*}
 \Phi_{\tau}(x - ur) \gets \text{undefined}
@@ -622,9 +664,9 @@ incredibly memory intensive. The amount of memory storage required grows as
 $\mathcal{O}(N^3)$, where $N$ is the number of voxels per side of the 3D voxel
 array.
 
-For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube would
-occupy 4 Gigabytes of memory. Worse, most of that memory would be uselessly
-storing unseen free space. Further, if we plan on exploring larger and larger
+For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube with
+color would occupy 8 Gigabytes of memory. Worse, most of that memory would be
+uselessly storing unseen free space. Further, if we plan on exploring larger and larger
 distances using the mobile sensor, the size of the TSDF array must grow if we
 don't plan on allocating enough memory for the entire space to be explored.
 
@@ -658,10 +700,21 @@ Instead of using an Octree, or a fixed 3D array (as in \cite{Newcombe,
 Whelan2013}), we use a hybrid data structure which maintains some of the
 advantages of both. 
 
+\begin{figure}[t]
+  \centering
+    \includegraphics[width=0.95\columnwidth]{img/chunks.pdf}
+      \caption{Chunks of voxels (grey) are alocated near the surface (blue) of
+      the scene. Chunks are spatially hashed into a dynamic hash map. Lookups
+      into the hashmap are constant time. Within each chunk, voxels are
+      allocated in a 3D array.}
+  \label{fig:chunks} 
+\end{figure} 
+
 We divide the world into a two-level tree. In the first level we have
-\emph{chunks} of voxels. Each chunk consists of a fixed grid of $N_c^3$ voxels,
-which are stored in a flat 3D array. Chunks are allocated dynamically from a
-growing pool of heap memory as data is added, and are indexed in a hash map.
+\emph{chunks} of voxels (Figure \ref{fig:chunks}). Each chunk consists of a
+fixed grid of $N_c^3$ voxels, which are stored in a flat 3D array. Chunks are
+allocated dynamically from a growing pool of heap memory as data is added, and
+are indexed in a hash map.
 
 Since chunks are a fixed size, querying data from the chunked TSDF involves
 rounding (or bit-shifing, if $N_c^3$ is a power of two) a world coordinate to a
@@ -675,6 +728,7 @@ we only allocate volumetric data near isosurfaces of objects, and do not waste
 memory on empty space.
 
 \subsection{Depth Scan Integration}
+\label{section:scan_integration}
 To perform the process described in Eqn. \ref{eqn:update}, it is necessary
 to consider each ray in each depth scan and upate each voxel
 along the ray according to its distance to an observed isosurface.
@@ -691,30 +745,47 @@ integrated. If we use a fixed-size truncation distance and do not perform  space
 carving, $\mathcal(l)_{\text{ray}} = \tau$. However, with space-carving, the
 length of a ray being integrated is potentially unbounded.
 
-A well-known approximation of raycasting in the literature is that of projection
-mapping. Used in \cite{Bylow2013, Klingensmith2014}, projection mapping works by
-projecting points in the voxel grid onto the depth image and comparing the depth
-value there with the geometric distance from the center of the voxel to the
-camera plane, and using that to approximate the distance along the ray from the
-camera to the voxel.
+A useful approximation of raycasting is \textit{projection mapping.}. Used in
+\cite{Bylow2013, Klingensmith2014}, projection mapping works by projecting
+points in the voxel grid onto the depth image and comparing the depth value
+there with the geometric distance from the center of the voxel to the camera
+plane, and using that to approximate the distance along the ray from the camera
+to the voxel. This is analagous to \textit{shadow mapping} \cite{Shadowmapping}
+from computer graphics, where raycast shadows are approximated by projecting
+onto a depth map from the perspective of the light source, except in our case, 
+``shadows'' are regions occluded from the depth sensor.  
+
+\begin{figure}[t]
+  \centering
+    \includegraphics[width=0.95\columnwidth]{img/projection_mapping}
+      \caption{A cutaway of a chunk containing an object is shown. In projection
+      mapping,  a particular voxel with center $v_c$ is projected onto the depth
+      camera at time $t$. The depth image is binlinearly interpolated to get
+      $z_p$, a depth reading at the projected point. This is compared to the length of the vector
+      from the voxel center $v_c$ to the camera origin $o_t$ to approximate the
+      distance to the surface. This is repeated for every voxel in the chunk.}
+  \label{fig:projection_mapping} 
+\end{figure} 
+
 
 For each voxel in a chunk that is to be updated, we take its center $v_c$, and
 project it onto the depth image using the camera intrinsics and a pinhole camera
-model, yielding an image point $[u, v]$. We then use bilinear interpolation of
-the depth values to find an expected depth reading $z_v$. Call origin of the
-sensor  $o_t$,  then the distance from the sensor to the voxel is $\|o_t -
-v_c\|$. 
+model. We then use bilinear interpolation of the depth values to find an
+expected depth reading $z_p$. Call origin of the sensor  $o_t$,   then the
+distance from the sensor to the voxel is $\|o_t - v_c\|$ (Fig. \ref{fig:projection_mapping}).
 
 Now, if the isosurface passes directly through the center of the voxel,
-then we should expect that $z_v = \|o_t - v_c\|$, and, in particular, the
-distance along the ray to the isosurface is approximated by $u' = z_v - \|o_t -
-v_c\|$. We use this value to update the voxel according to Eqn.
-\ref{eqn:update}.
+then we should expect that $z_p = \|o_t - v_c\|$, and, in particular, the
+distance along the ray to the isosurface is approximated by $u' = z_p - \|o_t -
+v_c\|$ to update the voxel according to Eqn. \ref{eqn:update}.
 
 Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
 the number of voxels affected by a depth scan. This value is nearly constant
 over time, and depending on the resolution of the TSDF, may be significantly
-less than the number of points.
+less than the number of points. When using space carving (Section
+\ref{section:carving}), raycasting has an additional performance hit bounded by
+the length of the rays, wheras projection mapping does not suffer from this
+performance hit.
 
 However, projection mapping suffers from resolution-dependant aliasing errors,
 because the value of $u'$ taken from projection mapping may differ from the true
@@ -725,9 +796,6 @@ lost in the projection mapping case. This can be mitigated somewhat by
 inside each voxel) and taking the average projected depth over all the samples
 -- but the speed of the approach decreases linearly with the number of
 additional samples taken.
-
-In this work, we consider both the raycasting approach and the projection
-mapping approach and compare their strengths and weaknesses.
 
 \subsection{Frustum Culling and Garbage Collection}
 To determine which chunks should be updated by a depth scan, and which chunks
@@ -814,18 +882,229 @@ camera functions as a global map of where the user has been (Figure
 At any time, the user can save the volumetric representation of the TSDF, or a
 surface mesh generated by marching cubes to disk.
 
-\section{Results}
-\begin{itemize}
-    \item We are able to reconstruct very large areas at a relatively high (3
-    cm) resolution on a mobile device.
-    \item We have a limited memory footprint, and each frame is processed on
-    the CPU in less than 150 ms.
-    \item Show comparisons of different parts of our technique being used
-    (voxel carving vs. not, projection vs. raycasting) in terms of speed, memory
-    efficiency, and so on. Also show pictures.
-    \item Show the difference between merely doing online odometry vs. offline
-    bundle adjustment
-\end{itemize}
+\section{Experiments and Results}
+\begin{figure}[t]
+  \centering
+    \includegraphics[width=1.0\columnwidth]{img/devices}
+      \caption{The \textit{Tango}\cite{Tango} ``peanut'' phone (left), and
+      ``yellowstone" tablet (right).}
+  \label{fig:devices}
+\end{figure}
+
+\subsection{Hardware}
+We implemented our approach on two devices: a \textit{Tango}
+``yellowstone" tablet device, and a \textit{Tango} ``peanut'' mobile phone
+device (Figure \ref{fig:devices}). The phone device has 2GB of RAM, a quadcore
+CPU, a six-axis gyroscope and accelerometer, a wide-angle $120^\circ$ field of
+view tracking camera which refreshes at 60Hz, a projective depth sensor which
+refreshes at 6Hz, and a 4 megapixel color sensor which refreshes at 30Hz. The
+tablet device has 4GB of ram, a quadcore CPU, an Nvidia Tegra K1 graphics card,
+an identical tracking camera to the phone device, a projective depth sensor
+which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
+Devices were depth calibrated \ref{subsection:calibration} prior to testing.
+
+\subsection{Large Scale Online Mapping}
+ \begin{figure}[t] \centering
+	 \begin{subfigure} {0.75\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/colorbalance3}
+		 \caption{}
+		 \label{fig:overhead_night}
+	 \end{subfigure}
+	 \begin{subfigure}{0.75\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/colorbalance2}
+		 \caption{}
+		 \label{fig:night2}
+	 \end{subfigure}
+	 	 \begin{subfigure}{0.75\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/colorbalance1} 
+		 \caption{}
+		 \label{fig:night3}
+	 \end{subfigure} 
+	 \caption{An outdoor scene captured at night with the yellowstone device at a
+	 resolution of 3 cm. Figure \ref{fig:overhead_night} shows an overhead view of
+	 the scene. The yellow pyramid represents the depth camera frustum. The white
+	 lines are the aggregate trajectory of the device. Figures \ref{fig:night2}
+	 and \ref{fig:night3} show closeups of the scene taken live from the device.
+	 The scene was captured using projection mapping (Sec.
+	 \ref{section:scan_integration}), without space
+	 carving (Sec. \ref{section:carving})}
+	 \label{fig:outside}
+ \end{figure} 
+
+Using our algorithm, we are able to create and display large scale maps at a
+resolution as small as 3cm in real-time using only visual-intertial odometry for pose
+estimation. Figure \ref{fig:map_device} shows a map of an office building floor
+being reconstructed in real-time using the phone device. This scenario is also
+shown in an attached video \cite{TangoVideo}. Using the tablet device, we have
+reconstructed (nightime) outdoor scenes in real-time (Figure \ref{fig:outside}).
+
+In the course of online mapping, the user has immediate feedback on model
+completness, and can pause mapping for live inspection. The system continues
+localizing the device using visual-intertial odometry even when the mapping is
+paused. After mapping is complete, the user can save the map to disk.
+ 
+\subsection{Comparing Depth Scan Integration Algorithms} 
+  \begin{figure}[t] \centering
+	 \begin{subfigure} {0.475\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
+		 \caption{}
+		 \label{fig:dragon_color}
+	 \end{subfigure}
+	 \begin{subfigure}{0.475\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/dragon_projection_nocarve.png}
+		 \caption{}
+		 \label{fig:dragon_projection_nocarve}
+	 \end{subfigure}
+	 \begin{subfigure}{0.475\columnwidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/dragon_projection_carve.png} 
+		 \caption{}
+		 \label{fig:dragon_projection_carve}  
+	 \end{subfigure} 
+	 \begin{subfigure}{0.475\columnwidth} \centering  
+		 \includegraphics[width=1.0\textwidth]{img/dragon_raycast.png} 
+		 \caption{}
+		 \label{fig:dragon_raycast}
+	 \end{subfigure} 
+	 	 \begin{subfigure}{1.0\columnwidth} \centering  
+		 \includegraphics[width=1.0\textwidth]{img/ScanTiming.pdf} 
+		 \caption{}
+		 \label{fig:timing}
+	 \end{subfigure} 
+	 \caption{Different depth scan integration techniques are compared. Fig.
+	 \ref{fig:dragon_color} shows the color image for reference. Fig.
+	 \ref{fig:dragon_projection_nocarve} shows voxel projection without space
+	 carving. Fig. \ref{fig:dragon_projection_carve} shows voxel projection with
+	 space carving, and Fig. \ref{fig:raycast_diagram} shows raycasting without
+	 space carving. During the scan, the user was looking mostly toward the
+	 ceiling, at the colorful dragon. Fig. \ref{fig:timing} shows scan timing for
+	 each of the methods as recorded on a desktop computer.}
+	 \label{fig:dragon}
+ \end{figure}  
+ 
+ 
+We implemented both the raycasting and voxel projection modes of depth scan
+integration (Sec. \ref{section:scan_integration}), and compared them in terms of
+speed and quality. We found that projection mapping was far more efficient than
+raycasting when space carving was used (Fig. \ref{fig:timing}). However,
+projection mapping results undesirable aliasing artifacts
+(Fig. \ref{fig:dragon_projection_nocarve}), especially on surfaces nearly
+parallel with the camera's visual axis. Aditionally, color consistency suffers
+with projection carving, because rather than color being averaged by all the
+rays passing through each voxel, only a single color is used for each projected
+voxel center. The use of space carving drastically reduces noise artifacts,
+especially around the silhouettes of objects
+(\ref{fig:dragon_projection_carve}). We note that using both space carving
+\emph{and} raycasting is not fast enough for real-time mapping on the device
+using our approach.
+
+\subsection{Memory Usage}
+We additionally compared memory usage statistics of our chunked approach to a
+naiive approach which allocates a single block of memory for the entire volume
+explored (Fig. \ref{fig:memory}). As the size of the space explored increases, 
+our approach uses an order of magnitude less memory than the naiive approach.
+This is because the majority of the space explored contains no surfaces. Notice
+that on the phone device, the naiive approach would quickly use all of the
+device's 2GB of RAM, wheras our approach allocates less than 100 MB of RAM for
+the TSDF volume. 
+
+\begin{figure}[t]
+  \centering
+    \includegraphics[width=1.0\columnwidth]{img/memoryusage.pdf}
+      \caption{Total memory usage over time for the ``dragon'' dataset (Fig.
+      \ref{fig:dragon}). We compare our chunked approach to a naiive strategy
+      which simply allocates a monolithic block of volume memory for the entire
+      space needed. Memory is recorded for voxels of 3cm resolution, using both
+      surface and color data. Chunks are of $16x16x16$ voxels. This figure does
+      not account for the memory allocated for display meshes.}
+  \label{fig:memory}
+\end{figure}
+
+
+\subsection{Limitations due to Odometry Drift}
+Since we do not update pose using depth data, odometry pose drift severely
+corrupts the map, especially when the same area is repeatedly scanned . We
+compare the map produced online using visual-inertial odometry to one produced
+offline by first correcting the pose of the camera using bundle adjustment (a
+process which takes several hours) to show the effect of drift  (Figure
+\ref{fig:bundleadjust}). Double walls, accidentally carved space, and other
+artifacts result when drift is present. Clearly, this limitation presents the
+need for dense loop closure and alignment. High quality meshes produced using
+offline bundle adjustment for pose estimates are shown in figure
+(\ref{fig:apartment}).
+
+  \begin{figure}[t] \centering
+	 \begin{subfigure} {0.49\columnwidth} \centering
+		 \includegraphics[width=1\textwidth]{img/gameroom_vio.png}  
+		 \caption{}
+		 \label{fig:gameroom_vio}
+	 \end{subfigure}
+	 \begin{subfigure}{0.49\columnwidth} \centering
+		 \includegraphics[width=1\textwidth]{img/gameroom_bundleadjust.png}
+		 \caption{}
+		 \label{fig:gameroom_bundleadjust}
+	 \end{subfigure}
+	 \caption{The phone device was used to scan a midsized room by walking in a
+	 loop around the room three times. A top down view is shown. Meshes are colored
+	 with respect to their height; the floor is orange and objects green. Drift
+	 from visual-inertial odometry causes severe corruption and artifacts in the 
+	 TSDF (\ref{fig:gameroom_vio}). By pre-processing the trajectory offline using
+	 bundle adjustment, we can produce a much higher quality mesh using the same
+	 dataset (\ref{fig:gameroom_bundleadjust}). Meshes are produced using
+	 raycasting and space carving. }
+	 \label{fig:bundleadjust}
+ \end{figure}  
+ 
+   \begin{figure}[t] \centering
+	 \begin{subfigure} {0.49\columnwidth} \centering
+		 \includegraphics[width=1\textwidth]{img/apartment_scene_nocolor.png}  
+		 \caption{}
+		 \label{fig:aparment_nocolor}
+	 \end{subfigure}
+	 \begin{subfigure}{0.49\columnwidth} \centering
+		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
+		 \caption{}
+		 \label{fig:apartment_color}
+	 \end{subfigure}
+	 \begin{subfigure} {0.49\columnwidth} \centering
+		 \includegraphics[width=1\textwidth]{img/apartment_scene_topdown_nocolor.png}
+		 \caption{}
+		 \label{apartment_scene_topdown_nocolor}
+	 \end{subfigure}
+	 \begin{subfigure}{0.49\columnwidth} \centering
+		 \includegraphics[width=1\textwidth]{img/apartment_scene_topdown_color.png}
+		 \caption{}
+		 \label{fig:apartment_scene_topdown_color}
+	 \end{subfigure}
+	 \begin{subfigure} {0.49\columnwidth} \centering
+		 \includegraphics[width=1\textwidth]{img/apartment_scene_closeup_nocolor.png}  
+		 \caption{}
+		 \label{apartment_scene_topdown_nocolor}
+	 \end{subfigure}
+	 \begin{subfigure}{0.49\columnwidth} \centering
+		 \includegraphics[width=1\textwidth]{img/apartment_scene_closeup_color.png}
+		 \caption{}
+		 \label{fig:apartment_scene_closeup_color}
+	 \end{subfigure}
+	 \caption{Several views of an apartment scene are shown without and with
+	 color. These meshes were produced using the tablet device using space
+	 carving, raycasting, and an offline bundle adjustment procedure to correct
+	 for pose drift.}
+	 \label{fig:apartment}
+ \end{figure}  
+ 
+
+
+% \begin{itemize}
+%     \item We are able to reconstruct very large areas at a relatively high (3
+%     cm) resolution on a mobile device.
+%     \item We have a limited memory footprint, and each frame is processed on
+%     the CPU in less than 150 ms.
+%     \item Show comparisons of different parts of our technique being used
+%     (voxel carving vs. not, projection vs. raycasting) in terms of speed, memory
+%     efficiency, and so on. Also show pictures.
+%     \item Show the difference between merely doing online odometry vs. offline
+%     bundle adjustment
+% \end{itemize}
 
 \section{Discussion and Future Work}
 \begin{itemize}
