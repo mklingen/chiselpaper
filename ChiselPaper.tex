@@ -50,9 +50,8 @@ urlcolor=mylink,
 \usepackage[font=footnotesize]{caption}
 \usepackage{subcaption}
 
-\title{\Large Real-time Surface Reconstruction on a Mobile Device \\
-using Chunked Truncated Signed Distance Fields}
-
+\title{\Large Chisel: Real-time Dense Reconstruction on a Mobile Device \\
+using Spatially Hashed Truncated Signed Distance Fields}
 
 \newcommand{\fix}{\marginpar{FIX}}
 \newcommand{\new}{\marginpar{NEW}}
@@ -79,13 +78,26 @@ using Chunked Truncated Signed Distance Fields}
   \centering
     \includegraphics[width=1.0\columnwidth]{img/mapdevice}
       \caption{Our algorithm recording a map of an office building floor on a mobile
-  device in real time, at a resolution of 3cm.}
+  device in real time, at a resolution of 3cm. A video of our approach running
+  in real time can be found here: \cite{TangoVideo}.}
   \label{fig:map_device}
 \end{figure}
 
 
 \begin{abstract}
-Abstract here
+Google's project \textit{Tango}\cite{Tango} has made depth sensing available to
+mobile devices such as phones and tablets. Because these devices have limited
+computing power, memory, and graphics capabilities, doing real-time 3D
+reconstruction with them remains challenging. Existing approaches are either too
+inefficient for use on mobile devices, or only consider sparse reconstructions.
+We propose an efficient method of real-time dense 3D reconstruction using
+chunked, dynamic spatial hash maps \cite{SpatialHashing} of truncated signed distance volumes \cite{Curless1996}.
+We show that our method is able to reconstruct and render very large scenes in
+real time using only the phone's CPU and the fixed function graphics pipeline,
+with a minimal memory footprint in comparison to existing approaches. We
+provide both qualitative and quantitative results on publicly available RGB-D
+datasets \cite{FREIBURG}, and on datasets collected in real-time from two
+devices.
 \end{abstract}
 
 \section{Introduction}
