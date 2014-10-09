@@ -1067,25 +1067,25 @@ using our approach.
 
 \subsection{Memory Usage}
 We additionally compared memory usage statistics of our chunked approach to a
-naiive approach which allocates a single block of memory for the entire volume
-explored (Fig. \ref{fig:memory}). As the size of the space explored increases, 
-our approach uses about a third as much memory as the naiive approach.
-This is because the majority of the space explored contains no surfaces. Notice
-that in Fig. \ref{fig:memory_data}, the naiive approach would quickly use all of the
-phone device's 2GB of RAM, wheras our approach never allocates more than 800MB
-of RAM for the entire scene. 
+naiive approach which allocates a single block of memory to tightly fit the
+entire volume explored (Fig. \ref{fig:memory}). As the size of the space
+explored increases, our approach uses about a tenth as much memory as the
+naiive approach. This is because the majority of the space explored contains no
+surfaces. Notice that in Fig. \ref{fig:memory_data}, the naiive approach uses
+nearly 300MB of RAM wheras our approach never allocates more than 47MB of RAM
+for the entire scene, which is a 15 meter long hallway.
 
 We tested our approach on the publicly available Freiburg RGB-D dataset
 \cite{FREIBURG}, which contains ground truth pose information from a motion
 capture system (Fig. \ref{fig:freiburg}). In the Freiburg office dataset, a
-\textit{Kinect} sensor makes a loop around a central desk scene. Memory usage statistics
-(Fig. \ref{fig:memory_data2}) reveal that when all of the depth data is used
-(including very far away data from the surrounding walls), a naiive fixed grid approach would use nearly 2GB
-of memory at a 2cm resolution, wheras our approach uses only around 700MB. When the depth frustum
-is cut off at 2 meters (mapping only the desk structure without the surrounding
-room), our approach uses only 50MB of memory, wheras the naiive approach would
-use nearly 300MB.
-
+\textit{Kinect} sensor makes a loop around a central desk scene. The room is
+roughly 12 by 12 meters in area.  Memory usage statistics (Fig.
+\ref{fig:memory_data2}) reveal that when all of the depth data is used
+(including very far away data from the surrounding walls), a naiive fixed grid
+approach would use nearly 2GB of memory at a 2cm resolution, wheras our
+approach uses only around 700MB. When the depth frustum is cut off at 2 meters
+(mapping only the desk structure without the surrounding room), our approach
+uses only 50MB of memory, wheras the naiive approach would use nearly 300MB.
 
 \subsection{Limitations due to Odometry Drift}
 Since we do not update pose using depth data, odometry pose drift severely 
