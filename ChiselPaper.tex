@@ -1089,7 +1089,7 @@ uses only 50MB of memory, wheras the naiive approach would use nearly 300MB.
 
 \subsection{Limitations due to Odometry Drift}
 Since we do not update pose using depth data, odometry pose drift severely 
-corrupts the map, especially when the same area is repeatedly scanned . We 
+corrupts the map, especially when the same area is repeatedly scanned . We  
 compare the map produced online using visual-inertial odometry to one produced
 offline by first correcting the pose of the camera using bundle adjustment (a
 process which takes several hours) to show the effect of drift  (Figure
