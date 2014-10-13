@@ -1157,7 +1157,7 @@ offline bundle adjustment for pose estimates are shown in figure
 	 \begin{subfigure} {0.49\columnwidth} \centering
 		 \includegraphics[width=1\textwidth]{img/apartment_scene_closeup_nocolor.png}  
 		 \caption{}
-		 \label{apartment_scene_topdown_nocolor}
+		 \label{apartment_scene_closeup_nocolor}
 	 \end{subfigure}
 	 \begin{subfigure}{0.49\columnwidth} \centering
 		 \includegraphics[width=1\textwidth]{img/apartment_scene_closeup_color.png}
@@ -1183,7 +1183,7 @@ offline bundle adjustment for pose estimates are shown in figure
 \section{Discussion and Future Work}
 Our approach is able to create and render large-scale 3D reconstructions of
 scenes in real-time using only the limited computational resources of a
-\texit{Tango} device. We accomplish this without any GPGPU computing, and use
+\textit{Tango} device. We accomplish this without any GPGPU computing, and use
 only the fixed function pipeline to render the scene. We do this out of
 necessity to meet the computing requirements of a mobile device.
 
@@ -1207,7 +1207,7 @@ future research would be in implementing the dynamic spatial hash map on the GPU
 in an efficient way. 
 
 Another area of potential research is in loop closure and pose estimation. Our
-approach is purely \texit[open-loop], taking in pose estimates from visual
+approach is purely \textit{open-loop}, taking in pose estimates from visual
 odometry as \textit{a prioi} ground truth. Reconstruction can probably be
 improved if dense 3D data is used to inform the pose estimator. More
 importantly, a means of dealing with global pose estimation using the dense
