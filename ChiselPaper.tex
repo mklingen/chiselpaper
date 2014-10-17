@@ -1,79 +1,122 @@
-%\documentclass{article} % For LaTeX2e
-\documentclass[conference,10pt]{IEEEtran}
-%\usepackage{nips14submit_e,times}
+% %\documentclass{article} % For LaTeX2e
+% \documentclass[conference,10pt]{IEEEtran}
+% %\usepackage{nips14submit_e,times}
+% 
+% \usepackage[sc]{mathpazo}
+% %\linespread{1.05}         % Palatino needs more leading (space between lines)
+% \usepackage[T1]{fontenc}
+% 
+% \usepackage{url}
+% %\documentstyle[nips13submit_09,times,art10]{article} % For LaTeX 2.09
+% 
+% \usepackage{hyperref}
+% \usepackage[usenames,dvipsnames]{color}
+% \definecolor{orange}{rgb}{0.8,0.4,0}
+% \definecolor{mylink}{RGB}{18,68,115}
+% \definecolor{darkgreen}{rgb}{0.3,0.6,0.3}
+% 
+% \usepackage{graphicx}
+% %\usepackage[footnotesize]{caption}
+% \usepackage[numbers,sort&compress]{natbib}
+% 
+% \hypersetup{letterpaper,bookmarksopen,bookmarksnumbered,
+% pdfpagemode=UseOutlines,
+% colorlinks=true,
+% linkcolor=mylink,
+% anchorcolor=blue,
+% citecolor=mylink,
+% filecolor=blue,
+% menucolor=blue,
+% urlcolor=mylink,
+% }
+% %\usepackage{multicol}
+%  
+% % Labels in IEEE format
+% % Equation
+% \newcommand{\eref}[1]{Eq.(\ref{#1})}
+% % Figure
+% \newcommand{\figref}[1]{Fig.\ref{#1}}
+% 
+% \usepackage{ifthen}
+% 
+% \newboolean{include-notes}
+% \setboolean{include-notes}{true}
+% % http://en.wikibooks.org/wiki/LaTeX/Colors
+% \newcommand{\ssnote}[1]{\ifthenelse{\boolean{include-notes}}%
+%  {\textcolor{orange}{\textbf{SS: #1}}}{}}
+% \newcommand{\adnote}[1]{\ifthenelse{\boolean{include-notes}}%
+%  {\textcolor{LimeGreen}{\textbf{AD: #1}}}{}}
+% 
+% \usepackage[font=footnotesize]{caption}
+% \usepackage{subcaption}
+% 
+% \title{\Large Chisel: Real-time Dense Reconstruction on a Mobile Device \\
+% using Spatially Hashed Truncated Signed Distance Fields \\
+% REVIEW COPY}
+% 
+% \newcommand{\fix}{\marginpar{FIX}}
+% \newcommand{\new}{\marginpar{NEW}}
+% 
+% %\nipsfinalcopy % Uncomment for camera-ready version
+% \usepackage{amsmath,amssymb,amsthm}
+% \begin{document}
+% 
+% \author
+% {
+% Authors omitted for review.
+% 	%Matthew Klingensmith \\
+% 	%Carnegie Mellon Robotics Institute\\
+% 	%\texttt{mklingen@andrew.cmu.edu}
+% 	%\and
+% 	%Ivan Dryanovski \\
+% 	%City College of New York\\
+% 	%\texttt{ivan.dryanovski@gmail.com}
+% }
+% 
+% 
+% \maketitle
+\documentclass[10pt,twocolumn,letterpaper]{article}
 
-\usepackage[sc]{mathpazo}
-%\linespread{1.05}         % Palatino needs more leading (space between lines)
-\usepackage[T1]{fontenc}
-
-\usepackage{url}
-%\documentstyle[nips13submit_09,times,art10]{article} % For LaTeX 2.09
-
-\usepackage{hyperref}
-\usepackage[usenames,dvipsnames]{color}
-\definecolor{orange}{rgb}{0.8,0.4,0}
-\definecolor{mylink}{RGB}{18,68,115}
-\definecolor{darkgreen}{rgb}{0.3,0.6,0.3}
-
+\usepackage{cvpr}
+\usepackage{times}
+\usepackage{epsfig}
 \usepackage{graphicx}
-%\usepackage[footnotesize]{caption}
-\usepackage[numbers,sort&compress]{natbib}
-
-\hypersetup{letterpaper,bookmarksopen,bookmarksnumbered,
-pdfpagemode=UseOutlines,
-colorlinks=true,
-linkcolor=mylink,
-anchorcolor=blue,
-citecolor=mylink,
-filecolor=blue,
-menucolor=blue,
-urlcolor=mylink,
-}
-%\usepackage{multicol}
- 
-% Labels in IEEE format
-% Equation
-\newcommand{\eref}[1]{Eq.(\ref{#1})}
-% Figure
-\newcommand{\figref}[1]{Fig.\ref{#1}}
-
-\usepackage{ifthen}
-
-\newboolean{include-notes}
-\setboolean{include-notes}{true}
-% http://en.wikibooks.org/wiki/LaTeX/Colors
-\newcommand{\ssnote}[1]{\ifthenelse{\boolean{include-notes}}%
- {\textcolor{orange}{\textbf{SS: #1}}}{}}
-\newcommand{\adnote}[1]{\ifthenelse{\boolean{include-notes}}%
- {\textcolor{LimeGreen}{\textbf{AD: #1}}}{}}
-
+\usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage[font=footnotesize]{caption}
-\usepackage{subcaption}
+\usepackage{subcaption} 
 
-\title{\Large Chisel: Real-time Dense Reconstruction on a Mobile Device \\
-using Spatially Hashed Truncated Signed Distance Fields}
+% Include other packages here, before hyperref.
 
-\newcommand{\fix}{\marginpar{FIX}}
-\newcommand{\new}{\marginpar{NEW}}
+% If you comment hyperref and then uncomment it, you should delete
+% egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
 
-%\nipsfinalcopy % Uncomment for camera-ready version
-\usepackage{amsmath,amssymb,amsthm}
+ \cvprfinalcopy % *** Uncomment this line for the final submission
+
+\def\cvprPaperID{****} % *** Enter the CVPR Paper ID here
+\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
+
+% Pages are numbered in submission mode, and unnumbered in camera-ready
+\ifcvprfinal\pagestyle{empty}\fi
 \begin{document}
 
-\author
-{
-	Matthew Klingensmith \\
-	Carnegie Mellon Robotics Institute\\
-	\texttt{mklingen@andrew.cmu.edu}
-	\and
-	Ivan Dryanovski \\
-	City College of New York\\
-	\texttt{ivan.dryanovski@gmail.com}
+%%%%%%%%% TITLE
+\title{\Large Chisel: Real-time Dense Reconstruction on a Mobile Device \\
+ using Spatially Hashed Truncated Signed Distance Fields }
+\author{Matthew Klingensmith \\\
+Carnegie Mellon Robotics Institute\\
+Institution1 address\\
+{\tt\small mklingen@andrew.cmu.edu}
+\and
+Ivan Dryanovski \\
+City College of New York\\
+{\tt\small ivan.dryanovski@gmail.com}
 }
 
-
 \maketitle
-
+%\thispagestyle{empty}
 \begin{figure}
   \centering
     \includegraphics[width=1.0\columnwidth]{img/mapdevice}
@@ -1183,7 +1226,7 @@ offline bundle adjustment for pose estimates are shown in figure
 \section{Discussion and Future Work}
 Our approach is able to create and render large-scale 3D reconstructions of
 scenes in real-time using only the limited computational resources of a
-\texit{Tango} device. We accomplish this without any GPGPU computing, and use
+\textit{Tango} device. We accomplish this without any GPGPU computing, and use
 only the fixed function pipeline to render the scene. We do this out of
 necessity to meet the computing requirements of a mobile device.
 
@@ -1207,7 +1250,7 @@ future research would be in implementing the dynamic spatial hash map on the GPU
 in an efficient way. 
 
 Another area of potential research is in loop closure and pose estimation. Our
-approach is purely \texit[open-loop], taking in pose estimates from visual
+approach is purely \textit[open-loop], taking in pose estimates from visual
 odometry as \textit{a prioi} ground truth. Reconstruction can probably be
 improved if dense 3D data is used to inform the pose estimator. More
 importantly, a means of dealing with global pose estimation using the dense
