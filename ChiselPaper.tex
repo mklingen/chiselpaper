@@ -134,13 +134,13 @@ computing power, memory, and graphics capabilities, doing real-time 3D
 reconstruction with them remains challenging. Existing approaches are either too
 inefficient for use on mobile devices, or only consider sparse reconstructions.
 We propose an efficient method of real-time dense 3D reconstruction using
-chunked, dynamic spatial hash maps \cite{SpatialHashing} of truncated signed distance volumes \cite{Curless1996}.
-We show that our method is able to reconstruct and render very large scenes in
-real time using only the phone's CPU and the fixed function graphics pipeline,
-with a minimal memory footprint in comparison to existing approaches. We
-provide both qualitative and quantitative results on publicly available RGB-D
-datasets \cite{FREIBURG}, and on datasets collected in real-time from two
-devices.
+chunked, dynamic spatial hash maps \cite{SpatialHashing} of truncated signed
+distance volumes \cite{Curless1996}. We show that our method is able to
+reconstruct and render very large scenes in real time using only the phone's
+CPU and the fixed function graphics pipeline, with a minimal memory footprint
+in comparison to existing approaches. We provide both qualitative and
+quantitative results on publicly available RGB-D datasets \cite{FREIBURG}, and
+on datasets collected in real-time from two devices.
 \end{abstract}
 
 \section{Introduction}
@@ -567,20 +567,21 @@ w_u \gets w_u+ \alpha _u
 \end{subequations}
 
 \noindent Where  $w_u = W(x - ur)$, and $\alpha_u  = \alpha(u) : [-\tau,\tau]\to
-\mathbf{R} $ is a weighting function . Ideally, the weighting function should be
-determined by the probability distribution of the sensor, and should represent
-the probability that $\Phi(x - ur) = 0$. It is possible \cite{Nguyen2012} to
-directly compute the weight from the probability distribution of the
-sensor, and hence compute the actual \emph{expected} signed distance function.
-In favor of better performance, linear, exponential, and constant
-approximations of $\alpha_u$ can be used \cite{Curless1996, Newcombe,
+\mathbf{R} $ is a weighting function which normalizes to 1 over the truncation
+distance . Ideally, the weighting function should be determined by the
+probability distribution of the sensor, and should represent the probability
+that $\Phi(x - ur) = 0$. It is possible \cite{Nguyen2012} to directly compute
+the weight from the probability distribution of the sensor, and hence compute
+the actual \emph{expected} signed distance function.In favor of better
+performance, linear, exponential, and constant approximations of $\alpha_u$ can be used \cite{Curless1996, Newcombe,
 Whelan2013, Bylow2013}.
 
-In our work, we simply use a constant approximation $\alpha(u) = 1$, and use the
-probability distribution of the sensor instead to  dynamically select the value
-of $\tau$, as in \cite{Nguyen2012} (Fig. \ref{fig:integration_diagram}). This results in
-poorer surface reconstruction quality in areas of high noise than methods which
-more closely approximate the hit probability of the sensor.
+In our work, we simply use a constant approximation $\alpha(u) = \frac{1}{2
+\tau}$, and use the probability distribution of the sensor instead to 
+dynamically select the value of $\tau$, as in \cite{Nguyen2012} (Fig.
+\ref{fig:integration_diagram}). This results in poorer surface reconstruction
+quality in areas of high noise than methods which more closely approximate the
+hit probability of the sensor.
 
 \subsection{Colorization}
 To create colored surface reconstructions, we use a method following Bylow et.
@@ -723,12 +724,25 @@ advantages of both.
 
 \begin{figure}
   \centering
-    \includegraphics[width=0.95\columnwidth]{img/chunks.pdf}
-      \caption{Chunks of voxels (grey) are allocated near the surface (blue) of
-      the scene. Chunks are spatially hashed \cite{SpatialHashing} into a
+  	\begin{subfigure}{0.48\columnwidth} \centering
+    \includegraphics[width=1.0\textwidth]{img/chunks.pdf}
+      \caption{}
+  	\label{fig:chunks} 
+  \end{subfigure}
+  \begin{subfigure}{0.48\columnwidth} \centering
+      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
+      \caption{}
+ 	 \label{fig:frustum_cull}
+  \end{subfigure}
+  \caption{In Fig. \ref{fig:chunks}, chunks of voxels (grey) are allocated near
+  the surface (blue) of the scene. Chunks are spatially hashed \cite{SpatialHashing} into a
       dynamic hash map. Lookups into the hash map are constant time. Within each
-      chunk, voxels are allocated in a 3D array.}
-  \label{fig:chunks} 
+      chunk, voxels are allocated in a 3D array. Fig.
+      \ref{fig:frustum_cull} shows all the TSDF chunks which intersect the depth
+      camera frustum  and are within $\tau$ of a hit as green cubes. Only these
+      chunks are updated when new data is received. The scene shown is a
+      reconstruction of the Freiburg office \cite{FREIBURG} dataset at a
+      resolution of 3cm}
 \end{figure} 
 
 We divide the world into a two-level tree. In the first level we have
@@ -832,18 +846,6 @@ geometric convex approximation of the space visible to the depth camera by
 creating a camera frustum (\textit{i.e.} a truncated pyramid) with a far plane
 at the maximum depth reading of the camera, and the near plane at the minimum
 depth of the camera. 
-
-\begin{figure}
-  \centering
-    \includegraphics[width=1.0\columnwidth]{img/frustum_cull}
-      \caption{This image shows all the TSDF chunks which intersect the depth
-      camera frustum  and are within $\tau$ of a hit as green cubes. Only
-      these chunks are updated when new data is received. The scene shown is a
-      reconstruction of the Freiburg office \cite{FREIBURG} dataset at a
-      resolution of 3cm.}
-  \label{fig:frustum_cull}
-\end{figure}
-
 
 We then take the axis-aligned bounding box of the camera frustum in the global
 frame, and check each chunk inside the axis-aligned bounding box for 
@@ -975,17 +977,17 @@ Devices were depth calibrated \ref{subsection:calibration} prior to testing.
 
 \subsection{Large Scale Online Mapping}
  \begin{figure} \centering
-	 \begin{subfigure} {0.75\columnwidth} \centering
+	 \begin{subfigure} {0.6\columnwidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance3}
 		 \caption{}
 		 \label{fig:overhead_night}
 	 \end{subfigure}
-	 \begin{subfigure}{0.75\columnwidth} \centering
+	 \begin{subfigure}{0.44\columnwidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance2}
 		 \caption{}
 		 \label{fig:night2}
 	 \end{subfigure}
-	 	 \begin{subfigure}{0.75\columnwidth} \centering
+	 	 \begin{subfigure}{0.44\columnwidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance1} 
 		 \caption{}
 		 \label{fig:night3}
@@ -1015,27 +1017,27 @@ paused. After mapping is complete, the user can save the map to disk.
  
 \subsection{Comparing Depth Scan Integration Algorithms} 
   \begin{figure} \centering
-	 \begin{subfigure} {0.475\columnwidth} \centering
+	 \begin{subfigure} {0.4\columnwidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
 		 \caption{}
 		 \label{fig:dragon_color}
 	 \end{subfigure}
-	 \begin{subfigure}{0.475\columnwidth} \centering
+	 \begin{subfigure}{0.4\columnwidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/dragon_projection_nocarve.png}
 		 \caption{}
 		 \label{fig:dragon_projection_nocarve}
 	 \end{subfigure}
-	 \begin{subfigure}{0.475\columnwidth} \centering
+	 \begin{subfigure}{0.4\columnwidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/dragon_projection_carve.png} 
 		 \caption{}
-		 \label{fig:dragon_projection_carve}  
+		 \label{fig:dragon_projection_carve} 
 	 \end{subfigure} 
-	 \begin{subfigure}{0.475\columnwidth} \centering  
+	 \begin{subfigure}{0.4\columnwidth} \centering  
 		 \includegraphics[width=1.0\textwidth]{img/dragon_raycast.png} 
 		 \caption{}
 		 \label{fig:dragon_raycast}
 	 \end{subfigure} 
-	 	 \begin{subfigure}{1.0\columnwidth} \centering  
+	 	 \begin{subfigure}{0.7\columnwidth} \centering  
 		 \includegraphics[width=1.0\textwidth]{img/dragon_closeup.png} 
 		 \caption{}
 		 \label{fig:dragon_closeup}
@@ -1056,24 +1058,24 @@ paused. After mapping is complete, the user can save the map to disk.
  
  \begin{figure}
   \centering
- \begin{subfigure}{1.0\columnwidth} \centering
+ \begin{subfigure}{0.75\columnwidth} \centering
 \includegraphics[width=1.0\textwidth]{img/timing_data.pdf}
 		 \caption{}
 		 \label{fig:timing}
 	 \end{subfigure} 
- \begin{subfigure}{1.0\columnwidth} \centering
+ \begin{subfigure}{0.75\columnwidth} \centering
 \includegraphics[width=1.0\textwidth]{img/memoryusage.pdf}
 		 \caption{} 
 		 \label{fig:memory_data}
 	 \end{subfigure}  
-	  \begin{subfigure}{1.0\columnwidth} \centering
+	  \begin{subfigure}{0.75\columnwidth} \centering
 \includegraphics[width=1.0\textwidth]{img/memoryusage2.pdf}
 		 \caption{} 
 		 \label{fig:memory_data2}
 	 \end{subfigure} 
       \caption{Depth scan iming and total memory usage over time for the
       ``dragon'' dataset (Fig.\ref{fig:dragon}). Fig. \ref{fig:timing} shows
-      scan timing for
+      scan timing for 
 each of the methods as recorded on a desktop computer. We compare our chunked
       approach to a naiive strategy which simply allocates a monolithic block of
       volume memory for the entire space needed (Fig. \ref{fig:memory_data}).
@@ -1083,7 +1085,7 @@ each of the methods as recorded on a desktop computer. We compare our chunked
       usage statistics for the Freiburg \cite{FREIBURG} office dataset (Fig.
       \ref{fig:memory_data2}), varying the size of the depth frustum.}
   \label{fig:memory}
-\end{figure}
+\end{figure} 
 
  \begin{figure}
   \centering
