@@ -100,7 +100,7 @@
 
 % Pages are numbered in submission mode, and unnumbered in camera-ready
 \ifcvprfinal\pagestyle{empty}\fi
-\begin{document}
+\begin{document} 
 
 %%%%%%%%% TITLE
 \title{\Large Chisel: Real-time Dense Reconstruction on a Mobile Device \\
@@ -393,7 +393,9 @@ have large segments of missing data. Our noise model of the sensor will consider
 Gaussian noise on the depth, and per-pixel quadratic distortion. Call the depth
  measurement at $p$ the random variable $D_p$. Then,
  
- $$ D_p = z_p + a_p{z_p}^2 + b_p z_p + c_p + \epsilon(z_p)$$
+ \begin{equation}
+ 	D_p = z_p + a_p{z_p}^2 + b_p z_p + c_p + \epsilon(z_p)
+ \end{equation} 
  
  \noindent where $a_p, b_p, c_p$ are coefficients of a quadratic depth
  distortion model, and $\epsilon(z_p)$ is a random variable drawn from the
@@ -465,15 +467,18 @@ But what else does the ray tell us? All the points in space along the ray from
 the sensor origin up to the endpoint must be outside of any surface (or else the
 ray would have been occluded by a a surface). Assuming objects have non-zero
 thickness, some part of the space along the ray beyond the endpoint should be
-inside an object. That is:
+inside an object. 
 
-$$ \Phi(x - ur) 
-     \begin{cases}
-     > 0 & \text{if } u > 0 \\
-     < 0 & \text{if } u < 0 \\
-     0 & \text{if } u = 0
-     \end{cases}
-     $$
+% That is:
+% 
+% \begin{equation}
+% \Phi(x - ur) 
+%      \begin{cases}
+%      > 0 & \text{if } u > 0 \\
+%      < 0 & \text{if } u < 0 \\
+%      0 & \text{if } u = 0
+%      \end{cases}
+% \end{equation} 
 
 Further, very near the surface of the object, the signed distance function can
 be approximated by the distance along the ray to the endpoint of  the ray
@@ -482,7 +487,10 @@ least one point of the surface, namely the endpoint of the ray.  Near $x$, the
 signed distance function is approximately the distance to $x$. So, whenever
 $|u|$ is very small:
 
-\begin{equation} \label{eq:pointwise_tsdf} \Phi(x - ur) \approx u \end{equation}
+\begin{equation} 
+\label{eq:pointwise_tsdf} 
+	\Phi(x - ur) \approx u 
+\end{equation}
 
 Note that this approximation is better whenever the ray is approximately
 perpendicular to the surface, and worst whenever the ray is parallel to the
@@ -490,7 +498,9 @@ surface. Because of this, some works \cite{Bylow2013} instead approximate
 $\Phi$ by locally fitting a plane around $x$, and using the distance to that
 plane as a local approximation, \emph{i.e}:
 
-\begin{equation} \label{eq:planar_tsdf} \Phi(x - ur) \approx -u~r \cdot n_x
+\begin{equation} 
+\label{eq:planar_tsdf} 
+	\Phi(x - ur) \approx -u~r \cdot n_x
 \end{equation}
 
 \noindent where $n_x$ is the local surface normal around $x$. In general, the
@@ -530,11 +540,12 @@ This observation leads us to the Truncated Signed Distance Function (TSDF)
 Function which stores distances to the surface within a small truncation
 distance, $\tau$. That is:
 
-$$ \Phi_{\tau}(x) \begin{cases}
+\begin{equation} 
+\Phi_{\tau}(x) \begin{cases}
 	 = \Phi(x) & \text{if } |\Phi(x)| \leq \tau \\ 
 	 \text{undefined} & \text{otherwise}
 	 \end{cases}
-$$
+\end{equation}
 
 Following \cite{Curless1996}, to update the TSDF with a particular sensor
 measurement, we integrate along the ray from $u = -\tau$ to $\tau$, and take the
@@ -547,11 +558,11 @@ point in space.
 
 The process begins with 
 
-\begin{align*}
+\begin{align}
 \Phi_{\tau}(x)& = \text{undefined} \;&\forall x  \\
 %
  W(x)&= 0 \; &\forall x 
-\end{align*}
+\end{align}
 
 Then, for each ray and $u\in[-\tau, \tau]$:
 
@@ -595,13 +606,13 @@ Color is updated in exactly the same manner as the TSDF. We assume that each
 depth ray also corresponds to a color in the RGB space. We integrate along the
 ray from $u \in [-\tau, \tau]$, and update the color:
 
-\begin{align*}
+\begin{align}
 C(x - ur) \gets \frac{w_c C(x - ur) + \alpha_c \mathbf{c}}{w_c}
 +\alpha_c
 \\
 %
 w_c \gets w_c + \alpha_c
-\end{align*}
+\end{align}
 
 \noindent where $\mathbf{c} \in \mathbf{R}^3$ is the color of the ray in RGB
 space, $\alpha_c$ is a color weighting function, and $w_c = W_c(x -
@@ -624,7 +635,7 @@ Following the approach of Nguyen et. al \cite{Nguyen2012}, we use a dynamic
 trunction distance based on the noise model of the sensor rather than a fixed
 truncation distance. In this way, we have a trunction function:
 
-$$ \tau(z_u) = \beta\sigma_{z_u}$$
+\begin{equation} \tau(z_u) = \beta\sigma_{z_u} \end{equation}
 
 Where $\sigma_{z_u}$ is the standard deviation of the noise for a depth reading
 of $z_u$, and $\beta$ is a scaling parameter which represents the number of
@@ -652,12 +663,12 @@ constraint. Along each ray from $u \in [0, \tau - \epsilon]$ (where $\epsilon$
 is a small value that prevents carving of space near surfaces) called the space
 carving region (Fig. \ref{fig:integration_diagram}), we set:
 
-\begin{align*}
+\begin{align}
 \Phi_{\tau}(x - ur) \gets \text{undefined}
 \\
 %
 w_u \gets 0
-\end{align*}
+\end{align}
 
 \noindent  The effect is that, as rays pass through previously integrated
 regions of the TSDF, they clear away inconsistent data. Similarly, colors are
@@ -709,12 +720,12 @@ allows the octree to be incredibly memory efficient if the underlying
 volumetric data is sparse.
 
 However, consider that every time an octree is \emph{queried}, one incurs a
-logarithmic $\mathcal{O}(\log K)$ cost, where $K$ is the depth of the Octree. In
+logarithmic $\mathcal{O}(K)$ cost, where $K$ is the depth of the Octree. In
 contrast, queries in a flat array are $\mathcal{O}(1)$. This might not seem so
-bad, until one considers the overhead of traversing an octree. If implemented naiively, an
+bad, until one considers the overhead of traversing an octree. If implemented na\"{\i}vely, an
 octree will be implemented by storing pointers to child octants in each parent
 octant, and worse, the octants may be dynamically allocated on the heap. Each
-traversal through the tree requires $\mathcal{O}(\log K)$ heap pointer
+traversal through the tree requires $\mathcal{O}(K)$ heap pointer
 dereferences in the worst case. Even worse, adjacent voxels may not be adjacent
 in memory, resulting in very poor caching performance.
 
@@ -728,7 +739,7 @@ advantages of both.
     \includegraphics[width=1.0\textwidth]{img/chunks.pdf}
       \caption{}
   	\label{fig:chunks} 
-  \end{subfigure}
+  \end{subfigure} 
   \begin{subfigure}{0.48\columnwidth} \centering
       \includegraphics[width=1.0\textwidth]{img/frustum_cull}
       \caption{}
@@ -753,7 +764,10 @@ are indexed in a spatial 3D hash map \cite{SpatialHashing} by their spatial
 coordinates. Following Teschner \emph{et. al} \cite{SpatialHashing}, we use the
 hashing function:
 
-$$ \textbf{hash}(x, y, z) = p_1 x\oplus p_2 y \oplus p_3 z ~\text{mod}~n$$
+\begin{equation}
+\textbf{hash}(x, y, z) = p_1 x\oplus p_2 y \oplus p_3 z
+~\text{mod}~n
+\end{equation}
 
 \noindent where $x, y, z$ are the 3D integer coordinates of the chunk, $p_1,
 p_2, p_3$ are arbitrary, large primes, $\oplus$ is the xor operator, and $n$ is
@@ -813,7 +827,7 @@ onto a depth map from the perspective of the light source, except in our case,
 For each voxel in a chunk that is to be updated, we take its center $v_c$, and
 project it onto the depth image using the camera intrinsics and a pinhole camera
 model. We then use bilinear interpolation of the depth values to find an
-expected depth reading $z_p$. Call origin of the sensor  $o_t$,   then the
+expected depth reading $z_p$. Call origin of the sensor  $o_t$,   then the 
 distance from the sensor to the voxel is $\|o_t - v_c\|$ (Fig. \ref{fig:projection_mapping}).
 
 Now, if the isosurface passes directly through the center of the voxel,
@@ -836,8 +850,8 @@ surface information from many adjacent rays passing through a single voxel is
 lost in the projection mapping case. This can be mitigated somewhat by
 \textit{oversampling} each voxel (that is, considering many sampled points
 inside each voxel) and taking the average projected depth over all the samples
--- but the speed of the approach decreases linearly with the number of
-additional samples taken.
+-- but the speed of the approach decreases linearly with the number of 
+additional samples taken. 
 
 \subsection{Frustum Culling and Garbage Collection}
 To determine which chunks should be updated by a depth scan, and which chunks
@@ -909,50 +923,52 @@ reconstruction results in failure to correct for drift in the pose estimation
 using depth data, and can result in mis-alignment of depth scans (Fig.
 \ref{fig:gameroom_vio}).
 
-\subsubsection{Pose Interpolation}
-We will assume that pose estimation, depth sensing, and color sensing are
-asynchronously executed, so we may not have all three measurements at a given
-time. To deal with asynchronous sensing and pose estimation, we linearly
-interpolate poses over time to determine the pose of a given sensor at any given time.
+% Section removed to save space
+% \subsubsection{Pose Interpolation}
+% We will assume that pose estimation, depth sensing, and color sensing are
+% asynchronously executed, so we may not have all three measurements at a given
+% time. To deal with asynchronous sensing and pose estimation, we linearly
+% interpolate poses over time to determine the pose of a given sensor at any given time.
+% 
+% Call the global pose estimate of the sensor at time $t$,  ${H_{s}}^t$.
+% Additionally, assume we have apriori extrinsic pose estimates for the color
+% sensor ${E_{c}}$ and the depth sensor ${E_{d}}$. We are given a discrete
+% trajectory of pose estimates from the visual-inertial odometry system:
+% 
+% $$ {H_{s}}^{t_1}, {H_{s}}^{t_2}, \ldots, {H_{s}}^{t_T} $$
+% 
+% Suppose at time $t'$, we get a color image. Assume that $t'$ is not represented
+% in the list of sensor body poses. Then, either $t' < t_1$,  $t' > t_T$, or
+% $t_a < t < t_b'$ for some $a, b \in [1, T]$. In the first case ($t' < t_1$), we
+% disregard the color image. In the second case ($t' > t_T$), we wait until more data is
+% acquired. In the third case, we would interpolate the pose of the color camera
+% as:
+% 
+% $$ {H_{c}}^{t'} \approx E_c \cdot \textbf{Interp}\left(H_{s}^{t_a}, H_{s}^{t_b},
+% \frac{t' - t_a}{t_b - t_a}\right) $$
+% 
+% Where $\textbf{Interp}$ is a function that  interpolates between two
+% poses by linearly interpolating translation while spherically interpolating
+% rotation, using $\frac{t' - t_a}{t_b - t_a} \in [0, 1]$ as an interpolation
+% parameter. 
 
-Call the global pose estimate of the sensor at time $t$,  ${H_{s}}^t$.
-Additionally, assume we have apriori extrinsic pose estimates for the color
-sensor ${E_{c}}$ and the depth sensor ${E_{d}}$. We are given a discrete
-trajectory of pose estimates from the visual-inertial odometry system:
-
-$$ {H_{s}}^{t_1}, {H_{s}}^{t_2}, \ldots, {H_{s}}^{t_T} $$
-
-Suppose at time $t'$, we get a color image. Assume that $t'$ is not represented
-in the list of sensor body poses. Then, either $t' < t_1$,  $t' > t_T$, or
-$t_a < t < t_b'$ for some $a, b \in [1, T]$. In the first case ($t' < t_1$), we
-disregard the color image. In the second case ($t' > t_T$), we wait until more data is
-acquired. In the third case, we would interpolate the pose of the color camera
-as:
-
-$$ {H_{c}}^{t'} \approx E_c \cdot \textbf{Interp}\left(H_{s}^{t_a}, H_{s}^{t_b},
-\frac{t' - t_a}{t_b - t_a}\right) $$
-
-Where $\textbf{Interp}$ is a function that  interpolates between two
-poses by linearly interpolating translation while spherically interpolating
-rotation, using $\frac{t' - t_a}{t_b - t_a} \in [0, 1]$ as an interpolation
-parameter. 
-
-\subsection{User Interface}
-We developed a simple and intuitive prototype interface to test our approach on
-the device. Users were presented with options for controlling the resolution of
-the reconstruction, and were able to control when the system was active and
-inactive, allowing them to pause when moving objects obscured objects they were
-trying to model.
-
-We present the user with camera controls as well. A virtual first person
-camera mimics the intrinsics of the depth camera. A third-person camera allows
-the user to rotate the virtual camera around their current position and get a
-better look at the quality of the reconstruction; and an orthographic overhead
-camera functions as a global map of where the user has been (Figure
-\ref{fig:map_device}).
-
-At any time, the user can save the volumetric representation of the TSDF, or a
-surface mesh generated by marching cubes to disk.
+% Section removed to save space
+% \subsection{User Interface}
+% We developed a simple and intuitive prototype interface to test our approach on
+% the device. Users were presented with options for controlling the resolution of
+% the reconstruction, and were able to control when the system was active and
+% inactive, allowing them to pause when moving objects obscured objects they were
+% trying to model.
+% 
+% We present the user with camera controls as well. A virtual first person
+% camera mimics the intrinsics of the depth camera. A third-person camera allows
+% the user to rotate the virtual camera around their current position and get a
+% better look at the quality of the reconstruction; and an orthographic overhead
+% camera functions as a global map of where the user has been (Figure
+% \ref{fig:map_device}).
+% 
+% At any time, the user can save the volumetric representation of the TSDF, or a
+% surface mesh generated by marching cubes to disk.
 
 \section{Experiments and Results}
 \begin{figure}
@@ -1077,8 +1093,8 @@ paused. After mapping is complete, the user can save the map to disk.
       ``dragon'' dataset (Fig.\ref{fig:dragon}). Fig. \ref{fig:timing} shows
       scan timing for 
 each of the methods as recorded on a desktop computer. We compare our chunked
-      approach to a naiive strategy which simply allocates a monolithic block of
-      volume memory for the entire space needed (Fig. \ref{fig:memory_data}).
+      approach to a na\"{\i}ve algorithm which simply allocates a monolithic
+      block of volume memory for the entire space needed (Fig. \ref{fig:memory_data}).
       Memory is recorded for voxels of 3cm resolution, using both surface and
       color data. Chunks are of $16x16x16$ voxels. This figure does not account
       for the memory allocated for display meshes. We also collected memory
@@ -1124,11 +1140,11 @@ using our approach.
 
 \subsection{Memory Usage}
 We additionally compared memory usage statistics of our chunked approach to a
-naiive approach which allocates a single block of memory to tightly fit the
+na\"{\i}ve approach which allocates a single block of memory to tightly fit the
 entire volume explored (Fig. \ref{fig:memory}). As the size of the space
 explored increases, our approach uses about a tenth as much memory as the
-naiive approach. This is because the majority of the space explored contains no
-surfaces. Notice that in Fig. \ref{fig:memory_data}, the naiive approach uses
+na\"{\i}ve approach. This is because the majority of the space explored contains no
+surfaces. Notice that in Fig. \ref{fig:memory_data}, the na\"{\i}ve approach uses
 nearly 300MB of RAM wheras our approach never allocates more than 47MB of RAM
 for the entire scene, which is a 15 meter long hallway.
 
@@ -1138,11 +1154,11 @@ capture system (Fig. \ref{fig:freiburg}). In the Freiburg office dataset, a
 \textit{Kinect} sensor makes a loop around a central desk scene. The room is
 roughly 12 by 12 meters in area.  Memory usage statistics (Fig.
 \ref{fig:memory_data2}) reveal that when all of the depth data is used
-(including very far away data from the surrounding walls), a naiive fixed grid
+(including very far away data from the surrounding walls), a na\"{\i}ve fixed grid
 approach would use nearly 2GB of memory at a 2cm resolution, wheras our
 approach uses only around 700MB. When the depth frustum is cut off at 2 meters
 (mapping only the desk structure without the surrounding room), our approach
-uses only 50MB of memory, wheras the naiive approach would use nearly 300MB.
+uses only 50MB of memory, wheras the na\"{\i}ve approach would use nearly 300MB.
 
 \subsection{Limitations due to Odometry Drift}
 Since we do not update pose using depth data, odometry pose drift severely 
@@ -1224,7 +1240,7 @@ offline bundle adjustment for pose estimates are shown in figure
 %    \item We gain a lot by using decoupled pose, but there needs to be a way to
  %   incorporate the VIO pose with dense alignment (like they do in Kintinuous).
 %\end{itemize}
-
+ 
 \section{Discussion and Future Work}
 Our approach is able to create and render large-scale 3D reconstructions of
 scenes in real-time using only the limited computational resources of a
@@ -1252,7 +1268,7 @@ future research would be in implementing the dynamic spatial hash map on the GPU
 in an efficient way. 
 
 Another area of potential research is in loop closure and pose estimation. Our
-approach is purely \textit[open-loop], taking in pose estimates from visual
+approach is purely \textit{open-loop}, taking in pose estimates from visual
 odometry as \textit{a prioi} ground truth. Reconstruction can probably be
 improved if dense 3D data is used to inform the pose estimator. More
 importantly, a means of dealing with global pose estimation using the dense
