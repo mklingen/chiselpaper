@@ -203,7 +203,10 @@ In this work, we propose a novel algorithm for efficient real-time 3D
 reconstruction on mobile devices with onboard depth sensors. We show that even
 with a low-powered mobile device with severe limitations on memory usage,
 processing power, and graphics capabilities, relatively high-quality,
-large-scale real-time 3D reconstruction is feasible.
+large-scale real-time 3D reconstruction is feasible. Our algorithm relies on
+using a dynamic spatial hash map \cite{SpatialHashing} to directly store
+distance field data, which greatly reduces the amount of memory required to
+store the reconstruction as compared to state of the art approaches.
 
 \section{Related Work}
 % \begin{itemize}
@@ -774,7 +777,7 @@ p_2, p_3$ are arbitrary, large primes, $\oplus$ is the xor operator, and $n$ is
 the maximum size of the hash map.
 
 Since chunks are a fixed size, querying data from the chunked TSDF involves
-rounding (or bit-shifing, if $N_c^3$ is a power of two) a world coordinate to a
+rounding (or bit-shifing, if $N_c$ is a power of two) a world coordinate to a
 chunk and voxel coordinate, and then doing a hash-map lookup followed by a 3D
 array lookup. Hence, querying is $\mathcal{O}(1)$. Further, since voxels within
 chunks are stored adjacent to one another in memory, cache performance is
@@ -801,7 +804,7 @@ being integrated. If we use a fixed-size truncation distance and do not perform
 space carving, $l_{\text{ray}} = \tau$. However, with space-carving,
 the length of a ray being integrated is potentially unbounded.
 
-A useful approximation of raycasting is \textit{projection mapping.}. Used in
+A useful approximation of raycasting is \textit{projection mapping}. Used in
 \cite{Nguyen2012, Bylow2013, Klingensmith2014}, projection mapping works by
 projecting points in the voxel grid onto the depth image and comparing the depth value
 there with the geometric distance from the center of the voxel to the camera
@@ -1274,7 +1277,7 @@ improved if dense 3D data is used to inform the pose estimator. More
 importantly, a means of dealing with global pose estimation using the dense
 reconstruction is neeeded. Whelan et. al \cite{WhelanLoopClose} introduced a
 means of warping the mesh output by \textit{Kintinuous} consistently with global
-pose updates inolving loop closures -- can a similar method be used to
+pose updates inolving loop closures. Can a similar method be used to
 \textit{directly} warp the TSDF chunk data to take loop closures into account?
 
 Finally, there is the question of applications. What can be done with a
