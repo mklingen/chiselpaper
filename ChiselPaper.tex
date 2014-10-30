@@ -10,6 +10,8 @@
 \usepackage{subcaption} 
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{algorithm}
+\usepackage{color}
+\definecolor{light-gray}{gray}{0.4}
  \usepackage[noend]{algpseudocode} 
 
 % Include other packages here, before hyperref.
@@ -35,7 +37,8 @@ using Spatially Hashed Truncated Signed Distance Fields}
 \newcommand{\fix}{\marginpar{FIX}}
 \newcommand{\new}{\marginpar{NEW}}
 
-\algnewcommand{\LineComment}[1]{\State \(\triangleright\) #1}
+\algnewcommand{\LineComment}[1]{\State \(\triangleright\)
+\textcolor{light-gray}{\textit{#1}}}
 
 %\nipsfinalcopy % Uncomment for camera-ready version
 
@@ -486,34 +489,41 @@ where the distance to the nearest object is known with absolute certainty.
 \begin{algorithm} 
 	\caption{Truncated Signed Distance Function}
 	\label{alg:TSDF}
-	\begin{algorithmic}
+	\begin{algorithmic}[1]
 		\LineComment{Initialize TSDF}
-		\For {$x \in \mathbf{R^3}$}
-			\State {$\Phi_{\tau}(x) \gets \text{undefined} $}
-			\State {$W(x) \gets 0$}
+		\For {$\mathbf{x} \in \mathbf{R^3}$}
+			\State {$\Phi_{\tau}(\mathbf{x}) \gets \text{undefined} $}
+			\State {$W(\mathbf{x}) \gets 0$}
 		\EndFor
 		\LineComment{For each timestep:} 
 		\For {$t \in [1 \ldots T]$} 
 			\LineComment{For each ray in the scan:} 
-			\For {$\{o, x\} \in Z_t$} 
-				\State {$z =   \|o - x\|$}
-				\State {$r = \frac{x - o}{z}$}
+			\For {$\{\mathbf{o}_t, \mathbf{x}_t\} \in Z_t$} 
+				\State {$z \gets   \|\mathbf{o}_t - \mathbf{x}_t\|$}
+				\State {$\mathbf{r} \gets \frac{\mathbf{x}_t - \mathbf{o}_t}{z}$}
+				\LineComment {Dynamic truncation distance.}
+				\State{$\tau \gets \mathcal{T} (z)$} 
+				\label{alg:line:dynamic_tsdf}
 				\LineComment{Within the space carving region:}
 			    \For{$u \in [\tau + \epsilon, z]$}
-			    	\If {$\Phi_{\tau}(x - ur) \leq 0$ }
-				    	\State {$\Phi_{\tau}(x - ur) \gets \text{undefined}$}
-						\State {$W(x - ur) \gets 0$}
+			    	\State {$\mathbf{v}_c \gets \mathbf{x} - u \mathbf{r}$}
+			    	\If {$\Phi_{\tau}(\mathbf{v}_c) \leq 0$ }
+				    	\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \text{undefined}$}
+				    	\label{alg:line:voxel_carve}
+						\State {$W(\mathbf{v}_c) \gets 0$}
 					\EndIf
 			    \EndFor
-				\LineComment{Within the hit region:}a
+				\LineComment{Within the hit region:}
 				\For{$u \in [-\tau, \tau]$} 			 
-				 \LineComment{Update the TSDF and weight.}
-				   \State{$w_u = W(x - ur)$} 				  
-				   \State{$\alpha_u = \alpha(u)$}
-				   \State{$\Phi_{\text{old}} \gets  \Phi_{\tau}(x - ur) $}
-					\State {$\Phi_{\tau}(x - ur) \gets \frac{w_u \Phi_{\text{old}} + \alpha_u
-					u}{w_u +\alpha_u}$}
-					\State {$W(x - ur) \gets w_u+ \alpha _u$}
+					\State {$\mathbf{v}_c \gets \mathbf{x} - u \mathbf{r}$}
+				    \State{$w_{\text{old}} \gets W(\mathbf{v}_c)$} 				  
+				    \State{$\alpha_u \gets\alpha(u)$}
+				    \State{$\Phi_{\text{old}} \gets  \Phi_{\tau}(\mathbf{v}_c) $}
+				   \LineComment{Update the TSDF and weight.}
+					\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \frac{w_{\text{old}} 
+					\Phi_{\text{old}} + \alpha_u u}{w_{\text{old}}  +\alpha_u}$}
+					\label{alg:line:tsdf_update}
+					\State {$W(\mathbf{v}_c) \gets w_{\text{old}} + \alpha _u$}
 				\EndFor
 			\EndFor
 		\EndFor
@@ -588,11 +598,12 @@ Following the approach of Nguyen \etal\cite{Nguyen2012}, we use a dynamic
 trunction distance based on the noise model of the sensor rather than a fixed
 truncation distance. In this way, we have a trunction function:
 
-\begin{equation} \tau(z_u) = \beta\sigma_{z_u} \end{equation}
+\begin{equation} \mathcal{T} (z) = \beta\sigma_{z} \end{equation}
 
-Where $\sigma_{z_u}$ is the standard deviation of the noise for a depth reading
-of $z_u$, and $\beta$ is a scaling parameter which represents the number of
-standard deviations of the noise we want to integrate over.
+Where $\sigma_{z}$ is the standard deviation of the noise for a depth reading
+of $z$, and $\beta$ is a scaling parameter which represents the number of
+standard deviations of the noise we want to integrate over. Algorithm
+\ref{alg:TSDF}, line \ref{alg:line:dynamic_tsdf} shows how this is used.
 
 Using the dynamic truncation distance has the effect that further away from the
 sensor, where depth measurements are less certain and sparser, depth
@@ -612,28 +623,20 @@ the ray. In this way, rays can be viewed as \textit{constraints} on possible
 values of the distance field. 
 
 For this reason, we augment our TSDF algorithm with a \textit{space carving}
-constraint. Along each ray from $u \in [0, \tau - \epsilon]$ (where $\epsilon$
-is a small value that prevents carving of space near surfaces) called the space
-carving region (Fig. \ref{fig:integration_diagram}), we set:
-
-\begin{align}
-\Phi_{\tau}(x - ur) \gets \text{undefined}
-\\
-%
-w_u \gets 0
-\end{align}
-
-\noindent  The effect is that, as rays pass through previously integrated
+constraint. Along each ray within the space carving region (Fig.
+\ref{fig:integration_diagram}), we clear away data that has a nonpositive stored
+SDF. Algorithm \ref{alg:TSDF}, line \ref{alg:line:voxel_carve} shows how this is
+accomplished. The effect is that as rays pass through previously integrated
 regions of the TSDF, they clear away inconsistent data. Similarly, colors are
 cleared away whenever rays pass through previously colored space.
 
 Space carving gives us two advantages: first, it dramatically improves the
 surface reconstruction in areas of very high noise (especially around the edges
-of objects), and second, it removes some inconsistencies caused by moving
-objects and localization errors. If space carving is not used, moving objects
-appear in the TSDF as permanent blurs, and localization errors result in
-multiple overlapping isosurfaces appearing. With space carving, old inconsistent
-data is removed and only the latest data is used.
+of objects: see Fig. \ref{fig:dragon_projection_carve}), and second, it removes
+some inconsistencies caused by moving objects and localization errors. If space
+carving is not used, moving objects appear in the TSDF as permanent blurs, and
+localization errors result in multiple overlapping isosurfaces appearing. With
+space carving, old inconsistent data is removed and only the latest data is used.
 
 \subsection{Implementation: Chunked TSDF}
 We use a discrete approximation of the TSDF which divides the world into
@@ -739,20 +742,20 @@ memory on empty space.
 
 \subsection{Depth Scan Integration}
 \label{section:scan_integration}
-To perform the process described in Eqn. \ref{eqn:update}, it is necessary
+To perform the process described in Alg. \ref{alg:TSDF}, it is necessary
 to consider each ray in each depth scan and upate each voxel
-along the ray according to its distance to an observed isosurface.
+along the ray according to its distance to an observed surface.
 
 The most straightfoward way of doing this is to simply iterate over each ray,
 and then use a fast rasterization algorithm \cite{RayTracing} to determine which
-voxels intersect with the ray. We will call this the \textit{Raycasting}
-approach. However, this approach is extremely computationally expensive, having
-a performance bound by $\mathcal{O}(N_{\text{ray}} \times
-l_{\text{ray}})$, where $(N_{\text{ray}}$ is the number of rays in a 
-scan, and $l_{\text{ray}}$  is  proportional to the length of a ray
-being integrated. If we use a fixed-size truncation distance and do not perform 
-space carving, $l_{\text{ray}} = \tau$. However, with space-carving,
-the length of a ray being integrated is potentially unbounded.
+voxels intersect with the ray. We will call this the Raycasting approach.
+However, this approach is extremely computationally expensive, having a
+performance bound by $\mathcal{O}(N_{\text{ray}} \times l_{\text{ray}})$, where
+$N_{\text{ray}}$ is the number of rays in a scan, and $l_{\text{ray}}$  is 
+proportional to the length of a ray being integrated. If we use a fixed-size
+truncation distance and do not perform space carving, $l_{\text{ray}} = \tau$.
+However, with space-carving, the length of a ray being integrated is
+potentially unbounded.
 
 A useful approximation of raycasting is \textit{projection mapping}. Used in
 \cite{Nguyen2012, Bylow2013, Klingensmith2014}, projection mapping works by
@@ -777,16 +780,49 @@ onto a depth map from the perspective of the light source, except in our case,
 \end{figure} 
 
 
-For each voxel in a chunk that is to be updated, we take its center $v_c$, and
-project it onto the depth image using the camera intrinsics and a pinhole camera
-model. We then use bilinear interpolation of the depth values to find an
-expected depth reading $z_p$. Call origin of the sensor  $o_t$,   then the 
-distance from the sensor to the voxel is $\|o_t - v_c\|$ (Fig. \ref{fig:projection_mapping}).
+\begin{algorithm} 
+	\caption{Projection Mapping}
+	\label{alg:projection_mapping}
+	\begin{algorithmic}[1]
+		\LineComment{For each voxel in a chunk:} 
+		\For {$\mathbf{v}_c \in V$}
+		\State {$z \gets   \|\mathbf{o}_t - \mathbf{v}_c\|$}
+		\LineComment{Project center onto depth image:}
+		\State{$z_p \gets \mathbf{Depth}(\mathbf{Project}(\mathbf{v}_c))$}
+		\State{$u \gets z_p - z$} 
+		\LineComment {Dynamic truncation distance.}
+		\State{$\tau \gets \mathcal{T} (z_p)$} 
+		\LineComment{Within the space carving region:}
+	    \If{$u \in [\tau + \epsilon, z_p]$}
+	    	\If {$\Phi_{\tau}(\mathbf{v}_c) \leq 0$ }
+		    	\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \text{undefined}$}
+		    	\label{alg:line:voxel_carve}
+				\State {$W(\mathbf{v}_c) \gets 0$}
+			\EndIf
+	    \EndIf
+		\LineComment{Within the hit region:}
+		\If{$u \in [-\tau, \tau]$} 			 
+		    \State{$w_{\text{old}} \gets W(\mathbf{v}_c)$} 				  
+		    \State{$\alpha_u \gets\alpha(u)$}
+		    \State{$\Phi_{\text{old}} \gets  \Phi_{\tau}(\mathbf{v}_c) $}
+		   \LineComment{Update the TSDF and weight.}
+			\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \frac{w_{\text{old}} 
+			\Phi_{\text{old}} + \alpha_u u}{w_{\text{old}}  +\alpha_u}$}
+			\label{alg:line:tsdf_update}
+			\State {$W(\mathbf{v}_c) \gets w_{\text{old}} + \alpha _u$}
+		\EndIf
+	\EndFor
+	\end{algorithmic}
+\end{algorithm}
 
-Now, if the isosurface passes directly through the center of the voxel,
-then we should expect that $z_p = \|o_t - v_c\|$, and, in particular, the
-distance along the ray to the isosurface is approximated by $u' = z_p - \|o_t -
-v_c\|$ to update the voxel according to Alg. \ref{alg:TSDF}.
+
+
+Figure \ref{fig:projection_mapping} diagrams projection mapping, which is
+described in Algorithm \ref{alg:projection_mapping}. Instead of iterating over
+each ray, projection mapping iterates over each voxel. By projecting the voxel's
+center onto the depth image, we can compare the actual depth reading to the
+distance from the voxel's center to the camera origin as an approximation of the
+distance to the surface, $u$.
 
 Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
 the number of voxels affected by a depth scan. This value is nearly constant
@@ -794,7 +830,7 @@ over time, and depending on the resolution of the TSDF, may be significantly
 less than the number of points. When using space carving (Section
 \ref{section:carving}), raycasting has an additional performance hit bounded by
 the length of the rays, wheras projection mapping does not suffer from this
-performance hit.
+performance hit. 
 
 However, projection mapping suffers from resolution-dependant aliasing errors,
 because the value of $u'$ taken from projection mapping may differ from the true
