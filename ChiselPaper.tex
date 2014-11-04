@@ -56,14 +56,25 @@ using Spatially Hashed Truncated Signed Distance Fields}
 
 \maketitle
 %\thispagestyle{empty}
-\begin{figure}
+\begin{figure*}
   \centering
-    \includegraphics[width=1.0\columnwidth]{img/mapdevice}
-      \caption{Our algorithm recording a map of an office building floor on a mobile
-  device in real time, at a resolution of 3cm. A video of our approach running
-  in real time can be found here: \cite{TangoVideo}.}
-  \label{fig:map_device}
-\end{figure}
+    	 \begin{subfigure}{0.39\linewidth} \centering
+		 \includegraphics[width=1\textwidth]{img/mapdevice}
+		 \caption{}
+		 \label{fig:map_device}
+	 \end{subfigure}
+      	 \begin{subfigure}{0.39\linewidth} \centering
+		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
+		 \caption{}
+		 \label{fig:apartment_color}
+	 \end{subfigure}
+      \caption{Figure \ref{fig:map_device} shows our algorithm recording a map
+      of an office building floor on a mobile device in real time, at a resolution of 3cm. A video of our approach running
+  in real time is attached. Fig. \ref{fig:apartment_color} shows a
+  reconstructed apartment scene at a resolution of 3cm exported from the
+  device.}
+  \label{fig:first_figure}
+\end{figure*}
 
 
 \begin{abstract}
@@ -444,7 +455,7 @@ are nearly parallel to the sensor -- but computing surface normals is not
 always computationally feasible. In our work, we have chosen to use
 the simpler pointwise approximation.
 
-\begin{figure}
+\begin{figure*}
    \begin{subfigure}{1.0\columnwidth}
      \centering
          \includegraphics[width=1.0\textwidth]{img/Raycast}
@@ -466,7 +477,7 @@ the simpler pointwise approximation.
       < \|x - u \cdot r\|\right)$, vs. $u$. The hit integration region is inside $[-\tau,
       \tau]$, wheras regions closer to the camera than $\tau + \epsilon$ are in
       the space carving region (Section \ref{section:carving}). } 
-\end{figure} 
+\end{figure*} 
 
 
 This observation leads to the Truncated Signed Distance Function (TSDF)
@@ -632,7 +643,7 @@ cleared away whenever rays pass through previously colored space.
 
 Space carving gives us two advantages: first, it dramatically improves the
 surface reconstruction in areas of very high noise (especially around the edges
-of objects: see Fig. \ref{fig:dragon_projection_carve}), and second, it removes
+of objects: see Fig. \ref{fig:dragon_closeup}), and second, it removes
 some inconsistencies caused by moving objects and localization errors. If space
 carving is not used, moving objects appear in the TSDF as permanent blurs, and
 localization errors result in multiple overlapping isosurfaces appearing. With
@@ -644,7 +655,7 @@ a uniform 3D grid of voxels. Each voxel contains an estimate of the signed
 distance function and an associated weight. In our implementation, these are
 packed into a single 32-bit integer. The first 16 bits are a fixed-point
 signed distance value, and the last 16 bits  are an unsigned integer weighting
-value. Color is similarly stored as a 32 bit integer, with 8 bits per color
+value. Color is similarly stored as a 32 bit integer, with 8 bits per color 
 channel, and an 8 bit weight. A similar method is used in \cite{Newcombe,
 Whelan2013, Bylow2013} to store the TSDF.
 
@@ -687,30 +698,76 @@ in memory, resulting in very poor caching performance.
 
 Instead of using an Octree, or a fixed 3D array (as in \cite{Newcombe,
 Whelan2013}), we use a hybrid data structure which maintains some of the
-advantages of both. 
+advantages of both.
 
-\begin{figure}
+\begin{figure*}
   \centering
-  	\begin{subfigure}{0.48\columnwidth} \centering
-    \includegraphics[width=1.0\textwidth]{img/chunks.pdf}
-      \caption{}
-  	\label{fig:chunks} 
-  \end{subfigure} 
-  \begin{subfigure}{0.48\columnwidth} \centering
-      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
-      \caption{}
- 	 \label{fig:frustum_cull}
-  \end{subfigure}
-  \caption{In Fig. \ref{fig:chunks}, chunks of voxels (grey) are allocated near
-  the surface (blue) of the scene. Chunks are spatially hashed \cite{SpatialHashing} into a
-      dynamic hash map. Lookups into the hash map are constant time. Within each
-      chunk, voxels are allocated in a 3D array. Fig.
-      \ref{fig:frustum_cull} shows all the TSDF chunks which intersect the depth
-      camera frustum  and are within $\tau$ of a hit as green cubes. Only these
+    \begin{minipage}{0.25\linewidth}
+	 \begin{subfigure}{1.0\linewidth} \centering
+			\includegraphics[width=1.0\textwidth]{img/memoryusage.pdf}
+			 \caption{} 
+			 \label{fig:memory_data}
+		 \end{subfigure}  
+		  \begin{subfigure}{1.0\linewidth} \centering
+			\includegraphics[width=1.0\textwidth]{img/memoryusage2.pdf}
+			 \caption{} 
+			 \label{fig:memory_data2}
+		 \end{subfigure}
+	 \end{minipage} 
+	 \begin{minipage} {0.25\linewidth} 
+	  \begin{subfigure}{1.0\linewidth} \centering 
+		\includegraphics[width=1.0\textwidth]{img/freiburg_5m.png}
+		 \caption{}
+		 \label{fig:freiburg_5m}
+	 	\end{subfigure} 
+ 		\begin{subfigure}{1.0\linewidth} \centering
+		\includegraphics[width=1.0\textwidth]{img/freiburg_2m.png}
+		 \caption{} 
+		 \label{fig:freiburg_2m}
+	 \end{subfigure}  
+	 \end{minipage}
+    \begin{minipage}{0.25\linewidth}
+	  \begin{subfigure}{\linewidth} \centering
+	      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
+	      \caption{}
+	 	 \label{fig:frustum_cull}
+	  \end{subfigure}
+	  \begin{subfigure}{\linewidth} \centering
+	    \includegraphics[width=1.0\textwidth]{img/projection_mapping}
+	      \caption{} 
+	      \label{fig:projection_mapping}
+	  \end{subfigure} 
+\end{minipage}
+     \begin{minipage}{0.23\linewidth}
+ 	  	\begin{subfigure}{\linewidth} \centering
+ 	    \includegraphics[width=1.0\textwidth]{img/chunks.pdf}
+ 	      \caption{}
+ 	  	\label{fig:chunks} 
+ 	  \end{subfigure} 
+   \end{minipage}
+  \caption{ We compare our spatial hashing (SH)
+      approach to a na\"{\i}ve algorithm which simply allocates a monolithic
+      block of volume memory for the entire space needed (FG) (Fig.
+      \ref{fig:memory_data}).
+      Memory is recorded for voxels of 3cm resolution, using both surface and
+      color data. Chunks are of $16 \times 16 \times 16$ voxels. This figure
+      does not account for the memory allocated for display meshes. We also collected memory
+      usage statistics for the Freiburg \cite{FREIBURG} office dataset (Fig.
+      \ref{fig:memory_data2}), varying the size of the depth frustum. Extending
+      the depth frustum to 5 meters (Fig. \ref{fig:freiburg_5m}) results in a reconstructin of the entire
+      room, wheras limiting the depth frustum to 2 meters (Fig.
+      \ref{fig:freiburg_2m}) limits the reconstruction to the desk scene. Fig.
+      \ref{fig:frustum_cull} shows all the TSDF chunks which intersect the depth camera frustum  and are within $\tau$ of a hit as green cubes. Only these
       chunks are updated when new data is received. The scene shown is a
       reconstruction of the Freiburg office \cite{FREIBURG} dataset at a
-      resolution of 3cm}
-\end{figure} 
+      resolution of 3cm. Fig \ref{fig:projection_mapping} shows a cutaway of a
+      chunk containing an object. In projection mapping (Alg. \ref{alg:projection_mapping}),  a particular voxel with
+      center $v_c$ is projected onto the depth camera at time $t$. The depth image is binlinearly interpolated to get
+      $z_p$, a depth reading at the projected point. In Fig. \ref{fig:chunks}, chunks of voxels (grey) are allocated near
+  the surface (blue) of the scene. Chunks are spatially hashed \cite{SpatialHashing} into a
+      dynamic hash map. Lookups into the hash map are constant time. Within each
+      chunk, voxels are allocated in a 3D array.}
+\end{figure*} 
 
 We divide the world into a two-level tree. In the first level we have
 \emph{chunks} of voxels (Figure \ref{fig:chunks}). Each chunk consists of a
@@ -766,18 +823,6 @@ to the voxel. This is analogous to \textit{shadow mapping} \cite{Shadowmapping}
 from computer graphics, where raycast shadows are approximated by projecting
 onto a depth map from the perspective of the light source, except in our case, 
 ``shadows'' are regions occluded from the depth sensor.  
-
-\begin{figure}
-  \centering
-    \includegraphics[width=0.95\columnwidth]{img/projection_mapping}
-      \caption{A cutaway of a chunk containing an object is shown. In projection
-      mapping,  a particular voxel with center $v_c$ is projected onto the depth
-      camera at time $t$. The depth image is binlinearly interpolated to get
-      $z_p$, a depth reading at the projected point. This is compared to the length of the vector
-      from the voxel center $v_c$ to the camera origin $o_t$ to approximate the
-      distance to the surface. This is repeated for every voxel in the chunk.}
-  \label{fig:projection_mapping} 
-\end{figure} 
 
 
 \begin{algorithm} 
@@ -909,8 +954,7 @@ Unlike \textit{Kinect Fusion} \cite{Newcombe} and \textit{Kintinuous}
 sensor directly from depth data. Instead, we use depth data only for surface
 reconstruction. Unfortunately, decoupling the pose estimation and surface
 reconstruction results in failure to correct for drift in the pose estimation
-using depth data, and can result in mis-alignment of depth scans (Fig.
-\ref{fig:gameroom_vio}).
+using depth data, and can result in mis-alignment of depth scans.
 
 % Section removed to save space
 % \subsubsection{Pose Interpolation}
@@ -960,19 +1004,10 @@ using depth data, and can result in mis-alignment of depth scans (Fig.
 % surface mesh generated by marching cubes to disk.
 
 \section{Experiments and Results}
-\begin{figure}
-  \centering
-    \includegraphics[width=1.0\columnwidth]{img/devices}
-      \caption{The \textit{Tango}\cite{Tango} ``peanut'' phone (left), and
-      ``yellowstone" tablet (right).}
-  \label{fig:devices}
-\end{figure}
-
 \subsection{Hardware}
 We implemented our approach on two devices: a \textit{Project Tango}
 ``Yellowstone" tablet device, and a \textit{Project Tango} ``Peanut'' mobile 
-phone
-device (Figure \ref{fig:devices}). The phone device has 2GB of RAM, a quadcore
+phone device. The phone device has 2GB of RAM, a quadcore
 CPU, a six-axis gyroscope and accelerometer, a wide-angle $120^\circ$ field of
 view tracking camera which refreshes at 60Hz, a projective depth sensor which
 refreshes at 6Hz, and a 4 megapixel color sensor which refreshes at 30Hz. The
@@ -982,32 +1017,55 @@ which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
 Devices were depth calibrated \ref{subsection:calibration} prior to testing. 
 
 \subsection{Large Scale Online Mapping}
- \begin{figure} \centering
-	 \begin{subfigure} {0.6\columnwidth} \centering
+ \begin{figure*} \centering
+	 \begin{subfigure} {0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance3}
 		 \caption{}
 		 \label{fig:overhead_night}
 	 \end{subfigure}
-	 \begin{subfigure}{0.44\columnwidth} \centering
+	 \begin{subfigure}{0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance2}
 		 \caption{}
 		 \label{fig:night2}
 	 \end{subfigure}
-	 	 \begin{subfigure}{0.44\columnwidth} \centering
+	 	 \begin{subfigure}{0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance1} 
 		 \caption{}
 		 \label{fig:night3}
 	 \end{subfigure} 
-	 \caption{An outdoor scene captured at night with the yellowstone device at a
-	 resolution of 3 cm. Figure \ref{fig:overhead_night} shows an overhead view of
-	 the scene. The yellow pyramid represents the depth camera frustum. The white
+	 	 \begin{subfigure} {0.25\linewidth} \centering
+		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
+		 \caption{}
+		 \label{fig:dragon_color}
+	 \end{subfigure}
+	 	 \begin{subfigure}{0.3\linewidth} \centering  
+		 \includegraphics[width=1.0\textwidth]{img/dragon_closeup.png} 
+		 \caption{}
+		 \label{fig:dragon_closeup}
+	 \end{subfigure} 
+	  \begin{subfigure}{0.35\linewidth} \centering
+\includegraphics[width=1.0\textwidth]{img/timing_data.pdf}
+		 \caption{}
+		 \label{fig:timing}
+	 \end{subfigure} 
+	 \caption{Figure \ref{fig:overhead_night} shows an overhead view of
+	 an outdoor scene captured at night with the yellowstone device at a
+	 resolution of 3 cm. The yellow pyramid represents the depth camera frustum. The white
 	 lines are the aggregate trajectory of the device. Figures \ref{fig:night2}
 	 and \ref{fig:night3} show closeups of the scene taken live from the device.
 	 The scene was captured using projection mapping (Sec.
 	 \ref{section:scan_integration}), without space
-	 carving (Sec. \ref{section:carving})}
+	 carving (Sec. \ref{section:carving}). Different depth scan integration techniques are compared. Fig.
+	 \ref{fig:dragon_color} shows the color image for reference.  Fig.
+	 \ref{fig:dragon_closeup} is a closeup of a lantern in the scene; 
+	 counter-clockwise from the top left: color image, projection mapping without
+	 space carving, projection mapping with space carving, and raycasting without
+	 space carving. During the scan, the user was looking mostly toward the
+	 ceiling, at the colorful dragon. Fig. \ref{fig:timing} shows
+      scan insertion times for each of the methods as recorded on a desktop
+      computer.}
 	 \label{fig:outside}
- \end{figure} 
+ \end{figure*} 
 
 Using our algorithm, we are able to create and display large scale maps at a
 resolution as small as 3cm in real-time using only visual-intertial odometry for pose
@@ -1022,116 +1080,64 @@ localizing the device using visual-intertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
  
 \subsection{Comparing Depth Scan Integration Algorithms} 
-  \begin{figure} \centering
-	 \begin{subfigure} {0.4\columnwidth} \centering
-		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
-		 \caption{}
-		 \label{fig:dragon_color}
-	 \end{subfigure}
-	 \begin{subfigure}{0.4\columnwidth} \centering
-		 \includegraphics[width=1.0\textwidth]{img/dragon_projection_nocarve.png}
-		 \caption{}
-		 \label{fig:dragon_projection_nocarve}
-	 \end{subfigure}
-	 \begin{subfigure}{0.4\columnwidth} \centering
-		 \includegraphics[width=1.0\textwidth]{img/dragon_projection_carve.png} 
-		 \caption{}
-		 \label{fig:dragon_projection_carve} 
-	 \end{subfigure} 
-	 \begin{subfigure}{0.4\columnwidth} \centering  
-		 \includegraphics[width=1.0\textwidth]{img/dragon_raycast.png} 
-		 \caption{}
-		 \label{fig:dragon_raycast}
-	 \end{subfigure} 
-	 	 \begin{subfigure}{0.7\columnwidth} \centering  
-		 \includegraphics[width=1.0\textwidth]{img/dragon_closeup.png} 
-		 \caption{}
-		 \label{fig:dragon_closeup}
-	 \end{subfigure} 
-	 \caption{Different depth scan integration techniques are compared. Fig.
-	 \ref{fig:dragon_color} shows the color image for reference. Fig.
-	 \ref{fig:dragon_projection_nocarve} shows voxel projection without space
-	 carving. Fig. \ref{fig:dragon_projection_carve} shows voxel projection with
-	 space carving, and Fig. \ref{fig:raycast_diagram} shows raycasting without
-	 space carving. Fig. \ref{fig:dragon_closeup} is a closeup of a lantern
-	 in the scene; counter-clockwise from the top left: color image, projection
-	 mapping without space carving, projection mapping with space carving, and raycasting
-	 without space carving. During the scan, the user was looking mostly toward the
-	 ceiling, at the colorful dragon.}
-	 \label{fig:dragon}
- \end{figure}   
- 
- 
- \begin{figure}
-  \centering
- \begin{subfigure}{0.75\columnwidth} \centering
-\includegraphics[width=1.0\textwidth]{img/timing_data.pdf}
-		 \caption{}
-		 \label{fig:timing}
-	 \end{subfigure} 
- \begin{subfigure}{0.75\columnwidth} \centering
-\includegraphics[width=1.0\textwidth]{img/memoryusage.pdf}
-		 \caption{} 
-		 \label{fig:memory_data}
-	 \end{subfigure}  
-	  \begin{subfigure}{0.75\columnwidth} \centering
-\includegraphics[width=1.0\textwidth]{img/memoryusage2.pdf}
-		 \caption{} 
-		 \label{fig:memory_data2}
-	 \end{subfigure} 
-      \caption{Depth scan timing and total memory usage over time for the
-      ``dragon'' dataset (Fig.\ref{fig:dragon}). Fig. \ref{fig:timing} shows
-      scan timing for 
-each of the methods as recorded on a desktop computer. We compare our chunked
-      approach to a na\"{\i}ve algorithm which simply allocates a monolithic
-      block of volume memory for the entire space needed (Fig. \ref{fig:memory_data}).
-      Memory is recorded for voxels of 3cm resolution, using both surface and
-      color data. Chunks are of $16x16x16$ voxels. This figure does not account
-      for the memory allocated for display meshes. We also collected memory
-      usage statistics for the Freiburg \cite{FREIBURG} office dataset (Fig.
-      \ref{fig:memory_data2}), varying the size of the depth frustum.}
-  \label{fig:memory}
-\end{figure} 
+%  \begin{figure*}
+%   \centering
+%   \begin{minipage}{0.33\linewidth}
+% 	 \begin{subfigure}{1.0\linewidth} \centering
+% 			\includegraphics[width=1.0\textwidth]{img/memoryusage.pdf}
+% 			 \caption{} 
+% 			 \label{fig:memory_data}
+% 		 \end{subfigure}  
+% 		  \begin{subfigure}{1.0\linewidth} \centering
+% 			\includegraphics[width=1.0\textwidth]{img/memoryusage2.pdf}
+% 			 \caption{} 
+% 			 \label{fig:memory_data2}
+% 		 \end{subfigure}
+% 	 \end{minipage} 
+% 	 \begin{minipage} {0.33\linewidth}
+% 	  \begin{subfigure}{1.0\linewidth} \centering
+% 		\includegraphics[width=1.0\textwidth]{img/freiburg_5m.png}
+% 		 \caption{}
+% 		 \label{fig:freiburg_5m}
+% 	 	\end{subfigure} 
+%  		\begin{subfigure}{1.0\linewidth} \centering
+% 		\includegraphics[width=1.0\textwidth]{img/freiburg_2m.png}
+% 		 \caption{} 
+% 		 \label{fig:freiburg_2m}
+% 	 \end{subfigure}  
+% 	 \end{minipage}
+%       \caption{We compare our chunked
+%       approach to a na\"{\i}ve algorithm which simply allocates a monolithic
+%       block of volume memory for the entire space needed (Fig. \ref{fig:memory_data}).
+%       Memory is recorded for voxels of 3cm resolution, using both surface and
+%       color data. Chunks are of $16x16x16$ voxels. This figure does not account
+%       for the memory allocated for display meshes. We also collected memory
+%       usage statistics for the Freiburg \cite{FREIBURG} office dataset (Fig.
+%       \ref{fig:memory_data2}), varying the size of the depth frustum. Extending
+%       the depth frustum to 5 meters (Fig. \ref{fig:freiburg_5m}) results in a reconstructin of the entire
+%       room, wheras limiting the depth frustum to 2 meters (Fig.
+%       \ref{fig:freiburg_2m}) limits the reconstruction to the desk scene.}
+%   \label{fig:memory}
+% \end{figure*} 
 
- \begin{figure}
-  \centering
- \begin{subfigure}{0.475\columnwidth} \centering
-\includegraphics[width=1.0\textwidth]{img/freiburg_5m.png}
-		 \caption{}
-		 \label{fig:freiburg_5m}
-	 \end{subfigure} 
- \begin{subfigure}{0.475\columnwidth} \centering
-\includegraphics[width=1.0\textwidth]{img/freiburg_2m.png}
-		 \caption{} 
-		 \label{fig:freiburg_2m}
-	 \end{subfigure}  
-      \caption{Color 3D reconstructions of the Freiburg \cite{FREIBURG} office
-      dataset at a resolution of 2cm. Extending the depth frustum to 5 meters
-      (Fig. \ref{fig:freiburg_5m}) results in a reconstructin of the entire
-      room, wheras limiting the depth frustum to 2 meters (Fig.
-      \ref{fig:freiburg_2m}) limits the reconstruction to the desk scene.}
-  \label{fig:freiburg}
-\end{figure}
  
 We implemented both the raycasting and voxel projection modes of depth scan
 integration (Sec. \ref{section:scan_integration}), and compared them in terms of
 speed and quality. We found that projection mapping was far more efficient than
 raycasting when space carving was used (Fig. \ref{fig:timing}). However,
-projection mapping results undesirable aliasing artifacts
-(Fig. \ref{fig:dragon_projection_nocarve}), especially on surfaces nearly
-parallel with the camera's visual axis. Additionally, color consistency suffers
+projection mapping results undesirable aliasing artifacts; especially on
+surfaces nearly parallel with the camera's visual axis. Additionally, color consistency suffers
 with projection carving, because rather than color being averaged by all the
 rays passing through each voxel, only a single color is used for each projected
 voxel center. The use of space carving drastically reduces noise artifacts,
-especially around the silhouettes of objects
-(\ref{fig:dragon_projection_carve}). We note that using both space carving
-\emph{and} raycasting is not fast enough for real-time mapping on the device
+especially around the silhouettes of objects (Fig. \ref{fig:dragon_closeup}). We
+note that using both space carving \emph{and} raycasting is not fast enough for real-time mapping on the device
 using our approach.
 
 \subsection{Memory Usage}
 We additionally compared memory usage statistics of our chunked approach to a
 na\"{\i}ve approach which allocates a single block of memory to tightly fit the
-entire volume explored (Fig. \ref{fig:memory}). As the size of the space
+entire volume explored (Fig. \ref{fig:memory_data}). As the size of the space
 explored increases, our approach uses about a tenth as much memory as the
 na\"{\i}ve approach. This is because the majority of the space explored contains no
 surfaces. Notice that in Fig. \ref{fig:memory_data}, the na\"{\i}ve approach uses
@@ -1140,7 +1146,7 @@ for the entire scene, which is a 15 meter long hallway.
 
 We tested our approach on the publicly available Freiburg RGB-D dataset
 \cite{FREIBURG}, which contains ground truth pose information from a motion
-capture system (Fig. \ref{fig:freiburg}). In the Freiburg office dataset, a
+capture system (Fig. \ref{fig:freiburg_2m}). In the Freiburg office dataset, a
 \textit{Kinect} sensor makes a loop around a central desk scene. The room is
 roughly 12 by 12 meters in area.  Memory usage statistics (Fig.
 \ref{fig:memory_data2}) reveal that when all of the depth data is used
@@ -1150,77 +1156,77 @@ approach uses only around 700MB. When the depth frustum is cut off at 2 meters
 (mapping only the desk structure without the surrounding room), our approach
 uses only 50MB of memory, wheras the na\"{\i}ve approach would use nearly 300MB.
 
-\subsection{Limitations due to Odometry Drift}
-Since we do not update pose using depth data, odometry pose drift severely 
-corrupts the map, especially when the same area is repeatedly scanned . We  
-compare the map produced online using visual-inertial odometry to one produced
-offline by first correcting the pose of the camera using bundle adjustment (a
-process which takes several hours) to show the effect of drift  (Figure
-\ref{fig:bundleadjust}). Double walls, accidentally carved space, and other
-artifacts result when drift is present. Clearly, this limitation presents the
-need for dense loop closure and alignment. High quality meshes produced using
-offline bundle adjustment for pose estimates are shown in figure
-(\ref{fig:apartment}).
-
-  \begin{figure} \centering
-	 \begin{subfigure} {0.49\columnwidth} \centering
-		 \includegraphics[width=1\textwidth]{img/gameroom_vio.png}  
-		 \caption{}
-		 \label{fig:gameroom_vio}
-	 \end{subfigure}
-	 \begin{subfigure}{0.49\columnwidth} \centering
-		 \includegraphics[width=1\textwidth]{img/gameroom_bundleadjust.png}
-		 \caption{}
-		 \label{fig:gameroom_bundleadjust}
-	 \end{subfigure}
-	 \caption{The phone device was used to scan a midsized room by walking in a
-	 loop around the room three times. A top down view is shown. Meshes are colored
-	 with respect to their height; the floor is orange and objects green. Drift
-	 from visual-inertial odometry causes severe corruption and artifacts in the 
-	 TSDF (\ref{fig:gameroom_vio}). By pre-processing the trajectory offline using
-	 bundle adjustment, we can produce a much higher quality mesh using the same
-	 dataset (\ref{fig:gameroom_bundleadjust}). Meshes are produced using
-	 raycasting and space carving. }
-	 \label{fig:bundleadjust}
- \end{figure}  
- 
-   \begin{figure} \centering
-	 \begin{subfigure} {0.49\columnwidth} \centering
-		 \includegraphics[width=1\textwidth]{img/apartment_scene_nocolor.png}  
-		 \caption{}
-		 \label{fig:aparment_nocolor}
-	 \end{subfigure}
-	 \begin{subfigure}{0.49\columnwidth} \centering
-		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
-		 \caption{}
-		 \label{fig:apartment_color}
-	 \end{subfigure}
-	 \begin{subfigure} {0.49\columnwidth} \centering
-		 \includegraphics[width=1\textwidth]{img/apartment_scene_topdown_nocolor.png}
-		 \caption{}
-		 \label{apartment_scene_topdown_nocolor}
-	 \end{subfigure}
-	 \begin{subfigure}{0.49\columnwidth} \centering
-		 \includegraphics[width=1\textwidth]{img/apartment_scene_topdown_color.png}
-		 \caption{}
-		 \label{fig:apartment_scene_topdown_color}
-	 \end{subfigure}
-	 \begin{subfigure} {0.49\columnwidth} \centering
-		 \includegraphics[width=1\textwidth]{img/apartment_scene_closeup_nocolor.png}  
-		 \caption{}
-		 \label{apartment_scene_closeup_nocolor}
-	 \end{subfigure}
-	 \begin{subfigure}{0.49\columnwidth} \centering
-		 \includegraphics[width=1\textwidth]{img/apartment_scene_closeup_color.png}
-		 \caption{}
-		 \label{fig:apartment_scene_closeup_color}
-	 \end{subfigure}
-	 \caption{Several views of an apartment scene are shown without and with
-	 color. These meshes were produced using the tablet device using space
-	 carving, raycasting, and an offline bundle adjustment procedure to correct
-	 for pose drift.}
-	 \label{fig:apartment}
- \end{figure}  
+% \subsection{Limitations due to Odometry Drift}
+% Since we do not update pose using depth data, odometry pose drift severely 
+% corrupts the map, especially when the same area is repeatedly scanned . We  
+% compare the map produced online using visual-inertial odometry to one produced
+% offline by first correcting the pose of the camera using bundle adjustment (a
+% process which takes several hours) to show the effect of drift  (Figure
+% \ref{fig:bundleadjust}). Double walls, accidentally carved space, and other
+% artifacts result when drift is present. Clearly, this limitation presents the
+% need for dense loop closure and alignment. High quality meshes produced using
+% offline bundle adjustment for pose estimates are shown in figure
+% (\ref{fig:apartment}).
+% 
+%   \begin{figure*} \centering
+% 	 \begin{subfigure} {0.49\columnwidth} \centering
+% 		 \includegraphics[width=1\textwidth]{img/gameroom_vio.png}  
+% 		 \caption{}
+% 		 \label{fig:gameroom_vio}
+% 	 \end{subfigure}
+% 	 \begin{subfigure}{0.49\columnwidth} \centering
+% 		 \includegraphics[width=1\textwidth]{img/gameroom_bundleadjust.png}
+% 		 \caption{}
+% 		 \label{fig:gameroom_bundleadjust}
+% 	 \end{subfigure}
+% 	 \caption{The phone device was used to scan a midsized room by walking in a
+% 	 loop around the room three times. A top down view is shown. Meshes are colored
+% 	 with respect to their height; the floor is orange and objects green. Drift
+% 	 from visual-inertial odometry causes severe corruption and artifacts in the 
+% 	 TSDF (\ref{fig:gameroom_vio}). By pre-processing the trajectory offline using
+% 	 bundle adjustment, we can produce a much higher quality mesh using the same
+% 	 dataset (\ref{fig:gameroom_bundleadjust}). Meshes are produced using
+% 	 raycasting and space carving. }
+% 	 \label{fig:bundleadjust}
+%  \end{figure*}  
+%  
+%    \begin{figure*} \centering
+% 	 \begin{subfigure} {0.49\columnwidth} \centering
+% 		 \includegraphics[width=1\textwidth]{img/apartment_scene_nocolor.png}  
+% 		 \caption{}
+% 		 \label{fig:aparment_nocolor}
+% 	 \end{subfigure}
+% 	 \begin{subfigure}{0.49\columnwidth} \centering
+% 		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
+% 		 \caption{}
+% 		 \label{fig:apartment_color}
+% 	 \end{subfigure}
+% 	 \begin{subfigure} {0.49\columnwidth} \centering
+% 		 \includegraphics[width=1\textwidth]{img/apartment_scene_topdown_nocolor.png}
+% 		 \caption{}
+% 		 \label{apartment_scene_topdown_nocolor}
+% 	 \end{subfigure}
+% 	 \begin{subfigure}{0.49\columnwidth} \centering
+% 		 \includegraphics[width=1\textwidth]{img/apartment_scene_topdown_color.png}
+% 		 \caption{}
+% 		 \label{fig:apartment_scene_topdown_color}
+% 	 \end{subfigure}
+% % 	 \begin{subfigure} {0.49\columnwidth} \centering
+% % 		 \includegraphics[width=1\textwidth]{img/apartment_scene_closeup_nocolor.png}  
+% % 		 \caption{}
+% % 		 \label{apartment_scene_closeup_nocolor}
+% % 	 \end{subfigure}
+% % 	 \begin{subfigure}{0.49\columnwidth} \centering
+% % 		 \includegraphics[width=1\textwidth]{img/apartment_scene_closeup_color.png}
+% % 		 \caption{}
+% % 		 \label{fig:apartment_scene_closeup_color}
+% % 	 \end{subfigure}
+% 	 \caption{Several views of an apartment scene are shown without and with
+% 	 color. These meshes were produced using the tablet device using space
+% 	 carving, raycasting, and an offline bundle adjustment procedure to correct
+% 	 for pose drift.}
+% 	 \label{fig:apartment}
+%  \end{figure*}  
 
 %\begin{itemize}
 %    \item If we're keeping around the volumetric information, what does that
