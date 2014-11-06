@@ -242,48 +242,41 @@ focuses on mobile devices with integrated depth sensors, such as the Google
 costly monocular stereo as a pre-requisite to dense reconstruction. This allows
 us to save our memory and CPU budget for the 3D reconstruction itself.
 
-One of the simplest means of dense 3D mapping is to  store a \emph{Point
-Cloud} of the scene. This is done by projecting depth images into the scene as
-points, and then aligning point clouds to the existing scene. While simple,
-point clouds fail to capture local scene structure, are highly redundant,
-noisy, and memory intensive.  Additionally, point clouds fail to capture
-\emph{negative} information about the scene :  \ie, determining which parts of
-the scene are empty.  This information is crucial in situations where the
-sensor is noisy, or has large patches of missing data \cite{Klingensmith2014}.
+One of the simplest means of dense 3D mapping is to  store multiple registered
+point clouds of the scene. While simple, point clouds fail to capture local
+scene structure, are highly redundant, and noisy. Additionally, point clouds
+fail to capture \emph{negative} information about the scene :  \ie, determining
+which parts of the scene are empty. This information is crucial in situations
+where the sensor is noisy, or has large patches of missing data \cite{Klingensmith2014}.
 
 Elfes \cite{Elfes1989} introduced the concept of \emph{Occupancy Grid
 Mapping}, which divides the world into a grid of voxels, each of which contains
 an occupancy probability. Occupancy grids provide a principled alternative to
 simple point clouds. They preserve local structure, and gracefully handle
-redundant and missing data. Unfortunately, occupancy grids are prohibitively
-memory intensive in 3D, since the amount of memory needed to store the grid
-increases with the cube of distance traveled by the sensor. While more robust
-than point clouds, occupancy grids suffer from aliasing, and lack information
-about surface normals and the interior/exterior of obstacles.
+redundant and missing data.  While more robust than point clouds, occupancy
+grids suffer from aliasing, and lack information about surface normals and the
+interior/exterior of obstacles.
 
-Attempts to extend occupancy grid maps to 3D have sometimes relied on octrees.
-Rather than storing a fixed-resolution grid, octrees store occupancy data in a
-spatially organized tree. In typical scenes, octrees reduce the required memory
-over occupancy grids by orders of magnitude. Octomap \cite{Wurm2010} is a
-popular example of the octree paradigm. However, octrees containing only
-occupancy probability suffer from many of the same problems as occupancy grids:
-they lack information about the interior and exterior of objects, and suffer
-from aliasing. Further, octrees suffer from logarithmic reading, writing, and
-iteration times, and have very poor memory locality characteristics.
+% Attempts to extend occupancy grid maps to 3D have sometimes relied on octrees.
+% Rather than storing a fixed-resolution grid, octrees store occupancy data in a
+% spatially organized tree. In typical scenes, octrees reduce the required memory
+% over occupancy grids by orders of magnitude. Octomap \cite{Wurm2010} is a
+% popular example of the octree paradigm. However, octrees containing only
+% occupancy probability suffer from many of the same problems as occupancy grids:
+% they lack information about the interior and exterior of objects, and suffer
+% from aliasing. Further, octrees suffer from logarithmic reading, writing, and
+% iteration times, and have very poor memory locality characteristics.
 
 Curless \cite{Curless1996} introduced an alternative to occupancy grids for 3D
 reconstruction which, instead of storing the occupancy probability for each
-voxel, stores an approximation of the signed distance field of the scene. The signed distance
-field is a mapping from $\mathbf{R}^3$ to $\mathbf{R}$ which represents the
-distance to the nearest surface. The SDF is negative inside obstacles, and
-positive outside obstacles. The surface is given implicitly as all points in
-space where the value of the SDF is zero. The structure introduced in
-\cite{Curless1996} only maintains the distance function within a small distance 
-(called the \emph{truncation distance}) from observed surfaces, and thus is called the
-Truncated Signed Distance Field (TSDF).  While using more memory than occupancy
-grids, the TSDF is much more informative for surface reconstruction, as the
-implicit surface normals can be extracted from the gradient of the function,
-allowing for a higher quality reconstruction.
+voxel, stores an approximation of the signed distance field of the scene.  The
+SDF is negative inside obstacles, and positive outside obstacles. The surface
+is given implicitly as all points in space where the value of the SDF is zero.
+The structure introduced in \cite{Curless1996} only maintains the distance
+function within a small distance (called the \emph{truncation distance}) from
+observed surfaces, and thus is called the Truncated Signed Distance Field
+(TSDF).  While using more memory than occupancy grids, the TSDF creates much
+higher quality surface reconstructions by preserving local structure.
 
 The \emph{Kinect Fusion} \cite{Newcombe} algorithm uses a TSDF to
 simultanesously extract the pose of a moving depth camera and the geometry of a
@@ -293,15 +286,13 @@ Making heavy use of the GPU for raycasting and rendering, Fusion is
 capable of creating extremely high-quality, high-resolution surface 
 reconstructions within a small area. However, like occupancy grid mapping, the
 algorithm relies on a single fixed-size 3D grid of voxels, and thus is not
-suitable for reconstructing very large scenes.
+suitable for reconstructing very large scenes due to memory constraints.
 
 The \emph{Kintinuous} \cite{Whelan2013} algorithm extends Kinect Fusion to
-larger scenes by storing only a time-limited moving window of the TSDF. As the camera
-moves outside of the window, areas which are no longer visible are turned into a
-triangular mesh. Like Fusion, Kintinuous relies on very high-performance GPU
-computing to create its reconstruction.  By prematurely turning the TSDF into an
-explicit surface mesh, Kintinuous throws away past data -- and thus the user
-cannot return to an area that was previously explored and update the TSDF there.
+larger scenes by storing only a time-limited moving window of the TSDF in the
+GPU. As the camera moves outside of the window, areas which are no longer
+visible are turned into a surface representation. Hence, distance field data is
+prematurely thrown away to save memory.
 
 Our approach uses a TSDF as in\cite{Curless1996,Newcombe,Whelan2013,Bylow2013},
 to store an estimate of the signed distance field of the scene. Unlike Kinect
@@ -309,9 +300,10 @@ Fusion, and like Kintinuous, we store a dynamic representation of the TSDF
 which grows in size as the sensor travels through space. Unlike Kintinuous, we
 do not prematurely throw away distance function data by converting it into a
 mesh -- instead, we turn small areas of the scene into meshes for the purpose
-of rendering, while preserving the underlying distance field data. In this way,
-we extend the TSDF surface reconstruction paradigm to very large scenes when only
-very limited compute power is available.
+of rendering, while \textit{preserving} the underlying distance field data. By
+carefully considering what parts of the space should be turned into distance
+fields at each timestep, we avoid needless computation and memory allocation in
+areas far away from the sensor. 
 
 \section{Approach} 
 % \begin{itemize}
@@ -416,10 +408,10 @@ the simpler pointwise approximation.
       which the ray intersects the voxel and the surface, $u$, is an
       approximation of the signed distance function $\Phi$, when $u$ is small.
       Figure (\ref{fig:integration_diagram} ) shows a hypothetical plot of the
-      hit probability of a ray $P\left(z_p = \|x - u \cdot r\|\right) $, the pass probability $P\left(z_p
-      < \|x - u \cdot r\|\right)$, vs. $u$. The hit integration region is inside $[-\tau,
-      \tau]$, wheras regions closer to the camera than $\tau + \epsilon$ are in
-      the space carving region (Section \ref{section:carving}). } 
+      hit probability of a ray $P\left(z = u \right) $, the pass
+      probability $P\left(z< u\right)$, vs. $u$. The hit integration region is
+      inside $[-\tau, \tau]$, wheras regions closer to the camera than  $\tau +
+      \epsilon$ are in the space carving region (Section \ref{section:carving}). }
 \end{figure*} 
 
 
@@ -496,7 +488,7 @@ the actual \emph{expected} signed distance function.In favor of better
 performance, linear, exponential, and constant approximations of $\alpha_u$ can
 be used \cite{Curless1996, Newcombe, Whelan2013, Bylow2013}.
 
-In our work, we simply use a constant approximation $\alpha(u) = \frac{1}{2
+Here, we simply use a constant approximation $\alpha(u) = \frac{1}{2
 \tau}$, and use the probability distribution of the sensor instead to 
 dynamically select the value of $\tau$, as in \cite{Nguyen2012} (Fig.
 \ref{fig:integration_diagram}). This results in poorer surface reconstruction
@@ -525,10 +517,8 @@ w_c \gets w_c + \alpha_c
 
 \noindent where $\mathbf{c} \in \mathbf{R}^3$ is the color of the ray in RGB
 space, $\alpha_c$ is a color weighting function, and $w_c = W_c(x -
-ur)$.
-
-In both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting function is
-proportional to the dot product of the ray's direction and an estimate of the
+ur)$. In both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting
+function is proportional to the dot product of the ray's direction and an estimate of the
 surface normal. But since surface normal estimation is computationally
 expensive, we instead use the same weight for both distance and color.
 
@@ -596,22 +586,16 @@ Whelan2013, Bylow2013} to store the TSDF.
 Unfortunately, a flat volumetric representation of the world using voxels is
 incredibly memory intensive. The amount of memory storage required grows as
 $\mathcal{O}(N^3)$, where $N$ is the number of voxels per side of the 3D voxel
-array.
- 
-For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube with
-color would occupy 8 Gigabytes of memory. Worse, most of that memory would be
-uselessly storing unseen free space. Further, if we plan on exploring larger and larger
-distances using the mobile sensor, the size of the TSDF array must grow if we
-don't plan on allocating enough memory for the entire space to be explored.
+array. For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube
+with color would occupy 8 Gigabytes of memory. Worse, most of that memory would be
+uselessly storing unseen free space.
 
 For a large-scale real-time suface reconstruction application, a less
 memory-intensive and more dynamic approach is needed. Confronted with this
 problem, other approaches have either used  octrees \cite{Wurm2010}, or have
 prematurely extracted isosurfaces from a moving TSDF volume to save memory
-\cite{Whelan2013}.
-
-Neither of these approaches is desirable for our application. Octrees, while
-maximally memory efficient, have significant drawbacks when it comes to
+\cite{Whelan2013}. Neither of these approaches is desirable for our application.
+Octrees, while maximally memory efficient, have significant drawbacks when it comes to
 accessing and iterating over the volumetric data. An octree compresses
 volumetric data by dividing the space recursively into octants. The leaves of
 the tree contain the underlying volumetric data. Octants which contain no
@@ -756,7 +740,6 @@ onto the depth image, we can compare the actual depth reading to the distance
 from the voxel's center to the camera origin as an approximation of the
 distance to the surface, $u$. 
 
-
 \begin{algorithm} 
 	\caption{Projection Mapping}
 	\label{alg:projection_mapping}
@@ -788,7 +771,6 @@ distance to the surface, $u$.
 	\EndFor
 	\end{algorithmic}
 \end{algorithm}
-
 
 Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
 the number of voxels affected by a depth scan. This value is nearly constant
@@ -918,80 +900,7 @@ using depth data, and can result in mis-alignment of depth scans.
 % At any time, the user can save the volumetric representation of the TSDF, or a
 % surface mesh generated by marching cubes to disk.
 
-\section{Experiments and Results}
-\subsection{Hardware}
-\label{section:hardware}
-We implemented our approach on two devices: a \textit{Project Tango}
-``Yellowstone" tablet device, and a \textit{Project Tango} ``Peanut'' mobile 
-phone device. The phone device has 2GB of RAM, a quadcore
-CPU, a six-axis gyroscope and accelerometer, a wide-angle $120^\circ$ field of
-view tracking camera which refreshes at 60Hz, a projective depth sensor which
-refreshes at 6Hz, and a 4 megapixel color sensor which refreshes at 30Hz. The
-tablet device has 4GB of ram, a quadcore CPU, an Nvidia Tegra K1 graphics card,
-an identical tracking camera to the phone device, a projective depth sensor
-which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
-Devices were depth calibrated \ref{subsection:calibration} prior to testing. 
-
- \subsection{Sensor Calibration}
-\label{subsection:calibration}
-The depth image may be corrupted by noise, feature nonlinear distortions, and
-have large segments of missing data. Our noise model of the sensor will consider
-Gaussian noise on the depth, and per-pixel quadratic distortion. Call a
-particular depth reading from the device the random variable $D$, and the true
-depth of the scene at that point $z$. Then we have the model:
- 
- \begin{equation}
- 	D = z + a{z}^2 + b z + c+ \epsilon(z)
- 	\label{eqn:distort}
- \end{equation} 
- 
- \noindent where $a, b, c$ are coefficients of a quadratic depth distortion
- model, and $\epsilon(z)$ is a random variable drawn from the parametric
- Gaussian distribution function $\mathcal{N}(z, \sigma(z))$.
- That is, the distribution is mean-centered on $z$, and has a depth-dependant
- standard deviation $\sigma(z)$.
- 
- We have found that on the \textit{Tango}  Peanut \cite{Tango} device, the
- nonlinear distortion is very severe. At a distance of 3 meters, the reading
- can be distorted by as much as 30 centimeters. Depth distortion on the
- Yellowstone device is comparably negligible.  To get an accurate
- reconstruction of the world, it is critical to correct for this distortion.
- This is done by inverting the distortion model (Eqn. \ref{eqn:distort}) to
- estimate the true depth $z$ from the distorted reading $D$.
-  
- \begin{figure} \centering
-	 \begin{subfigure} {0.3\columnwidth} \centering
-		 \includegraphics[width=1.0\textwidth]{img/calibration_grey}
-		 \caption{}
-	 \end{subfigure}
-	 \begin{subfigure}{0.3\columnwidth} \centering
-		 \includegraphics[width=1.0\textwidth]{img/calibration_model}
-		 \caption{}
-	 \end{subfigure}
-	 	 \begin{subfigure}{0.3\columnwidth} \centering
-		 \includegraphics[width=1.0\textwidth]{img/calibration_data}
-		 \caption{}
-	 \end{subfigure}
-	 \caption{Components collected in our calibration procedure. The greyscale (a)
-	 image is used to compute a linear plane model (b) for depth. That model is
-	 compared to the actual depth data (c) over a series of checkerboard poses.}
-	 \label{fig:calibration}
- \end{figure}
- 
- To train the distortion and noise model, we first calibrate the sensor with the
- use of a checkerboard calibration target. Images of the target are taken at
- multiple distances and angles from the camera (Fig. \ref{fig:calibration}). We
- fit an ideal plane to the target to determine what the true distance should be
- at each pixel. Then, we perform quadratic regression on the depth readings
- against the predicted readings from the plane to find the per-pixel distortion
- coefficients. The function $\sigma(z)$ is computed in a similar way, by
- computing a histogram of standard deviations of the depth readings, and then
- performing quadratic regression on the result. A single function $\sigma(z)$ is used for the
- entire image, unlike the distortion model which is computed on a per-pixel
- basis.
- 
-\subsection{Large Scale Online Mapping}
- \begin{figure*} \centering
+ \begin{figure*} [htb]\centering
 	 \begin{subfigure} {0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance3}
 		 \caption{}
@@ -1038,15 +947,89 @@ depth of the scene at that point $z$. Then we have the model:
 	 ceiling, at the colorful dragon. Fig. \ref{fig:timing} shows
       scan insertion times for each of the methods as recorded on a desktop
       computer.}
-	 \label{fig:outside}
+	 \label{fig:device_data}
  \end{figure*} 
 
+
+\section{Experiments and Results}
+\subsection{Hardware}
+\label{section:hardware}
+We implemented our approach on two devices: a \textit{Project Tango}
+``Yellowstone" tablet device, and a \textit{Project Tango} ``Peanut'' mobile 
+phone device. The phone device has 2GB of RAM, a quadcore
+CPU, a six-axis gyroscope and accelerometer, a wide-angle $120^\circ$ field of
+view tracking camera which refreshes at 60Hz, a projective depth sensor which
+refreshes at 6Hz, and a 4 megapixel color sensor which refreshes at 30Hz. The
+tablet device has 4GB of ram, a quadcore CPU, an Nvidia Tegra K1 graphics card,
+an identical tracking camera to the phone device, a projective depth sensor
+which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
+%Devices were depth calibrated \ref{subsection:calibration} prior to testing. 
+
+%  \subsection{Sensor Calibration}
+% \label{subsection:calibration}
+% The depth image may be corrupted by noise, feature nonlinear distortions, and
+% have large segments of missing data. Our noise model of the sensor will consider
+% Gaussian noise on the depth, and per-pixel quadratic distortion. Call a
+% particular depth reading from the device the random variable $D$, and the true
+% depth of the scene at that point $z$. Then we have the model:
+%  
+%  \begin{equation}
+%  	D = z + a{z}^2 + b z + c+ \epsilon(z)
+%  	\label{eqn:distort}
+%  \end{equation} 
+%  
+%  \noindent where $a, b, c$ are coefficients of a quadratic depth distortion
+%  model, and $\epsilon(z)$ is a random variable drawn from the parametric
+%  Gaussian distribution function $\mathcal{N}(z, \sigma(z))$.
+%  That is, the distribution is mean-centered on $z$, and has a depth-dependant
+%  standard deviation $\sigma(z)$.
+%  
+%  We have found that on the \textit{Tango}  Peanut \cite{Tango} device, the
+%  nonlinear distortion is very severe. At a distance of 3 meters, the reading
+%  can be distorted by as much as 30 centimeters. Depth distortion on the
+%  Yellowstone device is comparably negligible.  To get an accurate
+%  reconstruction of the world, it is critical to correct for this distortion.
+%  This is done by inverting the distortion model (Eqn. \ref{eqn:distort}) to
+%  estimate the true depth $z$ from the distorted reading $D$.
+%   
+%  \begin{figure} \centering
+% 	 \begin{subfigure} {0.3\columnwidth} \centering
+% 		 \includegraphics[width=1.0\textwidth]{img/calibration_grey}
+% 		 \caption{}
+% 	 \end{subfigure}
+% 	 \begin{subfigure}{0.3\columnwidth} \centering
+% 		 \includegraphics[width=1.0\textwidth]{img/calibration_model}
+% 		 \caption{}
+% 	 \end{subfigure}
+% 	 	 \begin{subfigure}{0.3\columnwidth} \centering
+% 		 \includegraphics[width=1.0\textwidth]{img/calibration_data}
+% 		 \caption{}
+% 	 \end{subfigure}
+% 	 \caption{Components collected in our calibration procedure. The greyscale (a)
+% 	 image is used to compute a linear plane model (b) for depth. That model is
+% 	 compared to the actual depth data (c) over a series of checkerboard poses.}
+% 	 \label{fig:calibration}
+%  \end{figure}
+%  
+%  To train the distortion and noise model, we first calibrate the sensor with the
+%  use of a checkerboard calibration target. Images of the target are taken at
+%  multiple distances and angles from the camera (Fig. \ref{fig:calibration}). We
+%  fit an ideal plane to the target to determine what the true distance should be
+%  at each pixel. Then, we perform quadratic regression on the depth readings
+%  against the predicted readings from the plane to find the per-pixel distortion
+%  coefficients. The function $\sigma(z)$ is computed in a similar way, by
+%  computing a histogram of standard deviations of the depth readings, and then
+%  performing quadratic regression on the result. A single function $\sigma(z)$ is used for the
+%  entire image, unlike the distortion model which is computed on a per-pixel
+%  basis.
+%  
+\subsection{Large Scale Online Mapping}
 Using our algorithm, we are able to create and display large scale maps at a
 resolution as small as 2cm in real-time using only visual-intertial odometry for
 pose estimation. Figure \ref{fig:map_device} shows a map of an office building floor
 being reconstructed in real-time using the phone device. This scenario is also
 shown in an attached video. Using the tablet device, we have reconstructed
-(nightime) outdoor scenes in real-time (Figure \ref{fig:outside}).
+(nightime) outdoor scenes in real-time (Figure \ref{fig:overhead_night}).
 
 In the course of online mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
@@ -1054,47 +1037,6 @@ localizing the device using visual-intertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
  
 \subsection{Comparing Depth Scan Integration Algorithms} 
-%  \begin{figure*}
-%   \centering
-%   \begin{minipage}{0.33\linewidth}
-% 	 \begin{subfigure}{1.0\linewidth} \centering
-% 			\includegraphics[width=1.0\textwidth]{img/memoryusage.pdf}
-% 			 \caption{} 
-% 			 \label{fig:memory_data}
-% 		 \end{subfigure}  
-% 		  \begin{subfigure}{1.0\linewidth} \centering
-% 			\includegraphics[width=1.0\textwidth]{img/memoryusage2.pdf}
-% 			 \caption{} 
-% 			 \label{fig:memory_data2}
-% 		 \end{subfigure}
-% 	 \end{minipage} 
-% 	 \begin{minipage} {0.33\linewidth}
-% 	  \begin{subfigure}{1.0\linewidth} \centering
-% 		\includegraphics[width=1.0\textwidth]{img/freiburg_5m.png}
-% 		 \caption{}
-% 		 \label{fig:freiburg_5m}
-% 	 	\end{subfigure} 
-%  		\begin{subfigure}{1.0\linewidth} \centering
-% 		\includegraphics[width=1.0\textwidth]{img/freiburg_2m.png}
-% 		 \caption{} 
-% 		 \label{fig:freiburg_2m}
-% 	 \end{subfigure}  
-% 	 \end{minipage}
-%       \caption{We compare our chunked
-%       approach to a na\"{\i}ve algorithm which simply allocates a monolithic
-%       block of volume memory for the entire space needed (Fig. \ref{fig:memory_data}).
-%       Memory is recorded for voxels of 3cm resolution, using both surface and
-%       color data. Chunks are of $16x16x16$ voxels. This figure does not account
-%       for the memory allocated for display meshes. We also collected memory
-%       usage statistics for the Freiburg \cite{FREIBURG} office dataset (Fig.
-%       \ref{fig:memory_data2}), varying the size of the depth frustum. Extending
-%       the depth frustum to 5 meters (Fig. \ref{fig:freiburg_5m}) results in a reconstructin of the entire
-%       room, wheras limiting the depth frustum to 2 meters (Fig.
-%       \ref{fig:freiburg_2m}) limits the reconstruction to the desk scene.}
-%   \label{fig:memory}
-% \end{figure*} 
-
- 
 We implemented both the raycasting and voxel projection modes of depth scan
 integration (Sec. \ref{section:scan_integration}), and compared them in terms of
 speed and quality. We found that projection mapping was far more efficient than
