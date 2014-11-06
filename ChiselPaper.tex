@@ -14,6 +14,17 @@
 \definecolor{light-gray}{gray}{0.4}
  \usepackage[noend]{algpseudocode} 
 
+% list of commenters
+\newcommand{\ssnote}[1]{{\xxnote{SS}{red}{#1}}}
+% implement conditional notes (turn on/off with \hidenotes above)
+\newcommand{\xxnote}[3]{}
+\ifx\hidenotes\undefined
+  \renewcommand{\xxnote}[3]{\color{#2}{#1: #3}}
+\fi
+
+
+
+
 % Include other packages here, before hyperref.
 
 % If you comment hyperref and then uncomment it, you should delete
@@ -78,19 +89,31 @@ using Spatially Hashed Truncated Signed Distance Fields}
 
 
 \begin{abstract}
-Google's \textit{Project Tango}\cite{Tango} has made active depth sensing
-available to mobile devices such as phones and tablets. Because of limited computing power,
-memory, and graphics capabilities, dense 3D reconstruction on mobile devices
-remains challenging. Existing approaches are either too inefficient for use on
-mobile devices, or only consider sparse reconstructions. We propose an efficient
-method of real-time dense 3D reconstruction using a dynamic spatial hash map
-\cite{SpatialHashing} of truncated signed distance field volumes
-\cite{Curless1996}. We show that our method is able to reconstruct and render
-very large scenes in real time using only the phone's CPU and the fixed
-function graphics pipeline, with a minimal memory footprint in comparison to
-existing approaches. We provide both qualitative and quantitative results on
-publicly available RGB-D datasets \cite{FREIBURG}, and on datasets collected in
-real-time from two kinds of devices.
+Google's \textit{Project Tango}\cite{Tango} has made depth sensing available to
+mobile devices such as phones and tablets. \ssnote{It'd be nice to add a sentence here 
+stating why performing 3D reconstruction with these devices is intreresting or useful}	
+Because these devices have limited
+computing power, memory, and graphics capabilities, performing real-time 3D
+reconstruction on them remains challenging. Existing approaches are either too
+inefficient for use on mobile devices \ssnote{this is a very negative statement, 
+rehprase with maybe 'existing devices often rely on GPUs which are unavailable on these devices'}
+, or only consider sparse reconstructions \ssnote{why? and are these sparse reconstructions implemented on mobile devices?}.
+\ssnote{What's the state of the art on mobile devices?}
+We propose an efficient method for real-time dense 3D reconstruction using
+chunked, dynamic spatial hash maps \cite{SpatialHashing} of truncated signed
+distance volumes \cite{Curless1996} \ssnote{this is a bunch of jargon. I'd put this below the key insight and explain how it connects to the insight}. 
+\ssnote{State your key insight. 'Our key insight is ...'}
+\ssnote{Hmm, it's not clear at all from this abstract that the key reason why we're able to simplify the 
+process is because we have pose from hardware.}
+We show that our method is able to
+reconstruct and render very large scenes \ssnote{say how big, 'of the order of 50 square meters' or something like that}
+in real-time using only the phone's
+CPU and the fixed function graphics pipeline, with a minimal memory footprint
+in comparison to existing approaches. 
+\ssnote{This is too bold a claim. What are the tradeoffs?}
+We provide both qualitative and
+quantitative results on publicly available RGB-D datasets \cite{FREIBURG}, and
+on datasets collected in real-time from two devices.
 \end{abstract}
 
 \section{Introduction}
@@ -117,31 +140,36 @@ real-time from two kinds of devices.
 % \end{itemize}
 
 Mobile devices are beginning to offer a wide range of sensors normally found on
-robots. Gyroscopes, accelerometers, compasses, GPS units, and high resolution
-sensors are now commonplace in average market phones. Recently, mobile phone
-manufacturers have integrated active depth sensors into mobile devices.
-Depth sensors open up interesting possibilities for 3D reconstruction, mapping,
-and object recognition on such devices that were previously unavailable. In
+robots \ssnote{why does it matter that they're found on robots?}: gyroscopes, accelerometers, compasses, GPS units, and high resolution
+sensors \ssnote{like what? what about cameras?} are now common place in average market phones \ssnote{add cite to mobile device specs or survey}. 
+Recently, mobile phone
+manufacturers have started adding depth sensors to mobile devices, 
+opening up the exciting potential for 3D reconstruction, mapping,
+and object recognition on such devices. In
 particular, the devices we use in this work, Google's \textit{Project Tango} 
-\cite{Tango} phones and tablets use a small active infrared projection depth
-sensor combined with high-performance IMUs and a wide field of view camera. 
-Mobile devices with depth sensors can also provide a light-weight integrated
-sensing platform for small mobile robots such as quadcopters.
+\cite{Tango} phone
+and tablet use a small active infrared projection depth sensor combined with
+high-performance IMUs and a wide field of view camera. Mobile devices with depth
+sensors also provide an attractive, light-weight, integrated platform for small mobile robots.
 
-We are interested in the problem of dense real-time 3D reconstruction on a
-handheld mobile device. The task is to extract the true 3D geometry and color of
-a real scene from a sequence of noisy sensor readings.  Solutions to this problem are
-useful for mobile robot navigation, indoor localization, mapping, and object
-scanning. The problem is ill-posed, since it requires localization as well as mapping (and hence is a variant of
-the SLAM problem.) In this work, we consider only the mapping portion of the
-problem. Given a series of ground truth poses of the mobile sensor, how do we
-construct a map in real time? This task is challengning due to the hardware
-limitations of the device. Compared to full-sized machines, mobile devices have
-severely limited processing power, memory, and graphics capabilities. Further,
-the depth sensors available on these devices are much more limited than their
-full-sized counterparts; they are typically lower resolution, have slower 
-refresh rates, and have much more undesirable nonlinear distortion and noise
-(Sec. \ref{section:hardware}).
+We are interested in the problem of real-time 3D reconstruction \ssnote{add generic cite}. The task is to
+extract the true 3D geometry and color of a real scene from a sequence of noisy
+sensor readings. Solutions to this problem are useful for mobile robot navigation,
+indoor localization, mapping, and object scanning. The problem is ill-posed,
+since it requires localization as well as mapping (and hence is a variant of
+the SLAM problem.) 
+\ssnote{You want to set this up by saying something like 'However, pose information is often available in hardware on 
+several mobile devices'}
+In this work, we consider only the mapping portion of the
+problem. Given a series of ground truth poses of the sensor, how do we construct
+a map in real time?
+
+Real-time 3D reconstruction remains challenging on mobile devices. Compared to
+full-sized machines, mobile devices have severely limited processing power,
+memory requirements, and graphics capabilities. Further, the depth sensors
+available on these devices are much more limited than their full-sized
+counterparts; they are typically lower resolution, have slower refresh rates,
+and have much more undesirable nonlinear distortion and noise.
 
 Previous work on high quality real-time 3D reconstruction \cite{Newcombe,
 Whelan2013, Bylow2013, DTAM} has focused on much more capable and high-powered
@@ -149,15 +177,16 @@ computing platforms with much more accurate sensing, and is therefore not well
 suited for low-powered mobile devices. At the same time, works which perform 3D
 reconstruction on mobile phones have either relied on low quality sparse
 keypoint-based methods \cite{KleinSparse}, or else require intensive offline
-computation \cite{TanskanenMetric} for dense 3D mapping. In this work, we
-propose a novel algorithm for efficient real-time 3D reconstruction on mobile devices
-with onboard depth sensors. Our algorithm relies on using a dynamic spatial hash map
-\cite{SpatialHashing} to directly store distance field data, which greatly
-reduces the amount of memory required to store the reconstruction as compared
-to state of the art approaches. We show that even with a low-powered mobile
-device with severe limitations on memory usage, processing power, and graphics
-capabilities, relatively high-quality, large-scale real-time 3D reconstruction
-is feasible. 
+computation \cite{TanskanenMetric} for dense 3D mapping.
+
+In this work, we propose a novel algorithm for efficient real-time 3D
+reconstruction on mobile devices with onboard depth sensors. We show that even
+with a low-powered mobile device with severe limitations on memory usage,
+processing power, and graphics capabilities, relatively high-quality,
+large-scale real-time 3D reconstruction is feasible. Our algorithm relies on
+using a dynamic spatial hash map \cite{SpatialHashing} to directly store
+distance field data, which greatly reduces the amount of memory required to
+store the reconstruction as compared to state of the art approaches.
 
 \section{Related Work}
 % \begin{itemize}
