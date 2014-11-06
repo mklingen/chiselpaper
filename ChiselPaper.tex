@@ -89,31 +89,27 @@ using Spatially Hashed Truncated Signed Distance Fields}
 
 
 \begin{abstract}
-Google's \textit{Project Tango}\cite{Tango} has made depth sensing available to
-mobile devices such as phones and tablets. \ssnote{It'd be nice to add a sentence here 
-stating why performing 3D reconstruction with these devices is intreresting or useful}	
-Because these devices have limited
-computing power, memory, and graphics capabilities, performing real-time 3D
-reconstruction on them remains challenging. Existing approaches are either too
-inefficient for use on mobile devices \ssnote{this is a very negative statement, 
-rehprase with maybe 'existing devices often rely on GPUs which are unavailable on these devices'}
-, or only consider sparse reconstructions \ssnote{why? and are these sparse reconstructions implemented on mobile devices?}.
-\ssnote{What's the state of the art on mobile devices?}
-We propose an efficient method for real-time dense 3D reconstruction using
-chunked, dynamic spatial hash maps \cite{SpatialHashing} of truncated signed
-distance volumes \cite{Curless1996} \ssnote{this is a bunch of jargon. I'd put this below the key insight and explain how it connects to the insight}. 
-\ssnote{State your key insight. 'Our key insight is ...'}
-\ssnote{Hmm, it's not clear at all from this abstract that the key reason why we're able to simplify the 
-process is because we have pose from hardware.}
-We show that our method is able to
-reconstruct and render very large scenes \ssnote{say how big, 'of the order of 50 square meters' or something like that}
-in real-time using only the phone's
-CPU and the fixed function graphics pipeline, with a minimal memory footprint
-in comparison to existing approaches. 
-\ssnote{This is too bold a claim. What are the tradeoffs?}
-We provide both qualitative and
-quantitative results on publicly available RGB-D datasets \cite{FREIBURG}, and
-on datasets collected in real-time from two devices.
+Google's \textit{Project Tango}\cite{Tango} has made integrated depth sensing
+and onboard visual-intertial odometry \cite{VINS} available to mobile devices such
+as phones and tablets. In this work, we explore the problem of dense, large-scale 3D realtime
+reconstruction on a mobile device with integrated depth sensing. Solving this
+problem is a necessary pre-requisite for many indoor navigation, augmented
+reality and indoor building scanning applications. State of the art approaches
+in large-scale dense reconstruction \cite{Newcombe, Whelan2013} require large
+amounts of memory and high-performance GPU computing, which is often
+unavailable on mobile devices. Existing 3D reconstruction approaches on mobile
+devices either only build a sparse reconstruction \cite{KleinSparse}, offload
+their computation to other devices \cite{DTAM}, or require seconds-long
+post-processing per frame \cite{TanskanenMetric}. Our approach trades off
+resolution, color consistency, and pose drift for speed and memory
+efficiency. By using chunked, dynamic spatial hash maps \cite{SpatialHashing}
+of truncated signed distance volumes \cite{Curless1996}, we are able to
+reconstruct and render very large (300 square meter) scenes at a resolution of
+2-3cm in real time on a mobile device using only the CPU, with a memory
+footprint that is approximately 84 percent smaller than \textit{Kinect Fusion}
+\cite{Newcombe}. We provide both qualitative and  quantitative results on
+publicly available RGB-D datasets \cite{FREIBURG}, and on datasets collected in
+real-time from two devices.
 \end{abstract}
 
 \section{Introduction}
@@ -139,37 +135,37 @@ on datasets collected in real-time from two devices.
 %     photometrically accurate model due to our limited compute power.
 % \end{itemize}
 
-Mobile devices are beginning to offer a wide range of sensors normally found on
-robots \ssnote{why does it matter that they're found on robots?}: gyroscopes, accelerometers, compasses, GPS units, and high resolution
-sensors \ssnote{like what? what about cameras?} are now common place in average market phones \ssnote{add cite to mobile device specs or survey}. 
-Recently, mobile phone
-manufacturers have started adding depth sensors to mobile devices, 
-opening up the exciting potential for 3D reconstruction, mapping,
-and object recognition on such devices. In
-particular, the devices we use in this work, Google's \textit{Project Tango} 
-\cite{Tango} phone
-and tablet use a small active infrared projection depth sensor combined with
-high-performance IMUs and a wide field of view camera. Mobile devices with depth
-sensors also provide an attractive, light-weight, integrated platform for small mobile robots.
+% Mobile devices are beginning to offer a wide range of sensors normally found on
+% robots \ssnote{why does it matter that they're found on robots?}: gyroscopes,
+% accelerometers, compasses, GPS units, and high resolution sensors \ssnote{like
+% what? what about cameras?} are now common place in average market phones
+% \ssnote{add cite to mobile device specs or survey}.
 
-We are interested in the problem of real-time 3D reconstruction \ssnote{add generic cite}. The task is to
-extract the true 3D geometry and color of a real scene from a sequence of noisy
-sensor readings. Solutions to this problem are useful for mobile robot navigation,
-indoor localization, mapping, and object scanning. The problem is ill-posed,
-since it requires localization as well as mapping (and hence is a variant of
-the SLAM problem.) 
-\ssnote{You want to set this up by saying something like 'However, pose information is often available in hardware on 
-several mobile devices'}
-In this work, we consider only the mapping portion of the
-problem. Given a series of ground truth poses of the sensor, how do we construct
-a map in real time?
+Recently, mobile phone manufacturers have started adding depth sensors to
+mobile devices, opening up the exciting potential for 3D reconstruction, mapping,
+and object recognition on such devices. In particular, the devices we use in
+this work, Google's \textit{Project Tango} \cite{Tango} phone and tablet use a
+small active infrared projection depth sensor combined with high-performance
+IMUs and a wide field of view camera. Mobile devices with depth sensors also
+provide an attractive, light-weight, integrated platform for small mobile robots.
 
-Real-time 3D reconstruction remains challenging on mobile devices. Compared to
+We are interested in the problem of real-time 3D reconstruction
+\cite{Hartley2004}. The task is to extract the true 3D geometry and color of a
+real scene from a sequence of noisy sensor readings. Solutions to this problem
+are useful for mobile robot navigation, indoor localization, mapping, and
+object scanning. The problem is ill-posed, since it requires localization as
+well as mapping (and hence is a variant of the SLAM problem.) On mobile devices,
+robust pose estimation and localization using visual intertial odometry
+\cite{VINS}, and sparse keypoint-based mapping \cite{KleinSparse} is already
+available, but real-time dense mapping remains challenging. Compared to
 full-sized machines, mobile devices have severely limited processing power,
 memory requirements, and graphics capabilities. Further, the depth sensors
 available on these devices are much more limited than their full-sized
 counterparts; they are typically lower resolution, have slower refresh rates,
-and have much more undesirable nonlinear distortion and noise.
+and have much more undesirable nonlinear distortion and noise. For this reason,
+we are interested primarily in the \textit{mapping} aspects of the problem.
+Given a series of ground truth poses of the sensor, how do we construct a map
+in real time?
 
 Previous work on high quality real-time 3D reconstruction \cite{Newcombe,
 Whelan2013, Bylow2013, DTAM} has focused on much more capable and high-powered
@@ -256,15 +252,14 @@ the scene are empty.  This information is crucial in situations where the
 sensor is noisy, or has large patches of missing data \cite{Klingensmith2014}.
 
 Elfes \cite{Elfes1989} introduced the concept of \emph{Occupancy Grid
-Mapping}, which divides the world into a 2D grid of axis-aligned cells
-(\ie Voxels), each of which contains an occupancy probability. Occupancy
-grids provide a principled alternative to simple point clouds. They preserve local
-structure, and gracefully handle redundant and missing data.
-Unfortunately, occupancy grids are prohibitively memory intensive in 3D, since
-the amount of memory needed to store the grid increases with the cube of distance 
-traveled by the sensor. While more robust than point clouds, occupancy grids
-suffer from aliasing, and lack information about surface normals and the
-interior/exterior of obstacles.
+Mapping}, which divides the world into a grid of voxels, each of which contains
+an occupancy probability. Occupancy grids provide a principled alternative to
+simple point clouds. They preserve local structure, and gracefully handle
+redundant and missing data. Unfortunately, occupancy grids are prohibitively
+memory intensive in 3D, since the amount of memory needed to store the grid
+increases with the cube of distance traveled by the sensor. While more robust
+than point clouds, occupancy grids suffer from aliasing, and lack information
+about surface normals and the interior/exterior of obstacles.
 
 Attempts to extend occupancy grid maps to 3D have sometimes relied on octrees.
 Rather than storing a fixed-resolution grid, octrees store occupancy data in a
@@ -602,7 +597,7 @@ Unfortunately, a flat volumetric representation of the world using voxels is
 incredibly memory intensive. The amount of memory storage required grows as
 $\mathcal{O}(N^3)$, where $N$ is the number of voxels per side of the 3D voxel
 array.
-
+ 
 For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube with
 color would occupy 8 Gigabytes of memory. Worse, most of that memory would be
 uselessly storing unseen free space. Further, if we plan on exploring larger and larger
