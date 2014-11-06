@@ -599,7 +599,7 @@ logarithmic $\mathcal{O}(M)$ cost is incurred, where $M$ is the depth of the
 Octree. In contrast, queries in a flat array are $\mathcal{O}(1)$.  If implemented na\"{\i}vely, an
 octree will store pointers to child octants in each parent octant. The octants
 themselves may be dynamically allocated on the heap. Each traversal through the
-tree requires $\mathcal{O}(K)$ heap pointer dereferences in the worst case.
+tree requires $\mathcal{O}(M)$ heap pointer dereferences in the worst case.
 Even worse, adjacent voxels may not be adjacent in memory, resulting in very
 poor caching performance.
 
