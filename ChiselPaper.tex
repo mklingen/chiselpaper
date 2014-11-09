@@ -22,6 +22,13 @@
   \renewcommand{\xxnote}[3]{\color{#2}{#1: #3}}
 \fi
 
+% Labels in IEEE format
+% Equation
+\newcommand{\eref}[1]{(\ref{#1})}
+% Section
+\newcommand{\sref}[1]{Section~\ref{#1}}
+% Figure
+\newcommand{\figref}[1]{Fig.\ref{#1}}
 
 
 
@@ -79,7 +86,7 @@ using Spatially Hashed Truncated Signed Distance Fields}
 		 \caption{}
 		 \label{fig:apartment_color}
 	 \end{subfigure}
-      \caption{Figure \ref{fig:map_device} shows our algorithm recording a map
+      \caption{Figure \ref{fig:map_device} \ssnote{please use the figref macro for consistency} shows our algorithm recording a map
       of an office building floor on a mobile device in real time, at a resolution of 3cm. A video of our approach running
   in real time is attached. Fig. \ref{fig:apartment_color} shows a
   reconstructed apartment scene at a resolution of 3cm exported from the
@@ -165,11 +172,14 @@ problem. Given a series of ground truth poses of the sensor, how do we construct
 a map in real time?
 
 Real-time 3D reconstruction remains challenging on mobile devices. Compared to
-full-sized machines, mobile devices have severely limited processing power,
-memory requirements, and graphics capabilities. Further, the depth sensors
+full-sized machines \ssnote{should we call these PCs?}, mobile devices have severely \ssnote{much, don't be so dramatic} 
+limited processing power,
+memory requirements \ssnote{what does it mean to have limited memory requirement}, and graphics \ssnote{not clear what this means, graphical rendering? dedicated graphics processing?} capabilities \ssnote{need to back this up with numbers}. Further, the depth sensors
 available on these devices are much more limited than their full-sized
 counterparts; they are typically lower resolution, have slower refresh rates,
-and have much more undesirable nonlinear distortion and noise.
+and have much more undesirable nonlinear distortion and noise \ssnote{need to back this up with a citation and/or example}.
+\ssnote{Because I have no idea how real-time 3D reconstruction is done, I have no appreciation for 
+why limited processing and bad sensors are big challenges to overcome.}
 
 Previous work on high quality real-time 3D reconstruction \cite{Newcombe,
 Whelan2013, Bylow2013, DTAM} has focused on much more capable and high-powered
@@ -178,15 +188,26 @@ suited for low-powered mobile devices. At the same time, works which perform 3D
 reconstruction on mobile phones have either relied on low quality sparse
 keypoint-based methods \cite{KleinSparse}, or else require intensive offline
 computation \cite{TanskanenMetric} for dense 3D mapping.
+\ssnote{I learned nothing from the above paragraph. I still don't know how any of this
+is done.}
+
 
 In this work, we propose a novel algorithm for efficient real-time 3D
 reconstruction on mobile devices with onboard depth sensors. We show that even
-with a low-powered mobile device with severe limitations on memory usage,
+with a low-powered mobile device with severe limitations on memory usage \ssnote{replace with 'limited memory'},
 processing power, and graphics capabilities, relatively high-quality,
-large-scale real-time 3D reconstruction is feasible. Our algorithm relies on
+large-scale real-time 3D reconstruction is feasible \ssnote{Again, this is just a repetition of what I've read until now}. 
+Our algorithm relies on
 using a dynamic spatial hash map \cite{SpatialHashing} to directly store
 distance field data, which greatly reduces the amount of memory required to
-store the reconstruction as compared to state of the art approaches.
+store the reconstruction as compared to state of the art approaches. 
+\ssnote{I have no idea what this means and why this is significant. Also, is this our only contribution: using a dynamic spatial hash map? 
+Seems pretty lame. And no mention yet about why we are able to exploit pose information.}
+
+\ssnote{Ends abruptly. The introduction must be a self-contained unit that expands on the abstract, which 
+is a self-contained unit that expands on the title. What are our results? How well do we do? What are our limitations?}
+
+\ssnote{Also, \figref{fig:first_figure} not mentioned in the text! It needs to be the centerpiece of what we talk about.}
 
 \section{Related Work}
 % \begin{itemize}
@@ -220,20 +241,20 @@ store the reconstruction as compared to state of the art approaches.
 %     our meshes due to the simplicity and speed of the method.
 % \end{itemize}
 Real-time mapping  has long been a research topic in robotics and computer
-vision. Mapping paradigms generally fall into one of two categories:
+vision \ssnote{unnecessary sentence}. Mapping paradigms generally fall into one of two categories:
 landmark-based (or \emph{sparse}) mapping, and high-resolution \emph{dense}
-mapping. The distinction between the two is that sparse mapping generates a
+mapping \ssnote{need cites}. The distinction between the two is that sparse mapping generates a
 metrically consistent map of landmarks based on key features in the
 environment, while dense mapping globally registers all sensor data into a
 high-resolution data structure. In this work, we are concerned primarily with
 dense mapping, as at least some components of dense mapping are needed for high
-quality 3D reconstruction.
+quality 3D reconstruction \ssnote{I don't understand this statement. what components aren't?}.
 
 One of the simplest means of dense 3D reconstruction is to  store a \emph{Point
 Cloud} of the scene. This is done by projecting depth images into the scene as
 points, and then aligning point clouds to the existing scene; this is done
 either through a local pairwise registration procedure, or a global optimization
-procedure. While simple, point clouds fail to capture local scene structure, are highly 
+procedure. While simple, point clouds fail to capture local scene structure \ssnote{why not? don't get it}, are highly 
 redundant, noisy, and memory intensive.  Additionally, point clouds fail to
 capture \emph{negative} information about the scene :  \ie, determining
 which parts of the scene are empty.  This information is crucial in situations
