@@ -1,0 +1,13 @@
+Results from: 11/9/2014 
+Dataset: 2014Aug28_003149 (Yellowstone dataset, Android room)
+
+                                        Desktop               Yellowstone
+================================================================================
+1. No color; No carving; Raytracing     0.014 +- 0.002    
+2. No color; No carving; Projection     0.033 +- 0.005
+3. Color; No carving; Raytracing        0.020 +- 0.005
+4. Color; No carving; Projection        0.039 +- 0.005
+5. No Color; Carving; Raytracing        0.053 +- 0.010
+6. No Color; Carving; Projection        0.034 +- 0.004
+7. Color; Carving; Raytracing           0.058 +- 0.016
+8. Color; Carving; Projection           0.040 +- 0.005
