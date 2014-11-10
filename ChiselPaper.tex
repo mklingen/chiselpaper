@@ -86,9 +86,9 @@ using Spatially Hashed Truncated Signed Distance Fields}
 		 \caption{}
 		 \label{fig:apartment_color}
 	 \end{subfigure}
-      \caption{Figure \ref{fig:map_device} \ssnote{please use the figref macro for consistency} shows our algorithm recording a map
+      \caption{\figref{fig:map_device} shows our algorithm recording a map
       of an office building floor on a mobile device in real time, at a resolution of 3cm. A video of our approach running
-  in real time is attached. Fig. \ref{fig:apartment_color} shows a
+  in real time is attached. \figref{fig:apartment_color} shows a
   reconstructed apartment scene at a resolution of 3cm exported from the
   device.}
   \label{fig:first_figure}
@@ -120,88 +120,84 @@ real-time from two devices.
 \end{abstract}
 
 \section{Introduction}
-% \begin{itemize}
-%     \item We want to do large-scale 3D reconstruction from depth data with only
-%     limited hardware.
-%     \item This is attractive for many use cases where all one wants to do is
-%     make a rough mesh of an area. The real-time aspect allows the user to see
-%     the accuracy of the reconstruction easily. This is also attractive for small
-%     mobile robots (such as quad-copters) with limited onboard compute power.
-%     \item We have access to VIO, and so don't need to do pose estimation
-%     \item Existing techniques are not sufficient for the amount of compute power
-%     we have
-%     \item We want to be careful about maintaining probabalistically accurate
-%     data and not throwing it away/compressing it.
-%     \item It's important to keep track of the noise model of the sensor to deal
-%     with noise, distortion and missing data.
-%     \item We want to use the TSDF over occupancy grids \cite{Elfes1989} or
-%     octomaps \cite{Wurm2010}, because the TSDF is much better at maintaining
-%     surface information, and occupancy information can easily be extracted from
-%     it.
-%     \item We also want to use the color camera, but don't want to make a
-%     photometrically accurate model due to our limited compute power.
-% \end{itemize}
+The task of real-time 3D reconstruction \cite{Hartley2004} is to extract the
+true 3D geometry and color of a real scene from a sequence of noisy sensor readings
+online. Solutions to this problem are useful for navigation, mapping, object
+scanning, and more. The problem can be broken down into two components:
+localization (\ie finding out where the sensor is), and mapping (\ie
+reconstructing the scene geometry). Generally, localization is accomplished by a
+combination of odometry \cite{VINS} and landmark-based localization
+\cite{FastSlam}, and is efficiently solved by considering only a \textit{sparse}
+representation of the world -- that is, as a collection of poses and landmark
+associations. To be useful for high quality 3D reconstruction, mapping must in
+contrast be \textit{dense}. That is, it must consider the full geometric
+representation of the world either as surfaces, points, or volumes
+\cite{Hartley2004}.  
 
+Recently, mobile phone manufacturers have started adding
+depth sensors to mobile devices, opening up the exciting potential for
+real-time 3D reconstruction using a wireless, handheld device. In particular,
+the devices we use in this work, Google's \textit{Project Tango} \cite{Tango}
+phone and tablet use a small active infrared projection depth  sensor combined
+with high-performance IMUs and a wide field of view camera. Other devices, such
+as the Occiptal Inc. \textit{Structure Sensor} \cite{StructureSensor} have
+similar capabilities. How can we do real-time 3D reconstruction on these devices?
 
-% Mobile devices are beginning to offer a wide range of sensors normally found on
-% robots \ssnote{why does it matter that they're found on robots?}: gyroscopes,
-% accelerometers, compasses, GPS units, and high resolution sensors \ssnote{like
-% what? what about cameras?} are now common place in average market phones
-% \ssnote{add cite to mobile device specs or survey}.
+Consider house-scale (300 square meter) real-time 3D mapping and localization on
+a \textit{Tango} device.  A user walks around a building, scanning the scene by
+waving the device around. At house-scale, we are only concerned with features
+at a resolution of about 2-3 cm (walls, floors, furniture, applicances, etc.).
+To facilitate scanning, real-time feedback is given to the user on the device.
+The user should be able to locate themselves inside the building, and should be
+able to export the result after the scan is complete without losing any data.
+\figref{fig:first_figure} shows an example of this use case in progress.
 
-Recently, mobile phone manufacturers have started adding depth sensors to
-mobile devices, opening up the exciting potential for 3D reconstruction, mapping,
-and object recognition on such devices. In particular, the devices we use in
-this work, Google's \textit{Project Tango} \cite{Tango} phone and tablet use a
-small active infrared projection depth sensor combined with high-performance
-IMUs and a wide field of view camera. Mobile devices with depth sensors also
-provide an attractive, light-weight, integrated platform for small mobile robots.
+House-scale mapping on a mobile device requires that the 3D reconstruction
+algorithm must run entirely on the device, and fast enough to allow user
+interaction. Importantly, the entire dense 3D reconstruction must fit inside
+the device's limited (2-4GB) memory. Because the mobile device might lack a
+powerful discrete graphics processing unit (GPU), we will not be able to rely
+on general purpose GPU computing to make the problem tractable in either
+creating or rendering the 3D reconstruction.
 
-We are interested in the problem of real-time 3D reconstruction
-\cite{Hartley2004}. The task is to extract the true 3D geometry and color of a
-real scene from a sequence of noisy sensor readings. Solutions to this problem
-are useful for mobile robot navigation, indoor localization, mapping, and
-object scanning. The problem is ill-posed, since it requires localization as
-well as mapping (and hence is a variant of the SLAM problem.) On mobile devices,
-robust pose estimation and localization using visual intertial odometry
-\cite{VINS}, and sparse keypoint-based mapping \cite{KleinSparse} is already
-available, but real-time dense mapping remains challenging. Compared to
-full-sized machines, mobile devices have severely limited processing power,
-memory requirements, and graphics capabilities. Further, the depth sensors
-available on these devices are much more limited than their full-sized
-counterparts; they are typically lower resolution, have slower refresh rates,
-and have much more undesirable nonlinear distortion and noise. For this reason,
-we are interested primarily in the \textit{mapping} aspects of the problem.
-Given a series of ground truth poses of the sensor, how do we construct a map
-in real time?
+Many state-of-the-art real-time 3D reconstruction algorithms \cite{Newcombe,
+Whelan2013, WhelanLoopClose, Bylow2013} work by computing a truncated signed
+distance field (TSDF) \cite{Curless1996} of the scene. The TSDF stores a
+voxelized estimate of the distance to the nearest surface in the scene, up to a
+fixed distance. While allowing for very high quality reconstructions, the TSDF
+is very memory intensive. The size of the TSDF needed to reconstruct an entire
+house may be on the order of several gigabytes  (Sec. \ref{sec:memory}), and
+rendering the resulting reconstruction in real-time would overwhelm the graphics
+capabilities of the mobile device \textbf{(TODO: Justify this)}. Previous works
+\cite{Whelan2013, WhelanLoopClose} have extended the TSDF to larger scenes by
+storing a \textit{moving} voxelization and throwing away data incrementally --
+but we are interested in preserving the volumetric data for later use.
 
-Previous work on high quality real-time 3D reconstruction \cite{Newcombe,
-Whelan2013, Bylow2013, DTAM} has focused on much more capable and high-powered
-computing platforms with much more accurate sensing, and is therefore not well
-suited for low-powered mobile devices. At the same time, works which perform 3D
-reconstruction on mobile phones have either relied on low quality sparse
-keypoint-based methods \cite{KleinSparse}, or else require intensive offline
-computation \cite{TanskanenMetric} for dense 3D mapping.
-\ssnote{I learned nothing from the above paragraph. I still don't know how any of this
-is done.}
+We note in this work that most ( $\sim 85\%$) of the space occupied by
+the TSDF in a typical scene is in fact empty (\figref{fig:memory_data}). Iterating over
+empty space for the puposes of reconstruction and rendering wastes computation
+time; and storing it wastes memory. Noting this fact, we introduce a novel
+data structure, the Dynamic Spatially Hashed \cite{SpatialHashing} TSDF, which
+stores the distance field data as a two-level structure in which static 3D \textit{chunks} of voxels
+are dynamically allocated according to the presence of surfaces in the scene.
+Because the data structure has $\mathcal{O}(1)$ access performance, we are able
+to quickly identify which parts of the scene should be rendered, updated, or
+deleted. This allows us to minimize the amount of time we spend on each depth
+scan and keep the reconstruction running in real-time on the device.
 
+For localization, we use a mix of  visual-intertial odometry \cite{VINS} and
+sparse keypoint-based mapping \cite{FastSlam} as a black box. These approaches
+use only the 2D wide-angle camera and the IMU, and take in no information from
+the depth sensor. As a consequence, our approach is \textit{open-loop} in the
+sense that it does not attempt to explicitly estimate the pose of the sensor
+from the 3D reconstruction. In spite of this limitation, we found that
+using only open-loop visual odometry was sufficient to create high quality,
+house-scale reconstructions (\figref{fig:overhead_night}).
 
-In this work, we propose a novel algorithm for efficient real-time 3D
-reconstruction on mobile devices with onboard depth sensors. We show that even
-with a low-powered mobile device with severe limitations on memory usage \ssnote{replace with 'limited memory'},
-processing power, and graphics capabilities, relatively high-quality,
-large-scale real-time 3D reconstruction is feasible \ssnote{Again, this is just a repetition of what I've read until now}. 
-Our algorithm relies on
-using a dynamic spatial hash map \cite{SpatialHashing} to directly store
-distance field data, which greatly reduces the amount of memory required to
-store the reconstruction as compared to state of the art approaches. 
-\ssnote{I have no idea what this means and why this is significant. Also, is this our only contribution: using a dynamic spatial hash map? 
-Seems pretty lame. And no mention yet about why we are able to exploit pose information.}
-
-\ssnote{Ends abruptly. The introduction must be a self-contained unit that expands on the abstract, which 
-is a self-contained unit that expands on the title. What are our results? How well do we do? What are our limitations?}
-
-\ssnote{Also, \figref{fig:first_figure} not mentioned in the text! It needs to be the centerpiece of what we talk about.}
+ We provide qualitative and  quantitative results on publicly available RGB-D
+ datasets \cite{FREIBURG}, and on datasets collected in real-time from two
+ devices. We compare different approaches for creating and storing the TSDF in
+ terms of memory efficiency, speed, and reconstruction quality.
 
 \section{Related Work}
 % \begin{itemize}
@@ -360,18 +356,25 @@ areas far away from the sensor.
 %     capability.
 % \end{itemize}
 \subsection{The Truncated Signed Distance Function}
-\ssnote{Maybe start with 'Following [CITES],'} We model the world as a volumetric function $\Phi(x) : \mathbf{R}^3 \to
-\mathbf{R}$, where, for every 3D point in the world, we have its distance to the
-nearest surface of an object. Inside objects, the value of $\Phi$ is negative.
-Outside objects, the value of $\Phi$ is positive, and on the surface, it is
-zero. We will assume that the scene is static.
+We will assume that the scene is static. Following Curless \cite{Curless1996},
+we model the world as a volumetric function $\Phi(\mathbf{x}) : \mathbf{R}^3
+\to \mathbf{R}$, where, for every 3D point in the world, we have its distance
+to the nearest surface of an object. Inside objects, the value of $\Phi$ is
+negative. Outside objects, the value of $\Phi$ is positive, and on the surface,
+it is zero.
 
-Consider the geometry of the ideal depth sensor. Rays emanate from the sensor
-origin to the scene. At each timstep $t$ we have a set of rays $Z_t$. Call the
-origin of the ray $o$, and the endpoint of the ray $x$. The direction of the
-ray is given by $r = \frac{o - x}{\|o - x\|}$. The endpoint of each ray
-represents a point on the surface. So if  the sensor is perfect, we know that
-the signed distance function $\Phi(x) = 0$ at that point.
+Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
+sensor origin to the scene. At each timstep $t$ we have a set of rays
+$Z_t$. Call the origin of the ray $o$, and the endpoint of the ray $\mathbf{x}$.
+The length of the ray is given by $z = \|\mathbf{o}
+- \mathbf{x}\|$. The direction of the ray is given by $\mathbf{\hat{r}} =
+\frac{\mathbf{o} - \mathbf{x}}{z}$. The endpoint of each ray represents a point
+on the surface. So if  the sensor is perfect, we know that the signed distance
+function $\Phi(\mathbf{x}) = 0$ at that point. In practice, the ray is
+corrupted by noise. Call $d$ the true distance from the origin of the sensor to
+the surface along the ray. Then $z$ is actually a random variable drawn from a
+distribution dependant on $d$ called the \textit{hit probability}
+(\figref{fig:integration_diagram}).
 
 The ray also implies that all the points in space along the ray from the sensor
 origin up to the endpoint must be outside of any surface (or else the ray would
@@ -381,35 +384,31 @@ inside an object.
 
 Further, very near the surface of the object, the signed distance function can
 be approximated by the distance along the ray to the endpoint of  the ray
-(Figure \ref{fig:raycast_diagram}). This is because we know that there is at
-least one point of the surface, namely the endpoint of the ray.  Near $x$, the
-signed distance function is approximately the distance to $x$. So, whenever
-$|u|$ is very small:
+(\figref{fig:raycast_diagram}). Near $\mathbf{x}$, the signed distance function
+is approximately the distance to $\mathbf{x}$. So, whenever $|u|$ is very
+small:
 
 \begin{equation} 
 \label{eq:pointwise_tsdf} 
-	\Phi(x - ur) \approx u 
+	\Phi(\mathbf{x} - u\mathbf{\hat{r}}) \approx u 
 \end{equation}
-
-\ssnote{It might be clearer if vectors and scalars were disambiguated. For example,
-$\mathbf{x}$ and $u$. Also nice if unit vectors were capped like $\mathbf{\hat{r}}$ }
 
 The approximation is better whenever the ray is approximately
 perpendicular to the surface, and worst whenever the ray is parallel to the
 surface. Because of this, some works \cite{Bylow2013} instead approximate
-$\Phi$ by locally fitting a plane around $x$ \ssnote{using neighboring points?}, 
-and using the distance to that
-plane as a local approximation, \ie:
+$\Phi$ by locally fitting a plane around $\mathbf{x}$ using the neighboring
+points and using the distance to that plane as a local approximation, \ie:
 
 \begin{equation} 
 \label{eq:planar_tsdf} 
-	\Phi(x - ur) \approx -u~r \cdot n_x
+	\Phi(\mathbf{x} - u\mathbf{\hat{r}}) \approx -u~\mathbf{\hat{r}} \cdot
+	\mathbf{\hat{n}_x}
 \end{equation}
 
-\noindent where $n_x$ is the local surface normal around $x$. In general, the
-planar approximation (Eqn. \ref{eq:planar_tsdf}) is much better than the
-pointwise approximation (Eqn. \ref{eq:pointwise_tsdf}), especially when surfaces
-are nearly parallel to the sensor -- but computing surface normals is not
+\noindent where $\mathbf{\hat{n}_x}$ is the local surface normal around
+$\mathbf{x}$. In general, the planar approximation (Eqn. \ref{eq:planar_tsdf})
+is much better than the pointwise approximation (Eqn. \ref{eq:pointwise_tsdf}),
+especially when surfaces are nearly parallel to the sensor -- but computing surface normals is not
 always computationally feasible. In our work, we have chosen to use
 the simpler pointwise approximation.
 
@@ -426,33 +425,36 @@ the simpler pointwise approximation.
          \caption{}
   \label{fig:integration_diagram}
    \end{subfigure}
-   \caption{Figure (\ref{fig:raycast_diagram}) is a diagram of a ray hitting a
+   \caption{\figref{fig:raycast_diagram} is a diagram of a ray hitting a
    surface from the camera, and a voxel that the ray passes through. The length of the ray from the point at
       which the ray intersects the voxel and the surface, $u$, is an
       approximation of the signed distance function $\Phi$, when $u$ is small.
-      Figure (\ref{fig:integration_diagram} ) shows a hypothetical plot of the
-      hit probability of a ray $P\left(z = u \right) $, the pass
-      probability $P\left(z< u\right)$, vs. $u$. The hit integration region is
-      inside $[-\tau, \tau]$, wheras regions closer to the camera than  $\tau +
-      \epsilon$ are in the space carving region (Section \ref{section:carving}). }
+      \figref{fig:integration_diagram} shows a hypothetical plot of the
+      hit probability of a ray $P\left(z - d = u \right) $, the pass
+      probability $P\left(z - d < u\right)$, vs. $u$, where $z$ is the
+      measurement from the sensor, and $d$ is the true distance from the sensor
+      to the surface. The hit integration region is inside $[-\tau, \tau]$,
+      wheras regions closer to the camera than  $\tau + \epsilon$ are in the space carving region (Section \ref{section:carving}). }
 \end{figure*} 
 
-
 This observation leads to the Truncated Signed Distance Function (TSDF)
-\cite{Curless1996}. The TSDF is an approximation \ssnote{technically, this is not an approximation but 
-a restriction to $\pm \tau$. Within the restriction, it is exact, no?} of the  Signed Distance
-Function which only stores distances to the surface within a small truncation
-distance, $\tau$ \ssnote{this is a very unclear way of stating that the TSDF stores everything between the $\pm \tau$ levelsets of $\Phi$
-Isn't the TSDF defined as $\Phi(x),\forall x: |\Phi(x)|\leq\tau$?}.  All other parts of the field are undefined. The TSDF allows
-us to maintain distance field data near the surface of objects, while ignoring
-distance data far \ssnote{further} away from surfaces. We will refer to the TSDF as
-$\Phi_{\tau}$.
+\cite{Curless1996}. The TSDF is defined as:
+
+\begin{equation}
+	\Phi_{\tau}(\mathbf{x}) = 
+	\begin{cases}
+		\Phi(\mathbf{x}) &  \text{if} |\Phi(\mathbf{x})| < \tau \\
+		\text{undefined} & \text{otherwise}
+	\end{cases}
+\end{equation}
+
+\noindent where $\tau \in \mathbf{R}$ is the ``truncation distance'' in which
+the TSDF is defined.
 
 Following \cite{Curless1996}, to update the TSDF with a particular sensor
 measurement, we update each voxel along the ray from $u = -\tau$ to $\tau$, and
-take the weighted running average of distance field estimates over time, weighting by the
-probability distribution of the sensor \ssnote{not clear what this means}. To do this, we can introduce a global
-weighting function $W : \mathbf{R}^3 \to \mathbf{R}$ that represents the
+take the weighted running average of distance field estimates over time. To do
+this, we can introduce a global weighting function $W : \mathbf{R}^3 \to \mathbf{R}$ that represents the
 confidence in the estimate of the TSDF at every point in space. A weight of $0$
 corresponds to unknown space, wheras a weight of $\infty$ corresponds to space
 where the distance to the nearest object is known with absolute certainty.
@@ -484,9 +486,10 @@ where the distance to the nearest object is known with absolute certainty.
 					\State {$\mathbf{v}_c \gets \mathbf{x} - u \mathbf{r}$}
 				   \LineComment{Update the TSDF and weight.}
 					\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \frac{ W(\mathbf{v}_c)
-					\Phi_{\tau}(\mathbf{v}_c) + \alpha(u) u}{ W(\mathbf{v}_c) +\alpha(u)}$}
+					\Phi_{\tau}(\mathbf{v}_c) + \alpha_{\tau}(u) u}{ W(\mathbf{v}_c)
+					+\alpha_{\tau}(u)}$}
 					\label{alg:line:tsdf_update}
-					\State {$W(\mathbf{v}_c) \gets  W(\mathbf{v}_c)+ \alpha(u)$}
+					\State {$W(\mathbf{v}_c) \gets  W(\mathbf{v}_c)+ \alpha_{\tau}(u)$}
 				\EndFor
 			\EndFor
 		\EndFor
@@ -497,41 +500,36 @@ The TSDF algorithm is outlined in Algorithm \ref{alg:TSDF}. It begins by
 initializing the TSDF to an undefined value with a weight of $0$, then for each
 depth scan, it updates the weight and TSDF value for all points along each ray
 within the truncation distance $\tau$. The weight is updated according
-to the weighting function $\alpha(u) : [-\tau,\tau]\to \mathbf{R} $  for which
-the following holds $\forall \tau$:
+to the scale-invariant weighting function $\alpha_{\tau}(u) : [-\tau,\tau]\to
+\mathbf{R} $ for which the following holds:
 
 \begin{equation}
-	\int_{-\tau}^{\tau} \alpha(x) dx = K 
+	\forall \tau, \int_{-\tau}^{\tau} \alpha_{\tau}(u) du = K 
 \end{equation}
  
- \noindent and $K$ is a constant. \ssnote{This is very confusing. Why is this necessary?
- Also, $\alpha$ is a function of $\tau$, right? Otherwise, the above is not possible for 
- one $\alpha$. Maybe rewrite $\alpha$ as $\alpha_\tau$?}
+ \noindent and $K$ is a constant. This is to ensure that changing the truncation
+ distance does not change the speed at which the TSDF converges.  
  
-Ideally, the weighting function should be determined by the probability distribution of the sensor 
-\ssnote{again, not clear what this statement means}, and should represent
-the probability that $\Phi(x - u r) = 0$ \ssnote{yes, this is what it should represent. Even if the sensor were perfect,
-there would still be uncertainty about this value becuase we don't know the surface. Uncertainty in this value is due to both
-sensor noise and uncertainty about the surface itself.}. 
-It is possible \cite{Nguyen2012} to
-directly compute the weight from the probability distribution of the sensor, and hence compute
-the actual \emph{expected} signed distance function \ssnote{Not sure if this is true}. In favor of better
-performance, linear, exponential, and constant approximations of $\alpha_u$ can
-be used \cite{Curless1996, Newcombe, Whelan2013, Bylow2013}.
+Ideally, the weighting function should be determined by the hit probability of
+the sensor and should correspond to the probability that $\Phi(\mathbf{x} - u
+\mathbf{\hat{r}}) = 0$. It is possible \cite{Nguyen2012} to
+directly compute the weight from the hit probability of the sensor; but in favor
+of better performance, linear, exponential, and constant approximations of
+$\alpha_{\tau}$ can be used \cite{Curless1996, Newcombe, Whelan2013, Bylow2013}.
 
-Here, we simply use a constant approximation $\alpha(u) = \frac{1}{2
-\tau}$, and use the probability distribution of the sensor instead to 
-dynamically select the value of $\tau$, as in \cite{Nguyen2012} (Fig.
-\ref{fig:integration_diagram}). This results in poorer surface reconstruction
-quality in areas of high noise than methods which more closely approximate the
-hit probability of the sensor.
+Here, we simply use a constant approximation $\alpha_{\tau}(u) = \frac{1}{2
+\tau}$, and use the hit probability of the sensor instead to  dynamically select
+the value of $\tau$, as in \cite{Nguyen2012} (\figref{fig:integration_diagram}).
+This results in poorer surface reconstruction quality in areas of high noise
+than methods which more closely approximate the hit probability of the sensor.
 
 \subsection{Colorization}
 To create colored surface reconstructions, we use a method following Bylow
 \etal \cite{Bylow2013}, also used in \textit{Kintinuous} \cite{Whelan2013},
 which directly stores color information as volumetric data. Alongside the
 truncated signed distance function, we store a volumetric color function
-$C_\tau : \mathbf{R}^3 \to \mathbf{R}^3$, and a color weighting function $W_c :
+$C : \mathbf{R}^3 \to \mathbf{R}^3$, and a color weighting function
+$W_{c} :
 \mathbf{R}^3 \to \mathbf{R}$.
 
 Color is updated in exactly the same manner as the TSDF. We assume that each
@@ -539,20 +537,21 @@ depth ray also corresponds to a color in the RGB space. We integrate along the
 ray from $u \in [-\tau, \tau]$, and update the color:
 
 \begin{align}
-C(x - ur) \gets \frac{w_c C(x - ur) + \alpha_c \mathbf{c}}{w_c}
-+\alpha_c
+C(\mathbf{v}) \gets \frac{W_c(\mathbf{v}) C(\mathbf{v}) +
+\alpha_c(u) \mathbf{c}}{W_c(\mathbf{v})}
 \\
 %
-w_c \gets w_c + \alpha_c
+W_c(\mathbf{v}) \gets W_c(\mathbf{v}) + \alpha_c(u)
 \end{align}
-where $\mathbf{c} \in \mathbf{R}^3$ is the color of the ray in RGB
-space, $\alpha_c$ is a color weighting function, and $w_c = W_c(x -
-ur)$. In both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting
-function is proportional to the dot product of the ray's direction and an estimate of the
-surface normal. But since surface normal estimation is computationally
-expensive, we instead use the same weight for both distance and color.
-\ssnote{RGB seems like a pretty weird color space to be averaging over. Did you try LAB, 
-a more reasonable color space to do such operations?}
+
+\noindent where $\mathbf{v} = \mathbf{x} - u\mathbf{\hat{r}}$ and $\mathbf{c}
+\in \mathbf{R}^3$ is the color of the ray in color space, $\alpha_c$ is a color weighting function. In both \cite{Bylow2013} and
+\cite{Whelan2013}, the color weighting function is proportional to the dot
+product of the ray's direction and an estimate of the surface normal. But since
+surface normal estimation is computationally expensive, we instead use the same
+weight for both distance and color. The choice of color space (red/green/blue,
+hue/saturation/value, etc.) depends on the application. As in \cite{Bylow2013}, we have chosen RGB space for the sake
+of simplicity, at the expense of color consistency with changes in illumination.
 
 % We must also deal with the fact that color images and depth data may be
 % asynchronous. In our case, depth data is often delayed behind color data by as
@@ -599,7 +598,7 @@ cleared away whenever rays pass through previously colored space.
 
 Space carving gives us two advantages: first, it dramatically improves the
 surface reconstruction in areas of very high noise (especially around the edges
-of objects: see Fig. \ref{fig:dragon_closeup}), and second, it removes
+of objects: see \figref{fig:dragon_closeup}), and second, it removes
 some inconsistencies caused by moving objects and localization errors. If space
 carving is not used, moving objects appear in the TSDF as permanent blurs, and
 localization errors result in multiple overlapping isosurfaces appearing. With
@@ -697,7 +696,7 @@ poor caching performance.
       does not account for the memory allocated for display meshes. We also collected memory
       usage statistics for the Freiburg \cite{FREIBURG} office dataset (Fig.
       \ref{fig:memory_data2}), varying the size of the depth frustum. Extending
-      the depth frustum to 5 meters (Fig. \ref{fig:freiburg_5m}) results in a reconstructin of the entire
+      the depth frustum to 5 meters (\figref{fig:freiburg_5m}) results in a reconstructin of the entire
       room, wheras limiting the depth frustum to 2 meters (Fig.
       \ref{fig:freiburg_2m}) limits the reconstruction to the desk scene. Fig.
       \ref{fig:frustum_cull} shows all the TSDF chunks which intersect the depth camera frustum  and are within $\tau$ of a hit as green cubes. Only these
@@ -706,7 +705,7 @@ poor caching performance.
       resolution of 3cm. Fig \ref{fig:projection_mapping} shows a cutaway of a
       chunk containing an object. In projection mapping (Alg. \ref{alg:projection_mapping}),  a particular voxel with
       center $v_c$ is projected onto the depth camera at time $t$. The depth image is binlinearly interpolated to get
-      $z_p$, a depth reading at the projected point. In Fig. \ref{fig:chunks}, chunks of voxels (grey) are allocated near
+      $z_p$, a depth reading at the projected point. In \figref{fig:chunks}, chunks of voxels (grey) are allocated near
   the surface (blue) of the scene. Chunks are spatially hashed \cite{SpatialHashing} into a
       dynamic hash map. Lookups into the hash map are constant time. Within each
       chunk, voxels are allocated in a 3D array.}
@@ -715,7 +714,7 @@ poor caching performance.
 Instead of using an Octree, or a fixed 3D array (as in \cite{Newcombe,
 Whelan2013}), we use a hybrid data structure which maintains some of the
 advantages of both. We divide the world into a two-level tree. In the first
-level we have \emph{chunks} of voxels (Figure \ref{fig:chunks}). Each chunk consists of a
+level we have \emph{chunks} of voxels (\figref{fig:chunks}). Each chunk consists of a
 fixed grid of $N_c^3$ voxels, which are stored in a flat 3D array. Chunks are
 allocated dynamically from a growing pool of heap memory as data is added, and
 are indexed in a spatial 3D hash map \cite{SpatialHashing} by their spatial
@@ -837,7 +836,7 @@ Since the frustum is a conservative approximation of the space that could be
 updated by a depth scan, some of the chunks that are visible to the frustum will
 have no depth data associated with them. For this reason, we also store a flag
 inside each chunk indicating whether or not that chunk ever contained the
-endpoint of a ray from the depth camera (Figure \ref{fig:frustum_cull}). Those
+endpoint of a ray from the depth camera (\figref{fig:frustum_cull}). Those
 chunks which do not get updated during a depth scan are garbage collected
 (deleted from the hash map), reducing memory overhead. Since the size of the
 camera frustum is fixed, the garbage collection process has $\mathcal{O}(1)$
@@ -963,7 +962,7 @@ using depth data, and can result in mis-alignment of depth scans.
 		 \caption{}
 		 \label{fig:timing}
 	 \end{subfigure} 
-	 \caption{Figure \ref{fig:overhead_night} shows an overhead view of
+	 \caption{\figref{fig:overhead_night} shows an overhead view of
 	 an outdoor scene captured at night with the yellowstone device at a
 	 resolution of 3 cm. The yellow pyramid represents the depth camera frustum. The white
 	 lines are the aggregate trajectory of the device. Figures \ref{fig:night2}
@@ -976,7 +975,7 @@ using depth data, and can result in mis-alignment of depth scans.
 	 counter-clockwise from the top left: color image, projection mapping without
 	 space carving, projection mapping with space carving, and raycasting without
 	 space carving. During the scan, the user was looking mostly toward the
-	 ceiling, at the colorful dragon. Fig. \ref{fig:timing} shows
+	 ceiling, at the colorful dragon. \figref{fig:timing} shows
       scan insertion times for each of the methods as recorded on a desktop
       computer.}
 	 \label{fig:device_data}
@@ -1045,7 +1044,7 @@ which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
 %  
 %  To train the distortion and noise model, we first calibrate the sensor with the
 %  use of a checkerboard calibration target. Images of the target are taken at
-%  multiple distances and angles from the camera (Fig. \ref{fig:calibration}). We
+%  multiple distances and angles from the camera (\figref{fig:calibration}). We
 %  fit an ideal plane to the target to determine what the true distance should be
 %  at each pixel. Then, we perform quadratic regression on the depth readings
 %  against the predicted readings from the plane to find the per-pixel distortion
@@ -1058,10 +1057,10 @@ which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
 \subsection{Large Scale Online Mapping}
 Using our algorithm, we are able to create and display large scale maps at a
 resolution as small as 2cm in real-time using only visual-intertial odometry for
-pose estimation. Figure \ref{fig:map_device} shows a map of an office building floor
+pose estimation. \figref{fig:map_device} shows a map of an office building floor
 being reconstructed in real-time using the phone device. This scenario is also
 shown in an attached video. Using the tablet device, we have reconstructed
-(nightime) outdoor scenes in real-time (Figure \ref{fig:overhead_night}).
+(nightime) outdoor scenes in real-time (\figref{fig:overhead_night}).
 
 In the course of online mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
@@ -1072,29 +1071,30 @@ paused. After mapping is complete, the user can save the map to disk.
 We implemented both the raycasting and voxel projection modes of depth scan
 integration (Sec. \ref{section:scan_integration}), and compared them in terms of
 speed and quality. We found that projection mapping was far more efficient than
-raycasting when space carving was used (Fig. \ref{fig:timing}). However,
+raycasting when space carving was used (\figref{fig:timing}). However,
 projection mapping results undesirable aliasing artifacts; especially on
 surfaces nearly parallel with the camera's visual axis. Additionally, color consistency suffers
 with projection carving, because rather than color being averaged by all the
 rays passing through each voxel, only a single color is used for each projected
 voxel center. The use of space carving drastically reduces noise artifacts,
-especially around the silhouettes of objects (Fig. \ref{fig:dragon_closeup}). We
+especially around the silhouettes of objects (\figref{fig:dragon_closeup}). We
 note that using both space carving \emph{and} raycasting is not fast enough for real-time mapping on the device
 using our approach.
 
 \subsection{Memory Usage}
+\label{sec:memory}
 We additionally compared memory usage statistics of our chunked approach to a
 na\"{\i}ve approach which allocates a single block of memory to tightly fit the
-entire volume explored (Fig. \ref{fig:memory_data}). As the size of the space
+entire volume explored (\figref{fig:memory_data}). As the size of the space
 explored increases, our approach uses about a tenth as much memory as the
 na\"{\i}ve approach. This is because the majority of the space explored contains no
-surfaces. Notice that in Fig. \ref{fig:memory_data}, the na\"{\i}ve approach uses
+surfaces. Notice that in \figref{fig:memory_data}, the na\"{\i}ve approach uses
 nearly 300MB of RAM wheras our approach never allocates more than 47MB of RAM
 for the entire scene, which is a 15 meter long hallway.
 
 We tested our approach on the publicly available Freiburg RGB-D dataset
 \cite{FREIBURG}, which contains ground truth pose information from a motion
-capture system (Fig. \ref{fig:freiburg_2m}). In the Freiburg office dataset, a
+capture system (\figref{fig:freiburg_2m}). In the Freiburg office dataset, a
 \textit{Kinect} sensor makes a loop around a central desk scene. The room is
 roughly 12 by 12 meters in area.  Memory usage statistics (Fig.
 \ref{fig:memory_data2}) reveal that when all of the depth data is used
@@ -1232,7 +1232,6 @@ This work was done as part of Google's Advanced Technologies and Projects
 division (ATAP) for \emph{Project Tango}. Thanks to Johnny Lee, Joel Hesch, Esha
 Nerurkar, and Simon Lynen and other ATAP members for their close collaboration
 and support on this project. Thanks to Ryan Hickman for collecting outdoor data.
-We would also like to thank Sidd Srinivasa for critique of this work.
 \fi
 
 \bibliographystyle{plain}
