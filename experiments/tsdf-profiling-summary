@@ -6,11 +6,11 @@ Run time per depth image [seconds]
 ================================================================================
 Parameters                              Desktop               Yellowstone
 ================================================================================
-1. No color; No carving; Raytracing     0.014 +- 0.002    
-2. No color; No carving; Projection     0.033 +- 0.005
-3. Color; No carving; Raytracing        0.020 +- 0.005
-4. Color; No carving; Projection        0.039 +- 0.005
-5. No Color; Carving; Raytracing        0.053 +- 0.010
-6. No Color; Carving; Projection        0.034 +- 0.004
-7. Color; Carving; Raytracing           0.058 +- 0.016
-8. Color; Carving; Projection           0.040 +- 0.005
+1. No color; No carving; Raytracing     0.014 +- 0.002        0.062 +- 0.013
+2. No color; No carving; Projection     0.033 +- 0.005        0.106 +- 0.022
+3. Color; No carving; Raytracing        0.020 +- 0.005        0.080 +- 0.016
+4. Color; No carving; Projection        0.039 +- 0.005        0.125 +- 0.023
+5. No Color; Carving; Raytracing        0.053 +- 0.010        0.184 +- 0.040
+6. No Color; Carving; Projection        0.034 +- 0.004        0.116 +- 0.019
+7. Color; Carving; Raytracing           0.058 +- 0.016        0.200 +- 0.037
+8. Color; Carving; Projection           0.040 +- 0.005        0.128 +- 0.024
