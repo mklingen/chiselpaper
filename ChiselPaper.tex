@@ -70,6 +70,14 @@ using Spatially Hashed Truncated Signed Distance Fields}
 	The Graduate Center,\\
 	City University of New York\\
 	\texttt{idryanovski@gc.cuny.edu}
+	\and
+	Sidd Srinivasa \\
+	Carnegie Mellon Robotics Institute\\
+	\texttt{ss5@andrew.cmu.edu}
+	\and
+	Jizhong Xiao \\
+	The City College of New York \\
+	\texttt{jxiao@ccny.cuny.edu}
 } 
 
 \maketitle
@@ -174,18 +182,18 @@ capabilities of the mobile device \textbf{(TODO: Justify this)}. Previous works
 storing a \textit{moving} voxelization and throwing away data incrementally --
 but we are interested in preserving the volumetric data for later use.
 
-We note in this work that most ( $\sim 85\%$) of the space occupied by
-the TSDF in a typical scene is in fact empty (\figref{fig:memory_data}). Iterating over
-empty space for the puposes of reconstruction and rendering wastes computation
-time; and storing it wastes memory. Noting this fact, we introduce a novel
-data structure, the Dynamic Spatially Hashed \cite{SpatialHashing} TSDF (Sec.
-\ref{section:spatialhash}), which stores the distance field data as a two-level
-structure in which static 3D \textit{chunks} of voxels are dynamically
-allocated according to the presence of surfaces in the scene.
-Because the data structure has $\mathcal{O}(1)$ access performance, we are able
-to quickly identify which parts of the scene should be rendered, updated, or
-deleted. This allows us to minimize the amount of time we spend on each depth
-scan and keep the reconstruction running in real-time on the device. 
+We note in this work that most ( $\sim 94\%$) of the space in a typical scene is
+in fact unknown (Table \ref{table:volumecount}). Iterating over unknown space for the
+puposes of reconstruction and rendering wastes computation time; and storing it
+wastes memory. Noting this fact, we introduce a novel data structure, the
+Dynamic Spatially Hashed \cite{SpatialHashing} TSDF (Sec. \ref{section:spatialhash}),
+which stores the distance field data as a two-level structure in which static
+3D \textit{chunks} of voxels are dynamically allocated according to the
+presence of surfaces in the scene.Because the data structure has
+$\mathcal{O}(1)$ access performance, we are able to quickly identify which
+parts of the scene should be rendered, updated, or deleted. This allows us to
+minimize the amount of time we spend on each depth scan and keep the
+reconstruction running in real-time on the device.
 
 For localization, we use a mix of  visual-intertial odometry \cite{VINS} and
 sparse keypoint-based mapping \cite{FastSlam} as a black box (Sec.
@@ -454,15 +462,12 @@ This observation leads to the Truncated Signed Distance Function (TSDF)
 \end{equation}
 
 \noindent where $\tau \in \mathbf{R}$ is the ``truncation distance'' in which
-the TSDF is defined.
-
-Following \cite{Curless1996}, to update the TSDF with a particular sensor
-measurement, we update each voxel along the ray from $u = -\tau$ to $\tau$, and
-take the weighted running average of distance field estimates over time. To do
-this, we can introduce a global weighting function $W : \mathbf{R}^3 \to \mathbf{R}$ that represents the
-confidence in the estimate of the TSDF at every point in space. A weight of $0$
-corresponds to unknown space, wheras a weight of $\infty$ corresponds to space
-where the distance to the nearest object is known with absolute certainty.
+the TSDF is defined. Following \cite{Curless1996}, to update the TSDF with a
+particular sensor measurement, we update each voxel along the ray from $u =
+-\tau$ to $\tau$, and take the weighted running average of distance field estimates over time. To do
+this, we can introduce a global weighting function $W : \mathbf{R}^3 \to
+\mathbf{R^{+}}$ that represents the confidence in the estimate of the TSDF at
+every point in space.
 
 \begin{algorithm} 
 	\caption{Truncated Signed Distance Function}
@@ -506,7 +511,7 @@ initializing the TSDF to an undefined value with a weight of $0$, then for each
 depth scan, it updates the weight and TSDF value for all points along each ray
 within the truncation distance $\tau$. The weight is updated according
 to the scale-invariant weighting function $\alpha_{\tau}(u) : [-\tau,\tau]\to
-\mathbf{R} $ for which the following holds:
+\mathbf{R^{+}} $ for which the following holds:
 
 \begin{equation}
 	\forall \tau, \int_{-\tau}^{\tau} \alpha_{\tau}(u) du = K 
@@ -534,9 +539,9 @@ To create colored surface reconstructions, we use a method following Bylow
 \etal \cite{Bylow2013}, also used in \textit{Kintinuous} \cite{Whelan2013},
 which directly stores color information as volumetric data. Alongside the
 truncated signed distance function, we store a volumetric color function
-$C : \mathbf{R}^3 \to \mathbf{R}^3$, and a color weighting function
+$C : \mathbf{R}^3 \to \mathbf{R}^{3+}$, and a color weighting function
 $W_{c} :
-\mathbf{R}^3 \to \mathbf{R}$.
+\mathbf{R}^3 \to \mathbf{R^{+}}$.
 
 Color is updated in exactly the same manner as the TSDF. We assume that each
 depth ray also corresponds to a color in the RGB space. We integrate along the
@@ -551,8 +556,8 @@ W_c(\mathbf{v}) \gets W_c(\mathbf{v}) + \alpha_c(u)
 \end{align}
 
 \noindent where $\mathbf{v} = \mathbf{x} - u\mathbf{\hat{r}}$ and $\mathbf{c}
-\in \mathbf{R}^3$ is the color of the ray in color space, $\alpha_c$ is a color weighting function. In both \cite{Bylow2013} and
-\cite{Whelan2013}, the color weighting function is proportional to the dot
+\in \mathbf{R}^{3+}$ is the color of the ray in color space, $\alpha_c$ is a
+color weighting function. In both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting function is proportional to the dot
 product of the ray's direction and an estimate of the surface normal. But since
 surface normal estimation is computationally expensive, we instead use the same
 weight for both distance and color. The choice of color space (red/green/blue,
@@ -611,7 +616,7 @@ carving is not used, moving objects appear in the TSDF as permanent blurs, and
 localization errors result in multiple overlapping isosurfaces appearing. With
 space carving, inconsistent data is removed.
 
-\subsection{Implementation: Spatially Hashed TSDF}
+\subsection{The Dynamic Spatially Hashed TSDF}
 \label{section:spatialhash}
 Each voxel contains an estimate of the signed distance function and an
 associated weight. In our implementation, these are packed into a single 32-bit
@@ -722,7 +727,7 @@ Instead of using an Octree, or a fixed 3D array (as in \cite{Newcombe,
 Whelan2013}), we use a hybrid data structure which maintains some of the
 advantages of both. We divide the world into a two-level tree. In the first
 level we have \emph{chunks} of voxels (\figref{fig:chunks}). Each chunk consists of a
-fixed grid of $N_c^3$ voxels, which are stored in a flat 3D array. Chunks are
+fixed grid of ${N_v}^3$ voxels, which are stored in a flat 3D array. Chunks are
 allocated dynamically from a growing pool of heap memory as data is added, and
 are indexed in a spatial 3D hash map \cite{SpatialHashing} by their spatial
 coordinates. Following Teschner \emph{et. al} \cite{SpatialHashing}, we use the
@@ -738,13 +743,35 @@ p_2, p_3$ are arbitrary, large primes, $\oplus$ is the xor operator, and $n$ is
 the maximum size of the hash map.
 
 Since chunks are a fixed size, querying data from the chunked TSDF involves
-rounding (or bit-shifing, if $N_c$ is a power of two) a world coordinate to a
+rounding (or bit-shifing, if $N_v$ is a power of two) a world coordinate to a
 chunk and voxel coordinate, and then doing a hash-map lookup followed by a 3D
 array lookup. Hence, querying is $\mathcal{O}(1)$. Further, since voxels within
 chunks are stored adjacent to one another in memory, cache performance is
 improved while iterating. By carefully selecting the size of chunks so that they
 corresponding to $\tau$, we only allocate volumetric data near isosurfaces of
 objects, and do not waste memory on empty space.
+
+\subsection{Frustum Culling and Garbage Collection}
+\label{section:frustum}
+To determine which chunks should be updated by a depth scan, and which chunks
+should be drawn, we use frustum culling. We first construct a conservative
+geometric convex approximation of the space visible to the depth camera by
+creating a camera frustum (\textit{i.e.} a truncated pyramid) with a far plane
+at the maximum depth reading of the camera, and the near plane at the minimum
+depth of the camera. We then take the axis-aligned bounding box of the camera
+frustum in the global frame, and check each chunk inside the axis-aligned
+bounding box for intersection with the camera frustum. Only those which
+intersect the frustum are updated. 
+
+Since the frustum is a conservative approximation of the space that could be
+updated by a depth scan, some of the chunks that are visible to the frustum will
+have no depth data associated with them. For this reason, we also store a flag
+inside each chunk indicating whether or not that chunk ever contained the
+endpoint of a ray from the depth camera (\figref{fig:frustum_cull}). Those
+chunks which do not get updated during a depth scan are garbage collected
+(deleted from the hash map), reducing memory overhead. Since the size of the
+camera frustum is fixed, the garbage collection process has $\mathcal{O}(1)$
+performance.
 
 \subsection{Depth Scan Integration}
 \label{section:scan_integration}
@@ -828,38 +855,15 @@ inside each voxel) and taking the average projected depth over all the samples
 -- but the speed of the approach decreases linearly with the number of 
 additional samples taken. 
 
-\subsection{Frustum Culling and Garbage Collection}
-\label{section:frustum}
-To determine which chunks should be updated by a depth scan, and which chunks
-should be drawn, we use frustum culling. We first construct a conservative
-geometric convex approximation of the space visible to the depth camera by
-creating a camera frustum (\textit{i.e.} a truncated pyramid) with a far plane
-at the maximum depth reading of the camera, and the near plane at the minimum
-depth of the camera. We then take the axis-aligned bounding box of the camera
-frustum in the global frame, and check each chunk inside the axis-aligned
-bounding box for intersection with the camera frustum. Only those which
-intersect the frustum are updated. 
-
-Since the frustum is a conservative approximation of the space that could be
-updated by a depth scan, some of the chunks that are visible to the frustum will
-have no depth data associated with them. For this reason, we also store a flag
-inside each chunk indicating whether or not that chunk ever contained the
-endpoint of a ray from the depth camera (\figref{fig:frustum_cull}). Those
-chunks which do not get updated during a depth scan are garbage collected
-(deleted from the hash map), reducing memory overhead. Since the size of the
-camera frustum is fixed, the garbage collection process has $\mathcal{O}(1)$
-performance.
-
 \subsection{Rendering}
 \label{section:render}
-In the original \textit{Kinect Fusion} work \cite{Newcombe}, rendering was
-accomplished by raytracing on the GPU. Raytracing has the advantage of being a
-pixel-perfect representation of the surface, and performance scales only with
-the resolution of the rendering rather than with the size of the space. 
-However, real-time raytracting requires intensive GPU computation that we
-simply do not have on the mobile device. For that reason, it is necessary to
-develop a real-time rendering solution that is amenable to the limited graphics
-capabilities of mobile devices.
+\textit{Kinect Fusion} \cite{Newcombe}, renders the TSDF by real-time
+raytracing on the GPU. Raytracing has the advantage of being a pixel-perfect
+representation of the surface, and performance scales only with the resolution
+of the rendering rather than with the size of the space. However, real-time
+raytracting requires intensive GPU computation that we simply do not have on
+the mobile device. For that reason, it is necessary to develop a real-time
+rendering solution that is amenable to the limited graphics capabilities of mobile devices.
 
 We take inspiration from some work in computer graphics for rendering large
 natural terrains \cite{GPUGEMS3} using incremental Marching Cubes
@@ -1113,6 +1117,27 @@ approach would use nearly 2GB of memory at a 2cm resolution, wheras our
 approach uses only around 700MB. When the depth frustum is cut off at 2 meters
 (mapping only the desk structure without the surrounding room), our approach
 uses only 50MB of memory, wheras the na\"{\i}ve approach would use nearly 300MB.
+
+Measuring the amount of space in the bounding box that is culled, stored in
+chunks as unknown, and stored as known, we found that the vast majority (80\%)
+of space is culled, and of the space that is actually stored in chunks, 68\% is
+unknown (Table \ref{table:volumecount}).
+
+\begin{table}
+\begin{tabular} {| l | r | r |}
+\hline
+Voxel Class & Voxel Count & \% of Bounding Box \\ \hline
+Unknown Culled & 14,024,704 & 80\% \\ \hline
+Unknown & 2,413,369 & 14\% \\ \hline
+Inside & 417,811 & 2\% \\ \hline
+Outside & 674,996 & 4\% \\ \hline
+\end{tabular}
+\caption{Voxel statistics for the Freiburg (\figref{fig:freiburg_2m}) dataset.
+$16\times16\times16$ chunks are allocated at a 2cm resolution. Culled voxels are
+not stored in memory. Unknown voxels have a weight of 0. Inside and Outside
+voxels have a weight $> 0$ and an SDF than is $\leq 0$ and $> 0$ respectively. }
+\label{table:volumecount}
+\end{table} 
 
 % \subsection{Limitations due to Odometry Drift}
 % Since we do not update pose using depth data, odometry pose drift severely 
