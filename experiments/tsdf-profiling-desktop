@@ -1,0 +1,158 @@
+==========================================================================
+Desktop (dell-laptop) vs Yellowstone                               11/9/14
+==========================================================================
+export DATASET=~/data/Tango/CEIPBP532429000805/2014Aug28_003149
+export CALIBRATION=$DATASET/calibration.xml
+export TRAJECTORY=$DATASET/trajectory.proto
+==========================================================================
+1. No color; No carving; Raytracing
+==========================================================================
+desktop_tsdf_mapping_offline --alsologtostderr --colorlogtostderr \
+--calibration_file $CALIBRATION --dataset_directories $DATASET \
+--transformation_provider_input_path $TRAJECTORY \
+--tsdf_mapping_output_directory $DATASET/meshes \
+--tsdf_mapping_global_frame "map" \
+--tsdf_volume_size 0.48 --tsdf_voxels_per_volume 16 \
+--tsdf_use_color=false \
+--tsdf_use_voxel_carving=false \
+--tsdf_use_voxel_projection=false
+
+TSDF 0.  ProcessInput 481	06.776805	(00.014089 +- 00.002223)	[00.002933,00.021284]
+
+* YS:
+
+TSDF 0.  ProcessInput 481	30.052909	(00.062480 +- 00.013477)	[00.009448,00.124524]
+
+==========================================================================
+2. No color; No carving; Projection
+==========================================================================
+desktop_tsdf_mapping_offline --alsologtostderr --colorlogtostderr \
+--calibration_file $CALIBRATION --dataset_directories $DATASET \
+--transformation_provider_input_path $TRAJECTORY \
+--tsdf_mapping_output_directory $DATASET/meshes \
+--tsdf_mapping_global_frame "map" \
+--tsdf_volume_size 0.48 --tsdf_voxels_per_volume 16 \
+--tsdf_use_color=false \
+--tsdf_use_voxel_carving=false \
+--tsdf_use_voxel_projection=true
+
+TSDF 0.  ProcessInput 481	16.006544	(00.033278 +- 00.004500)	[00.012677,00.047666]
+
+* YS:
+
+TSDF 0.  ProcessInput 481	50.958962	(00.105944 +- 00.021934)	[00.031705,00.187441]
+
+==========================================================================
+3. Color; No carving; Raytracing
+==========================================================================
+desktop_tsdf_mapping_offline --alsologtostderr --colorlogtostderr \
+--calibration_file $CALIBRATION --dataset_directories $DATASET \
+--transformation_provider_input_path $TRAJECTORY \
+--tsdf_mapping_output_directory $DATASET/meshes \
+--tsdf_mapping_global_frame "map" \
+--tsdf_volume_size 0.48 --tsdf_voxels_per_volume 16 \
+--tsdf_use_color=true \
+--tsdf_use_voxel_carving=false \
+--tsdf_use_voxel_projection=false
+
+TSDF 0.  ProcessInput 494	09.681541	(00.019598 +- 00.004796)	[00.004105,00.028601]
+
+* YS:
+
+TSDF 0.  ProcessInput 481	38.410178	(00.079855 +- 00.016296)	[00.016221,00.143902]
+
+==========================================================================
+4. Color; No carving; Projection
+==========================================================================
+desktop_tsdf_mapping_offline --alsologtostderr --colorlogtostderr \
+--calibration_file $CALIBRATION --dataset_directories $DATASET \
+--transformation_provider_input_path $TRAJECTORY \
+--tsdf_mapping_output_directory $DATASET/meshes \
+--tsdf_mapping_global_frame "map" \
+--tsdf_volume_size 0.48 --tsdf_voxels_per_volume 16 \
+--tsdf_use_color=true \
+--tsdf_use_voxel_carving=false \
+--tsdf_use_voxel_projection=true
+
+TSDF 0.  ProcessInput 494	19.288794	(00.039046 +- 00.004543)	[00.015667,00.050940]
+
+* YS: 
+
+TSDF 0.  ProcessInput 481	00.044282	(00.124832 +- 00.023321)	[00.039380,00.197949]
+
+==========================================================================
+5. No Color; Carving; Raytracing
+==========================================================================
+desktop_tsdf_mapping_offline --alsologtostderr --colorlogtostderr \
+--calibration_file $CALIBRATION --dataset_directories $DATASET \
+--transformation_provider_input_path $TRAJECTORY \
+--tsdf_mapping_output_directory $DATASET/meshes \
+--tsdf_mapping_global_frame "map" \
+--tsdf_volume_size 0.48 --tsdf_voxels_per_volume 16 \
+--tsdf_use_color=false \
+--tsdf_use_voxel_carving=true \
+--tsdf_use_voxel_projection=false
+
+TSDF 0.  ProcessInput 481	25.412395	(00.052832 +- 00.010497)	[00.011494,00.082765]
+
+YS:
+
+* TSDF 0.  ProcessInput 481	28.562688	(00.184122 +- 00.039508)	[00.032548,00.335088]
+
+==========================================================================
+6. No Color; Carving; Projection
+==========================================================================
+desktop_tsdf_mapping_offline --alsologtostderr --colorlogtostderr \
+--calibration_file $CALIBRATION --dataset_directories $DATASET \
+--transformation_provider_input_path $TRAJECTORY \
+--tsdf_mapping_output_directory $DATASET/meshes \
+--tsdf_mapping_global_frame "map" \
+--tsdf_volume_size 0.48 --tsdf_voxels_per_volume 16 \
+--tsdf_use_color=false \
+--tsdf_use_voxel_carving=true \
+--tsdf_use_voxel_projection=true
+
+TSDF 0.  ProcessInput 481	16.414205	(00.034125 +- 00.004475)	[00.013278,00.042033]
+
+YS:
+
+* TSDF 0.  ProcessInput 481	55.589285	(00.115570 +- 00.018576)	[00.034059,00.203134]
+
+==========================================================================
+7. Color; Carving; Raytracing
+==========================================================================
+desktop_tsdf_mapping_offline --alsologtostderr --colorlogtostderr \
+--calibration_file $CALIBRATION --dataset_directories $DATASET \
+--transformation_provider_input_path $TRAJECTORY \
+--tsdf_mapping_output_directory $DATASET/meshes \
+--tsdf_mapping_global_frame "map" \
+--tsdf_volume_size 0.48 --tsdf_voxels_per_volume 16 \
+--tsdf_use_color=true \
+--tsdf_use_voxel_carving=true \
+--tsdf_use_voxel_projection=false
+
+TSDF 0.  ProcessInput 494	28.850948	(00.058403 +- 00.015809)	[00.013106,00.092616]
+
+YS:
+
+TSDF 0.  ProcessInput 481	36.153995	(00.199904 +- 00.038650)	[00.039335,00.320659]
+
+==========================================================================
+8. Color; Carving; Projection
+==========================================================================
+desktop_tsdf_mapping_offline --alsologtostderr --colorlogtostderr \
+--calibration_file $CALIBRATION --dataset_directories $DATASET \
+--transformation_provider_input_path $TRAJECTORY \
+--tsdf_mapping_output_directory $DATASET/meshes \
+--tsdf_mapping_global_frame "map" \
+--tsdf_volume_size 0.48 --tsdf_voxels_per_volume 16 \
+--tsdf_use_color=true \
+--tsdf_use_voxel_carving=true \
+--tsdf_use_voxel_projection=true
+
+TSDF 0.  ProcessInput 494	19.554319	(00.039584 +- 00.005412)	[00.016125,00.057221]
+
+* YS:
+
+TSDF 0.  ProcessInput 481	01.793964	(00.128470 +- 00.023657)	[00.040349,00.203623]
+
