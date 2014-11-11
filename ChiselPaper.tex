@@ -182,8 +182,8 @@ capabilities of the mobile device \textbf{(TODO: Justify this)}. Previous works
 storing a \textit{moving} voxelization and throwing away data incrementally --
 but we are interested in preserving the volumetric data for later use.
 
-We note in this work that most ( $\sim 94\%$) of the space in a typical scene is
-in fact unknown (Table \ref{table:volumecount}). Iterating over unknown space for the
+We note in this work that most ( $\sim 93\%$) of the space in a typical scene
+is in fact unknown (Table \ref{table:volumecount}). Iterating over unknown space for the
 puposes of reconstruction and rendering wastes computation time; and storing it
 wastes memory. Noting this fact, we introduce a novel data structure, the
 Dynamic Spatially Hashed \cite{SpatialHashing} TSDF (Sec. \ref{section:spatialhash}),
@@ -1119,20 +1119,20 @@ approach uses only around 700MB. When the depth frustum is cut off at 2 meters
 uses only 50MB of memory, wheras the na\"{\i}ve approach would use nearly 300MB.
 
 Measuring the amount of space in the bounding box that is culled, stored in
-chunks as unknown, and stored as known, we found that the vast majority (80\%)
-of space is culled, and of the space that is actually stored in chunks, 68\% is
-unknown (Table \ref{table:volumecount}).
+chunks as unknown, and stored as known, we found that the vast majority (77\%)
+of space is culled, and of the space that is actually stored in chunks, 67.6\%
+is unknown (Table \ref{table:volumecount}).
 
 \begin{table}
 \begin{tabular} {| l | r | r |}
 \hline
 Voxel Class & Voxel Count & \% of Bounding Box \\ \hline
-Unknown Culled & 14,024,704 & 80\% \\ \hline
-Unknown & 2,413,369 & 14\% \\ \hline
-Inside & 417,811 & 2\% \\ \hline
-Outside & 674,996 & 4\% \\ \hline
+Unknown Culled & 62,105,216 & 77.0\% \\ \hline
+Unknown & 12,538,559 & 15.5\% \\ \hline
+Outside & 3,303,795 & 4.1\% \\ \hline
+Inside & 2,708,430 & 3.4\% \\ \hline
 \end{tabular}
-\caption{Voxel statistics for the Freiburg (\figref{fig:freiburg_2m}) dataset.
+\caption{Voxel statistics for the Freiburg (\figref{fig:freiburg_5m}) dataset.
 $16\times16\times16$ chunks are allocated at a 2cm resolution. Culled voxels are
 not stored in memory. Unknown voxels have a weight of 0. Inside and Outside
 voxels have a weight $> 0$ and an SDF than is $\leq 0$ and $> 0$ respectively. }
