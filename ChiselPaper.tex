@@ -41,7 +41,7 @@
 
 % \cvprfinalcopy % *** Uncomment this line for the final submission
 
-\def\cvprPaperID{****} % *** Enter the CVPR Paper ID here
+\def\cvprPaperID{826} % *** Enter the CVPR Paper ID here
 \def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
 
 % Pages are numbered in submission mode, and unnumbered in camera-ready
@@ -97,10 +97,10 @@ using Spatially Hashed Truncated Signed Distance Fields}
 
 \begin{abstract}
 Google's \textit{Project Tango}\cite{Tango} has made integrated depth sensing
-and onboard visual-intertial odometry \cite{VINS} available to mobile devices such
-as phones and tablets. In this work, we explore the problem of dense, large-scale 3D realtime
-reconstruction on a mobile device with integrated depth sensing. Solving this
-problem is a necessary pre-requisite for many indoor navigation, augmented
+and onboard visual-inertial odometry \cite{VINS} available to mobile devices such
+as phones and tablets. In this work, we explore the problem of dense,
+large-scale 3D realtime reconstruction on a mobile device with integrated
+depth sensing. Solving this problem is a necessary pre-requisite for many indoor navigation, augmented
 reality and indoor building scanning applications. State of the art approaches
 in large-scale dense reconstruction \cite{Newcombe, Whelan2013} require large
 amounts of memory and high-performance GPU computing, which is often
@@ -139,9 +139,10 @@ depth sensors to mobile devices, opening up the exciting potential for
 real-time 3D reconstruction using a wireless, handheld device. In particular,
 the devices we use in this work, Google's \textit{Project Tango} \cite{Tango}
 phone and tablet use a small active infrared projection depth  sensor combined
-with high-performance IMUs and a wide field of view camera. Other devices, such
-as the Occiptal Inc. \textit{Structure Sensor} \cite{StructureSensor} have
-similar capabilities. How can we do real-time 3D reconstruction on these devices?
+with high-performance IMUs and a wide field of view camera (Sec.
+\ref{section:hardware}) Other devices, such as the Occiptal Inc.
+\textit{Structure Sensor} \cite{StructureSensor} have similar capabilities.  How
+can we do real-time 3D reconstruction on these devices?
 
 Consider house-scale (300 square meter) real-time 3D mapping and localization on
 a \textit{Tango} device.  A user walks around a building, scanning the scene by
@@ -166,7 +167,7 @@ distance field (TSDF) \cite{Curless1996} of the scene. The TSDF stores a
 voxelized estimate of the distance to the nearest surface in the scene, up to a
 fixed distance. While allowing for very high quality reconstructions, the TSDF
 is very memory intensive. The size of the TSDF needed to reconstruct an entire
-house may be on the order of several gigabytes  (Sec. \ref{sec:memory}), and
+house may be on the order of several gigabytes  (Sec. \ref{section:memory}), and
 rendering the resulting reconstruction in real-time would overwhelm the graphics
 capabilities of the mobile device \textbf{(TODO: Justify this)}. Previous works
 \cite{Whelan2013, WhelanLoopClose} have extended the TSDF to larger scenes by
@@ -177,27 +178,30 @@ We note in this work that most ( $\sim 85\%$) of the space occupied by
 the TSDF in a typical scene is in fact empty (\figref{fig:memory_data}). Iterating over
 empty space for the puposes of reconstruction and rendering wastes computation
 time; and storing it wastes memory. Noting this fact, we introduce a novel
-data structure, the Dynamic Spatially Hashed \cite{SpatialHashing} TSDF, which
-stores the distance field data as a two-level structure in which static 3D \textit{chunks} of voxels
-are dynamically allocated according to the presence of surfaces in the scene.
+data structure, the Dynamic Spatially Hashed \cite{SpatialHashing} TSDF (Sec.
+\ref{section:spatialhash}), which stores the distance field data as a two-level
+structure in which static 3D \textit{chunks} of voxels are dynamically
+allocated according to the presence of surfaces in the scene.
 Because the data structure has $\mathcal{O}(1)$ access performance, we are able
 to quickly identify which parts of the scene should be rendered, updated, or
 deleted. This allows us to minimize the amount of time we spend on each depth
-scan and keep the reconstruction running in real-time on the device.
+scan and keep the reconstruction running in real-time on the device. 
 
 For localization, we use a mix of  visual-intertial odometry \cite{VINS} and
-sparse keypoint-based mapping \cite{FastSlam} as a black box. These approaches
-use only the 2D wide-angle camera and the IMU, and take in no information from
-the depth sensor. As a consequence, our approach is \textit{open-loop} in the
-sense that it does not attempt to explicitly estimate the pose of the sensor
+sparse keypoint-based mapping \cite{FastSlam} as a black box (Sec.
+\ref{section:pose}). These approaches use only the 2D wide-angle camera and the
+IMU, and take in no information from the depth sensor. As a consequence, our
+approach is \textit{open-loop} in the sense that it does not attempt to explicitly estimate the pose of the sensor
 from the 3D reconstruction. In spite of this limitation, we found that
 using only open-loop visual odometry was sufficient to create high quality,
 house-scale reconstructions (\figref{fig:overhead_night}).
 
  We provide qualitative and  quantitative results on publicly available RGB-D
  datasets \cite{FREIBURG}, and on datasets collected in real-time from two
- devices. We compare different approaches for creating and storing the TSDF in
- terms of memory efficiency, speed, and reconstruction quality.
+ devices (Sec. \ref{section:experiments}). We compare different approaches for
+ creating (Sec. \ref{section:scan_compare}) and storing (Sec.
+ \ref{section:memory}) theTSDF in terms of memory efficiency, speed, and
+ reconstruction quality.
 
 \section{Related Work}
 % \begin{itemize}
@@ -232,8 +236,8 @@ house-scale reconstructions (\figref{fig:overhead_night}).
 % \end{itemize}
 Mapping paradigms generally fall into one of two categories:
 landmark-based (or \emph{sparse}) mapping, and high-resolution \emph{dense}
-mapping \ssnote{need cites}. The distinction between the two is that sparse mapping generates a
-metrically consistent map of landmarks based on key features in the
+mapping \cite{FastSlam} . The distinction between the two is that sparse mapping
+generates a metrically consistent map of landmarks based on key features in the
 environment, while dense mapping globally registeredters all sensor data into a
 high-resolution data structure. In this work, we are concerned primarily with
 dense mapping, which is essential for high quality 3D reconstruction.
@@ -356,6 +360,7 @@ areas far away from the sensor.
 %     capability.
 % \end{itemize}
 \subsection{The Truncated Signed Distance Function}
+\label{section:TSDF}
 We will assume that the scene is static. Following Curless \cite{Curless1996},
 we model the world as a volumetric function $\Phi(\mathbf{x}) : \mathbf{R}^3
 \to \mathbf{R}$, where, for every 3D point in the world, we have its distance
@@ -524,6 +529,7 @@ This results in poorer surface reconstruction quality in areas of high noise
 than methods which more closely approximate the hit probability of the sensor.
 
 \subsection{Colorization}
+\label{section:color}
 To create colored surface reconstructions, we use a method following Bylow
 \etal \cite{Bylow2013}, also used in \textit{Kintinuous} \cite{Whelan2013},
 which directly stores color information as volumetric data. Alongside the
@@ -561,6 +567,7 @@ of simplicity, at the expense of color consistency with changes in illumination.
 % color of each ray.
 
 \subsection{Dynamic Truncation Distance}
+\label{section:dynamic_trunc}
 Following the approach of Nguyen \etal\cite{Nguyen2012}, we use a dynamic
 trunction distance based on the noise model of the sensor rather than a fixed
 truncation distance. The truncation distance is given as a function of depth:
@@ -605,14 +612,14 @@ localization errors result in multiple overlapping isosurfaces appearing. With
 space carving, inconsistent data is removed.
 
 \subsection{Implementation: Spatially Hashed TSDF}
-We use a discrete approximation of the TSDF which divides the world into
-a uniform 3D grid of voxels. Each voxel contains an estimate of the signed
-distance function and an associated weight. In our implementation, these are
-packed into a single 32-bit integer. The first 16 bits are a fixed-point
-signed distance value, and the last 16 bits  are an unsigned integer weighting
-value. Color is similarly stored as a 32 bit integer, with 8 bits per color 
-channel, and an 8 bit weight. A similar method is used in \cite{Newcombe,
-Whelan2013, Bylow2013} to store the TSDF.
+\label{section:spatialhash}
+Each voxel contains an estimate of the signed distance function and an
+associated weight. In our implementation, these are packed into a single 32-bit
+integer. The first 16 bits are a fixed-point signed distance value, and the
+last 16 bits  are an unsigned integer weighting value. Color is similarly
+stored as a 32 bit integer, with 8 bits per color channel, and an 8 bit weight.
+A similar method is used in \cite{Newcombe, Whelan2013, Bylow2013} to store the
+TSDF.
 
 Unfortunately, a flat volumetric representation of the world using voxels is
 incredibly memory intensive. The amount of memory storage required grows as
@@ -640,7 +647,7 @@ octree will store pointers to child octants in each parent octant. The octants
 themselves may be dynamically allocated on the heap. Each traversal through the
 tree requires $\mathcal{O}(M)$ heap pointer dereferences in the worst case.
 Even worse, adjacent voxels may not be adjacent in memory, resulting in very
-poor caching performance.
+poor caching performance \cite{CacheStructures}.
 
 \begin{figure*}
   \centering
@@ -822,6 +829,7 @@ inside each voxel) and taking the average projected depth over all the samples
 additional samples taken. 
 
 \subsection{Frustum Culling and Garbage Collection}
+\label{section:frustum}
 To determine which chunks should be updated by a depth scan, and which chunks
 should be drawn, we use frustum culling. We first construct a conservative
 geometric convex approximation of the space visible to the depth camera by
@@ -843,19 +851,22 @@ camera frustum is fixed, the garbage collection process has $\mathcal{O}(1)$
 performance.
 
 \subsection{Rendering}
+\label{section:render}
 In the original \textit{Kinect Fusion} work \cite{Newcombe}, rendering was
 accomplished by raytracing on the GPU. Raytracing has the advantage of being a
 pixel-perfect representation of the surface, and performance scales only with
 the resolution of the rendering rather than with the size of the space. 
-
-However, real-time raytracting requires intensive GPU computation that we simply
-do not have on the mobile device. For that reason, it is necessary to develop a
-real-time rendering solution that is amenable to the limited graphics
+However, real-time raytracting requires intensive GPU computation that we
+simply do not have on the mobile device. For that reason, it is necessary to
+develop a real-time rendering solution that is amenable to the limited graphics
 capabilities of mobile devices.
 
-We use incremental Marching Cubes \cite{Lorensen1987} to render the TSDF. For
-each chunk, we store a triangle mesh. Triangle meshes are generated at the
-isosurface $\Phi_{\tau}(x) = 0$ whenever the chunk has been updated by a depth
+We take inspiration from some work in computer graphics for rendering large
+natural terrains \cite{GPUGEMS3} using incremental Marching Cubes
+\cite{Lorensen1987}. For each chunk, we store a triangle mesh.
+Meshing is done asynchronously with the depth scan integration, and is
+performed lazily. Triangle meshes are generated at the isosurface
+$\Phi_{\tau}(\mathbf{x}) = 0$ whenever the chunk has been updated by a depth
 scan since the last time the chunk was rendered. As in \cite{Bylow2013,
 Whelan2013},  colors are computed for each vertex by trilinear interpolation of
 the color map. At the borders of chunks, vertices are duplicated to reduce
@@ -864,12 +875,8 @@ between chunk meshes. Only those meshes which are visible to the virtual camera
 frustum are rendered. Meshes that are very far away from the camera are
 rendered as a colored bounding box.
 
-Using incremental Marching Cubes allows us to render the scene using only simple
-fixed function pipeline calls on the device's graphics hardware. This is
-important for many mobile devices where the fixed function pipeline is all that
-is available. 
-
 \subsection{Pose Estimation}
+\label{section:pose}
 We will assume we  have \textit{a priori} black-box pose estimation of
 the sensor from a seperate tracking system. Specifically, in our experiments,
 pose data is estimated from an onboard visual-intertial odometry system that
@@ -983,6 +990,7 @@ using depth data, and can result in mis-alignment of depth scans.
 
 
 \section{Experiments and Results}
+\label{section:experiments}
 \subsection{Hardware}
 \label{section:hardware}
 We implemented our approach on two devices: a \textit{Project Tango}
@@ -1054,7 +1062,8 @@ which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
 %  entire image, unlike the distortion model which is computed on a per-pixel
 %  basis.
 %  
-\subsection{Large Scale Online Mapping}
+\subsection{House Scale Online Mapping}
+\label{section:mapping}
 Using our algorithm, we are able to create and display large scale maps at a
 resolution as small as 2cm in real-time using only visual-intertial odometry for
 pose estimation. \figref{fig:map_device} shows a map of an office building floor
@@ -1068,6 +1077,7 @@ localizing the device using visual-intertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
  
 \subsection{Comparing Depth Scan Integration Algorithms} 
+\label{section:scan_compare}
 We implemented both the raycasting and voxel projection modes of depth scan
 integration (Sec. \ref{section:scan_integration}), and compared them in terms of
 speed and quality. We found that projection mapping was far more efficient than
@@ -1082,7 +1092,7 @@ note that using both space carving \emph{and} raycasting is not fast enough for 
 using our approach.
 
 \subsection{Memory Usage}
-\label{sec:memory}
+\label{section:memory}
 We additionally compared memory usage statistics of our chunked approach to a
 na\"{\i}ve approach which allocates a single block of memory to tightly fit the
 entire volume explored (\figref{fig:memory_data}). As the size of the space
