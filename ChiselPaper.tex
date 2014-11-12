@@ -104,27 +104,42 @@ using Spatially Hashed Truncated Signed Distance Fields}
 
 
 \begin{abstract}
-Google's \textit{Project Tango}\cite{Tango} has made integrated depth sensing
-and onboard visual-inertial odometry \cite{VINS} available to mobile devices such
-as phones and tablets. In this work, we explore the problem of dense,
-large-scale 3D realtime reconstruction on a mobile device with integrated
-depth sensing. Solving this problem is a necessary pre-requisite for many indoor navigation, augmented
-reality and indoor building scanning applications. State of the art approaches
-in large-scale dense reconstruction \cite{Newcombe, Whelan2013} require large
-amounts of memory and high-performance GPU computing, which is often
-unavailable on mobile devices. Existing 3D reconstruction approaches on mobile
-devices either only build a sparse reconstruction \cite{KleinSparse}, offload
-their computation to other devices \cite{DTAM}, or require seconds-long
-post-processing per frame \cite{TanskanenMetric}. Our approach trades off
-resolution, color consistency, and pose drift for speed and memory
-efficiency. By using chunked, dynamic spatial hash maps \cite{SpatialHashing}
-of truncated signed distance volumes \cite{Curless1996}, we are able to
-reconstruct and render very large (300 square meter) scenes at a resolution of
-2-3cm in real time on a mobile device using only the CPU, with a memory
-footprint that is approximately 84 percent smaller than \textit{Kinect Fusion}
-\cite{Newcombe}. We provide both qualitative and  quantitative results on
-publicly available RGB-D datasets \cite{FREIBURG}, and on datasets collected in
-real-time from two devices.
+We present a method for real-time house-scale (300 square meter or more)
+3D reconstruction \cite{Hartley2004} using a mobile Google \textit{Tango} \cite{Tango}
+device through the use of a dynamic spatially hashed \cite{SpatialHashing} truncated
+signed distance field \cite{Curless1996} for mapping, and visual-inertial
+odometry \cite{VINS} for localization. Our key insight is that by
+aggressively culling parts of the scene that do not contain surfaces, we avoid needless
+computation and wasted memory. We are able to reconstruct and render very large
+(300 square meter) scenes at a resolution of 2-3cm in real time on a mobile
+device without the use of GPU computing, with a memory footprint that is
+approximately 84 percent smaller than \textit{Kinect Fusion} \cite{Newcombe}. We provide both
+qualitative and  quantitative results on publicly available RGB-D datasets
+\cite{FREIBURG}, and on datasets collected in real-time from two devices.
+
+
+% reality and indoor building scanning applications
+% Google's \textit{Project Tango}\cite{Tango} has made integrated depth sensing
+% and onboard visual-inertial odometry \cite{VINS} available to mobile devices such
+% as phones and tablets. In this work, we explore the problem of dense,
+% large-scale 3D realtime reconstruction on a mobile device with integrated
+% depth sensing. Solving this problem is a necessary pre-requisite for many indoor navigation, augmented
+% reality and indoor building scanning applications.  Existing 3D reconstruction approaches on mobile
+% devices either only build a sparse reconstruction \cite{KleinSparse}, offload
+% their computation to other devices \cite{DTAM}, or require seconds-long
+% post-processing per frame \cite{TanskanenMetric}.  State of the art approaches
+% in large-scale dense reconstruction \cite{Newcombe, Whelan2013} require large
+% amounts of memory and high-performance GPU computing, which is often
+% unavailable on mobile devices. Our approach accomplishes large-scale
+% reconstruction on a mobile device by exploiting visual inertial odometry and by
+% using chunked, dynamic spatial hash maps \cite{SpatialHashing} of truncated
+% signed distance volumes \cite{Curless1996},  we are able to reconstruct and
+% render very large (300 square meter) scenes at a resolution of 2-3cm in real
+% time on a mobile device using only the CPU, with a memory footprint that is
+% approximately 84 percent smaller than \textit{Kinect Fusion} \cite{Newcombe}. 
+% We provide both qualitative and  quantitative results on publicly available
+% RGB-D datasets \cite{FREIBURG}, and on datasets collected in real-time from two
+% devices.
 \end{abstract}
 
 \section{Introduction}
@@ -183,8 +198,8 @@ storing a \textit{moving} voxelization and throwing away data incrementally --
 but we are interested in preserving the volumetric data for later use.
 
 We note in this work that most ( $\sim 93\%$) of the space in a typical scene
-is in fact unknown (Table \ref{table:volumecount}). Iterating over unknown space for the
-puposes of reconstruction and rendering wastes computation time; and storing it
+is in fact empty (Table \ref{table:volumecount}). Iterating over empty space
+for the puposes of reconstruction and rendering wastes computation time; and storing it
 wastes memory. Noting this fact, we introduce a novel data structure, the
 Dynamic Spatially Hashed \cite{SpatialHashing} TSDF (Sec. \ref{section:spatialhash}),
 which stores the distance field data as a two-level structure in which static
@@ -254,20 +269,17 @@ Because mobile phones typically have access only to 2D cameras, previous works
 on dense reconstruction for mobile phones have gone to great lengths to extract
 depth from a series of registered monocular camera images.  Early works on
 real-time reconstruction and navigation on mobile devices relies on a spase
-mapping, \cite{KleinSparse}, and is unable to produce dense 3D surface
+keypoints, \cite{KleinSparse}, and is unable to produce dense 3D surface
 reconstructions.  A recent algorithm by Tanskanen \etal
-\cite{TanskanenMetric} generates impressive 3D reconstructions of small scenes
-by means of monocular stereo computation and keypoint tracking. However,
-because they \cite{TanskanenMetric} must intensively compute a depth map at
-each frame by stereo, each frame capture still takes a few seconds, and only a
-point cloud is stored. Another work by Newcombe \etal, Dense Tracking and
-Mapping (DTAM) \cite{DTAM},  creates extremely high quality, dense 3D
-reconstructions of scenes in real time using only a monocular camera -- while
-the camera is attached to a high-performance desktop computer. Since our work
-focuses on mobile devices with integrated depth sensors, such as the Google
-\emph{Project Tango} devices \cite{Tango}, we luckily do not need to perform
-costly monocular stereo as a pre-requisite to dense reconstruction. This allows
-us to save our memory and CPU budget for the 3D reconstruction itself.
+\cite{TanskanenMetric} generates dense 3D point clouds of small scenes
+by means of monocular stereo computation and keypoint tracking. 
+ A work by Newcombe \etal, Dense Tracking and Mapping (DTAM) \cite{DTAM}, 
+ creates dense 3D reconstructions of small scenes in real time using only a
+ monocular camera attached to a desktop computer. Since our work focuses on
+ mobile devices with integrated depth sensors, such as the Google \emph{Project Tango}
+ devices \cite{Tango}, we do not need to perform costly monocular stereo as a
+ pre-requisite to dense reconstruction. This allows us to save our memory and
+ CPU budget for the 3D reconstruction itself.
 
 One of the simplest means of dense 3D mapping is to  store multiple registered
 point clouds of the scene. While simple, point clouds fail to capture local
@@ -305,21 +317,18 @@ observed surfaces, and thus is called the Truncated Signed Distance Field
 (TSDF).  While using more memory than occupancy grids, the TSDF creates much
 higher quality surface reconstructions by preserving local structure.
 
-The \emph{Kinect Fusion} \cite{Newcombe} algorithm uses a TSDF to
+\emph{Kinect Fusion} \cite{Newcombe} uses a TSDF to
 simultanesously extract the pose of a moving depth camera and the geometry of a
-scene in real-time. Fusion solves the real-time 3D reconstruction problem
-by using incremental estimates of the TSDF to inform the pose of the camera.
-Making heavy use of the GPU for raycasting and rendering, Fusion is
-capable of creating extremely high-quality, high-resolution surface 
+scene in real-time. Making heavy use of the GPU for scan integration and
+rendering, Fusion is capable of creating extremely high-quality, high-resolution surface 
 reconstructions within a small area. However, like occupancy grid mapping, the
 algorithm relies on a single fixed-size 3D grid of voxels, and thus is not
-suitable for reconstructing very large scenes due to memory constraints.
-
-The \emph{Kintinuous} \cite{Whelan2013} algorithm extends Kinect Fusion to
-larger scenes by storing only a time-limited moving window of the TSDF in the
-GPU. As the camera moves outside of the window, areas which are no longer
-visible are turned into a surface representation. Hence, distance field data is
-prematurely thrown away to save memory.
+suitable for reconstructing very large scenes due to memory constraints. 
+\emph{Kintinuous} \cite{Whelan2013} extends Kinect Fusion to larger
+scenes by storing only a time-limited moving window of the TSDF in the GPU. As
+the camera moves outside of the window, areas which are no longer visible are
+turned into a surface representation. Hence, distance field data is prematurely
+thrown away to save memory.
 
 Our approach uses a TSDF as in\cite{Curless1996,Newcombe,Whelan2013,Bylow2013},
 to store an estimate of the signed distance field of the scene. Unlike Kinect
