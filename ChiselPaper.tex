@@ -480,7 +480,7 @@ point.
       \begin{subfigure}{1.0\columnwidth}
      \centering
          \includegraphics[ width=1.0\textwidth]{img/tsdf_integration.pdf}
-         \caption{\ssnote{Text is too small to read. Must be at least as big as smallest allowable paper text.}}
+         \caption{}
   \label{fig:integration_diagram}
    \end{subfigure}
    \caption{\figref{fig:raycast_diagram} is a diagram of a ray hitting a
@@ -658,17 +658,12 @@ For this reason, we augment our TSDF algorithm with a \textit{space carving}
 constraint. Along each ray within the space carving region (Fig.
 \ref{fig:integration_diagram}), we clear away data that has a nonpositive stored
 SDF. Algorithm \ref{alg:TSDF}, line \ref{alg:line:voxel_carve} shows how this is
-accomplished. The effect is that as rays pass through previously integrated
-regions of the TSDF, they clear away inconsistent data. Similarly, colors are
-cleared away whenever rays pass through previously colored space.
+accomplished. 
 
 Space carving gives us two advantages: first, it dramatically improves the
 surface reconstruction in areas of very high noise (especially around the edges
 of objects: see \figref{fig:dragon_closeup}), and second, it removes
-some inconsistencies caused by moving objects and localization errors. If space
-carving is not used, moving objects appear in the TSDF as permanent blurs, and
-localization errors result in multiple overlapping isosurfaces appearing. With
-space carving, inconsistent data is removed.
+some inconsistencies caused by moving objects and localization errors. 
 
 \subsection{The Dynamic Spatially Hashed TSDF}
 \label{section:spatialhash}
@@ -1288,10 +1283,7 @@ necessity to meet the computing requirements of a mobile device.
 However, the optimizations we have made are equally applicable to other
 settings beyond mobile devices. By using a dynamic spatial hash map to store
 TSDF data instead of a monolithic array, much larger areas can be
-reconstructed. Unlike other approaches which attempt to create large TSDF
-reconstructions \cite{Whelan2013}, our approach keeps \textit{all} of the
-volumetric information intact. This allows the user to re-visit locations and
-improve the reconstruction.
+reconstructed while maintaining all of the distance field data.
 
 Admittedly, our reconstructions are much lower resolution than state of the art
 mapping techniques, which typically push for sub-centimeter resolution. We have
@@ -1302,22 +1294,23 @@ with transferring data to the GPU. Because of this, all other TSDF-based
 approaches (\cite{Newcombe, Whelan2013, Bylow2013, Nguyen2012}) keep only a
 fixed amount of memory for the TSDF allocated on the GPU. A fruitful avenue of
 future research would be in implementing the dynamic spatial hash map on the GPU
-in an efficient way. 
-
-Another area of potential research is in loop closure and pose estimation. Our
-approach is purely \textit{open-loop}, taking in pose estimates from visual
-odometry as \textit{a prioi} ground truth. Reconstruction can probably be
-improved if dense 3D data is used to inform the pose estimator. More
-importantly, a means of dealing with global pose estimation using the dense
-reconstruction is neeeded. Whelan \etal\cite{WhelanLoopClose} introduced a
-means of warping the mesh output by \textit{Kintinuous} consistently with global
-pose updates involving loop closures. Can a similar method be used to
-\textit{directly} warp the TSDF chunk data to take loop closures into account?
-
-Finally, there is the question of applications. What can be done with a
-real-time dense 3D reconstruction on a mobile device? Applications ranging from
-robot localization and planning to house-scale modelling and augmented reality
-gaming are all possible.
+in an efficient way. That would allow even larger, or potentially higher
+resolution reconstructions.
+% 
+% Another area of potential research is in loop closure and pose estimation. Our
+% approach is purely \textit{open-loop}, taking in pose estimates from visual
+% odometry as \textit{a prioi} ground truth. Reconstruction can probably be
+% improved if dense 3D data is used to inform the pose estimator. More
+% importantly, a means of dealing with global pose estimation using the dense
+% reconstruction is neeeded. Whelan \etal\cite{WhelanLoopClose} introduced a
+% means of warping the mesh output by \textit{Kintinuous} consistently with global
+% pose updates involving loop closures. Can a similar method be used to
+% \textit{directly} warp the TSDF chunk data to take loop closures into account?
+% 
+% Finally, there is the question of applications. What can be done with a
+% real-time dense 3D reconstruction on a mobile device? Applications ranging from
+% robot localization and planning to house-scale modelling and augmented reality
+% gaming are all possible.
 
 \ifcvprfinal
 \section*{Acknowledgements}
