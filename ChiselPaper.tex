@@ -368,13 +368,51 @@ areas far away from the sensor.
 %     capability.
 % \end{itemize}
 \subsection{The Truncated Signed Distance Function}
-\label{section:TSDF}
-We will assume that the scene is static. Following Curless \cite{Curless1996},
-we model the world as a volumetric function $\Phi(\mathbf{x}) : \mathbf{R}^3
-\to \mathbf{R}$, where, for every 3D point in the world, we have its distance
-to the nearest surface of an object. Inside objects, the value of $\Phi$ is
-negative. Outside objects, the value of $\Phi$ is positive, and on the surface,
-it is zero.
+We model the world~\cite{Curless1996} as a volumetric signed distance function $\Phi: \mathbf{R}^3
+\to \mathbf{R}$. For any point in the world, $\Phi$ 
+outputs the distance to the nearest surface, \emph{signed} positive if the point
+is in free space and negative otherwise. Thus, the zero isocontour $(\Phi = 0)$
+encodes the surfaces of the world.
+
+Since we are primarily interested in reconstructing surfaces, 
+we focus on the Truncated Signed Distance Function (TSDF)
+\cite{Curless1996}:
+\begin{equation}
+	\Phi_{\tau}(\mathbf{x}) = 
+	\begin{cases}
+		\Phi(\mathbf{x}) &  \text{if} |\Phi(\mathbf{x})| < \tau \\
+		\text{undefined} & \text{otherwise}
+	\end{cases}
+\end{equation}
+where $\tau \in \mathbf{R}$ is the \emph{truncation distance}.
+
+Furthermore, computing the first-order Taylor series approximation of $\Phi_{\tau}$
+about a point on the surface $\mathbf{x}_s$, we get:
+\begin{align}
+\label{eqn:atsdf}
+\Phi_{\tau}(\mathbf{x}) &\approx \Phi_{\tau}(\mathbf{x}_s) + \nabla \Phi(\mathbf{x}_s)^{T} (\mathbf{x} - \mathbf{x}_s) \nonumber \\
+ &= \nabla \Phi(\mathbf{x}_s)^{T} (\mathbf{x} - \mathbf{x}_s) = \mathbf{\hat{n}}(\mathbf{x}_s)^{T}(\mathbf{x} - \mathbf{x}_s)
+\end{align}
+where we denote $\nabla \Phi(\mathbf{x}_s) = \mathbf{\hat{n}}(\mathbf{x}_s)$, the unit surface normal at $\mathbf{x}_s$, 
+encoding the observation that $\Phi$ changes fastest along the surface normal, and $||\nabla \Phi|| = 1$.
+
+Now consider a ray from an ideal (noise-free) pinhole depth sensor with origin at $\mathbf{o}$ that 
+hits the surface at $\mathbf{x}_s$. Not only does this ray provide the measurement $\mathbf{x}_s$,
+it also carves out empty space from $\mathbf{o}$ to $\mathbf{x}_s$.  First, we parametrize the ray as 
+\begin{equation}
+\mathbf{x}(u) = \mathbf{x}_s - u\mathbf{\hat{r}}
+\end{equation}
+where $u \in \mathbf{R}$ and $\mathbf{\hat{r}}$ is the unit vector from $\mathbf{o}$ to $\mathbf{x}_s$.
+
+Then, we use \eref{eqn:atsdf} to approximate $\Phi$ along the ray as (\figref{fig:raycast_diagram})
+\begin{equation}
+\Phi_{\tau}(\mathbf{x}(u)) \approx \mathbf{\hat{n}}(\mathbf{x}_s)^{T}(\mathbf{x}_s - u\mathbf{\hat{r}} - \mathbf{x}_s)
+= -u\mathbf{\hat{n}}(\mathbf{x}_s)^{T}\mathbf{\hat{r}}
+\end{equation}
+
+Some works \cite{Bylow2013} approximate
+$\mathbf{\hat{n}}$ by locally fitting a plane around $\mathbf{x}_s$, but this comes at the cost of 
+computation. \ssnote{My rewrite stops here. Confused.}
 
 Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
 sensor origin to the scene. At each timstep $t$ we have a set of rays
@@ -406,6 +444,8 @@ small:
 	\Phi(\mathbf{x} - u\mathbf{\hat{r}}) \approx u 
 \end{equation}
 
+
+
 The approximation is better whenever the ray is approximately
 perpendicular to the surface, and worst whenever the ray is parallel to the
 surface. Because of this, some works \cite{Bylow2013} instead approximate
@@ -435,7 +475,7 @@ the simpler pointwise approximation.
       \begin{subfigure}{1.0\columnwidth}
      \centering
          \includegraphics[ width=1.0\textwidth]{img/tsdf_integration.pdf}
-         \caption{}
+         \caption{\ssnote{Text is too small to read. Must be at least as big as smallest allowable paper text.}}
   \label{fig:integration_diagram}
    \end{subfigure}
    \caption{\figref{fig:raycast_diagram} is a diagram of a ray hitting a
@@ -469,32 +509,25 @@ this, we can introduce a global weighting function $W : \mathbf{R}^3 \to
 \mathbf{R^{+}}$ that represents the confidence in the estimate of the TSDF at
 every point in space.
 
-\begin{algorithm} 
+\begin{algorithm}[t!]
 	\caption{Truncated Signed Distance Function}
 	\label{alg:TSDF}
 	\begin{algorithmic}[1]
-		\LineComment{For each timestep:} 
-		\For {$t \in [1 \ldots T]$} 
-			\LineComment{For each ray in the scan:} 
-			\For {$\{\mathbf{o}_t, \mathbf{x}_t\} \in Z_t$} 
+		\For {$t \in [1 \ldots T]$} \Comment{\textit{For each timestep}}
+			\For {$\{\mathbf{o}_t, \mathbf{x}_t\} \in Z_t$} \Comment{\textit{For each ray in scan}}
 				\State {$z \gets   \|\mathbf{o}_t - \mathbf{x}_t\|$}
 				\State {$\mathbf{r} \gets \frac{\mathbf{x}_t - \mathbf{o}_t}{z}$}
-				\LineComment {Dynamic truncation distance.}
-				\State{$\tau \gets \mathcal{T} (z)$} 
+				\State{$\tau \gets \mathcal{T} (z)$} \Comment{\textit{Dynamic truncation distance}}
 				\label{alg:line:dynamic_tsdf}
-				\LineComment{Within the space carving region:}
-			    \For{$u \in [\tau + \epsilon, z]$}
-			    	\State {$\mathbf{v}_c \gets \mathbf{x} - u \mathbf{r}$}
+				\State {$\mathbf{v}_c \gets \mathbf{x}_t - u \mathbf{r}$}
+			    \For{$u \in [\tau + \epsilon, z]$} \Comment{\textit{Space carving region}}
 			    	\If {$\Phi_{\tau}(\mathbf{v}_c) \leq 0$ }
 				    	\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \text{undefined}$}
 				    	\label{alg:line:voxel_carve}
 						\State {$W(\mathbf{v}_c) \gets 0$}
 					\EndIf
 			    \EndFor
-				\LineComment{Within the hit region:}
-				\For{$u \in [-\tau, \tau]$} 			 
-					\State {$\mathbf{v}_c \gets \mathbf{x} - u \mathbf{r}$}
-				   \LineComment{Update the TSDF and weight.}
+				\For{$u \in [-\tau, \tau]$} \Comment{\textit{Hit region}}		 
 					\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \frac{ W(\mathbf{v}_c)
 					\Phi_{\tau}(\mathbf{v}_c) + \alpha_{\tau}(u) u}{ W(\mathbf{v}_c)
 					+\alpha_{\tau}(u)}$}
