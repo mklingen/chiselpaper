@@ -325,7 +325,7 @@ Our approach uses a TSDF as in\cite{Curless1996,Newcombe,Whelan2013,Bylow2013},
 to store an estimate of the signed distance field of the scene. Unlike Kinect
 Fusion, and like Kintinuous, we store a dynamic representation of the TSDF
 which grows in size as the sensor travels through space. Unlike Kintinuous, we
-do not prematurely throw away distance function data by converting it into a
+do not prematurely throw away distance field data by converting it into a
 mesh -- instead, we turn small areas of the scene into meshes for the purpose
 of rendering, while \textit{preserving} the underlying distance field data. By
 carefully considering what parts of the space should be turned into distance
@@ -333,137 +333,142 @@ fields at each timestep, we avoid needless computation and memory allocation in
 areas far away from the sensor. 
 
 \section{Approach} 
-% \begin{itemize}
-%     \item We start by getting an accurate probablistic model of the depth error
-%     on the sensor by training a quadratic model of the depth and noise per
-%     pixel. Depth images are compensated by this model before being passed into
-%     our system.
-%     \item We get pose by monocular visual-intertial odometry, rather than by
-%     directly estimating pose from the depth image.
-%     \item Depth comes in at 3-5Hz, as does RGB, but never at the same time.
-%     \item Explain the TSDF
-%     \item We represent the world as a collection of fixed size 16x16x16
-%     \emph{Meta-Voxels} or \emph{Chunks}, aligned next to each other. Chunks are
-%     allocated only when rays from the sensor would cause them to be updated.
-%     They are garbage collected whenever there is no voxel with no weight in it.
-%     \item To update a chunk with depth data, we can do one of two things:
-%     \emph{Raycasting}, or \emph{Voxel Projection}. In the raycasting case, we
-%     efficiently march rays through voxels in each updated TSDF volume, and
-%     update the signed distance and weight there. In the voxel projection case,
-%     we project the center of each voxel onto the image, and according to the
-%     distance from the center of the voxel as compared with the depth from the
-%     sensor, we either add weight to it, carve it, or do nothing to it.
-%     \item Raycasting is O(number of rays), while Voxel Projection is O(number
-%     of voxels). Voxel projection is an aliased approximation of raycasting. 
-%     \item To do color, we project the points along the ray we are updating onto
-%     the color image. We then update a separate \emph{Color Chunk} with data from
-%     the RGB image.
-%     \item We use a dynamic trunction distance based on the sensor model.
-%     \item Rendering is handled by incrementally creating meshes of the updated
-%     chunks using Marching Cubes. Chunks are frustum culled based on the frustum
-%     of the renderer's camera, and only those which are near the camera and
-%     inside its frustum are rendered. Faraway chunks are rendered as boxes. This
-%     allows us to very efficiently render huge areas using only the fixed
-%     function pipeline -- an important feature for devices with limited graphics
-%     capability.
-% \end{itemize}
-\subsection{The Truncated Signed Distance Function}
-We model the world~\cite{Curless1996} as a volumetric signed distance function $\Phi: \mathbf{R}^3
-\to \mathbf{R}$. For any point in the world, $\Phi$ 
+\subsection{Preliminaries}
+\label{section:prelim}
+Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
+sensor origin to the scene. At each timstep $t$ we have a set of rays
+$Z_t$ (\figref{fig:raycast_diagram}). Call the origin of the ray $o$, and the
+endpoint of the ray $\mathbf{x}$. 
+The length of the ray is given by $z = \|\mathbf{o}
+- \mathbf{x}\|$. The direction of the ray is given by $\mathbf{\hat{r}} =
+\frac{\mathbf{o} - \mathbf{x}}{z}$. The endpoint of each ray represents a point
+on the surface.  We can also parameterize the ray by its direction and endpoint: 
+
+ \begin{equation}
+ 	\mathbf{v}(u) = \mathbf{x} - u\mathbf{\hat{r}}
+ \end{equation}
+
+In practice, the ray is corrupted by noise. Call $d$ the true
+distance from the origin of the sensor to the surface along the ray. Then $z$
+is actually a random variable drawn from a distribution dependant on $d$ called
+the \textit{hit probability} (\figref{fig:integration_diagram}). 
+
+Assuming the hit probability is Gaussian, we have:
+
+\begin{equation}
+\label{eqn:hitprobability}
+z \sim \mathcal{N}(d, \sigma_d)
+\end{equation}
+
+\noindent where $\sigma_d$ is the standard deviation of the depth noise for a
+true depth $d$.
+
+% Rays are in practice stored in a 2D depth image at each timestep. We can
+% calibrate the depth sensor as a pinhole camera with camera intrinsics $\{f_x,
+% f_y, c_x, c_y\}$. Using the intrinsics, we can project onto the camera plane
+% using the pinhole model. The function $\mathbf{Project} :
+% \mathbf{R}^3\to\mathbf{R}^2$ accomplishes this. We can also bilinearly
+% interpolate points in the depth image. The function $\mathbf{InterpolateDepth}
+% : \mathbf{R}^2 \to \mathbf{R}^+$ does this.
+
+\subsection{The Truncated Signed Distance Field}
+\label{section:TSDF}
+We model the world~\cite{Curless1996} as a volumetric signed distance field $\Phi: \mathbf{R}^3
+\to \mathbf{R}$. For any point in the world, $\Phi$
 outputs the distance to the nearest surface, \emph{signed} positive if the point
 is in free space and negative otherwise. Thus, the zero isocontour $(\Phi = 0)$
 encodes the surfaces of the world.
 
-Since we are primarily interested in reconstructing surfaces, 
-we focus on the Truncated Signed Distance Function (TSDF)
-\cite{Curless1996}:
+Since we are primarily interested in reconstructing surfaces,
+we use the Truncated Signed Distance Field (TSDF) \cite{Curless1996}:
 \begin{equation}
-	\Phi_{\tau}(\mathbf{x}) = 
+	\Phi_{\tau}(\mathbf{x}) =
 	\begin{cases}
 		\Phi(\mathbf{x}) &  \text{if} |\Phi(\mathbf{x})| < \tau \\
 		\text{undefined} & \text{otherwise}
 	\end{cases}
 \end{equation}
-where $\tau \in \mathbf{R}$ is the \emph{truncation distance}.
+where $\tau \in \mathbf{R}$ is the \emph{truncation distance}.  Curless
+\cite{Curless1996} notes that very near the endpoints of depth rays, the TSDF is
+closely approximated by the distance along the ray to the nearest observed
+point. 
 
-Furthermore, computing the first-order Taylor series approximation of $\Phi_{\tau}$
-about a point on the surface $\mathbf{x}_s$, we get:
-\begin{align}
-\label{eqn:atsdf}
-\Phi_{\tau}(\mathbf{x}) &\approx \Phi_{\tau}(\mathbf{x}_s) + \nabla \Phi(\mathbf{x}_s)^{T} (\mathbf{x} - \mathbf{x}_s) \nonumber \\
- &= \nabla \Phi(\mathbf{x}_s)^{T} (\mathbf{x} - \mathbf{x}_s) = \mathbf{\hat{n}}(\mathbf{x}_s)^{T}(\mathbf{x} - \mathbf{x}_s)
-\end{align}
-where we denote $\nabla \Phi(\mathbf{x}_s) = \mathbf{\hat{n}}(\mathbf{x}_s)$, the unit surface normal at $\mathbf{x}_s$, 
-encoding the observation that $\Phi$ changes fastest along the surface normal, and $||\nabla \Phi|| = 1$.
-
-Now consider a ray from an ideal (noise-free) pinhole depth sensor with origin at $\mathbf{o}$ that 
-hits the surface at $\mathbf{x}_s$. Not only does this ray provide the measurement $\mathbf{x}_s$,
-it also carves out empty space from $\mathbf{o}$ to $\mathbf{x}_s$.  First, we parametrize the ray as 
-\begin{equation}
-\mathbf{x}(u) = \mathbf{x}_s - u\mathbf{\hat{r}}
-\end{equation}
-where $u \in \mathbf{R}$ and $\mathbf{\hat{r}}$ is the unit vector from $\mathbf{o}$ to $\mathbf{x}_s$.
-
-Then, we use \eref{eqn:atsdf} to approximate $\Phi$ along the ray as (\figref{fig:raycast_diagram})
-\begin{equation}
-\Phi_{\tau}(\mathbf{x}(u)) \approx \mathbf{\hat{n}}(\mathbf{x}_s)^{T}(\mathbf{x}_s - u\mathbf{\hat{r}} - \mathbf{x}_s)
-= -u\mathbf{\hat{n}}(\mathbf{x}_s)^{T}\mathbf{\hat{r}}
-\end{equation}
-
-Some works \cite{Bylow2013} approximate
-$\mathbf{\hat{n}}$ by locally fitting a plane around $\mathbf{x}_s$, but this comes at the cost of 
-computation. \ssnote{My rewrite stops here. Confused.}
-
-Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
-sensor origin to the scene. At each timstep $t$ we have a set of rays
-$Z_t$. Call the origin of the ray $o$, and the endpoint of the ray $\mathbf{x}$.
-The length of the ray is given by $z = \|\mathbf{o}
-- \mathbf{x}\|$. The direction of the ray is given by $\mathbf{\hat{r}} =
-\frac{\mathbf{o} - \mathbf{x}}{z}$. The endpoint of each ray represents a point
-on the surface. So if  the sensor is perfect, we know that the signed distance
-function $\Phi(\mathbf{x}) = 0$ at that point. In practice, the ray is
-corrupted by noise. Call $d$ the true distance from the origin of the sensor to
-the surface along the ray. Then $z$ is actually a random variable drawn from a
-distribution dependant on $d$ called the \textit{hit probability}
-(\figref{fig:integration_diagram}).
-
-The ray also implies that all the points in space along the ray from the sensor
-origin up to the endpoint must be outside of any surface (or else the ray would
-have been occluded by a a surface). Because real objects have non-zero
-thickness, some part of the space along the ray beyond the endpoint will be
-inside an object.
-
-Further, very near the surface of the object, the signed distance function can
-be approximated by the distance along the ray to the endpoint of  the ray
-(\figref{fig:raycast_diagram}). Near $\mathbf{x}$, the signed distance function
-is approximately the distance to $\mathbf{x}$. So, whenever $|u|$ is very
-small:
-
-\begin{equation} 
-\label{eq:pointwise_tsdf} 
-	\Phi(\mathbf{x} - u\mathbf{\hat{r}}) \approx u 
-\end{equation}
-
-
-
-The approximation is better whenever the ray is approximately
-perpendicular to the surface, and worst whenever the ray is parallel to the
-surface. Because of this, some works \cite{Bylow2013} instead approximate
-$\Phi$ by locally fitting a plane around $\mathbf{x}$ using the neighboring
-points and using the distance to that plane as a local approximation, \ie:
-
-\begin{equation} 
-\label{eq:planar_tsdf} 
-	\Phi(\mathbf{x} - u\mathbf{\hat{r}}) \approx -u~\mathbf{\hat{r}} \cdot
-	\mathbf{\hat{n}_x}
-\end{equation}
-
-\noindent where $\mathbf{\hat{n}_x}$ is the local surface normal around
-$\mathbf{x}$. In general, the planar approximation (Eqn. \ref{eq:planar_tsdf})
-is much better than the pointwise approximation (Eqn. \ref{eq:pointwise_tsdf}),
-especially when surfaces are nearly parallel to the sensor -- but computing surface normals is not
-always computationally feasible. In our work, we have chosen to use
-the simpler pointwise approximation.
+% Furthermore, computing the first-order Taylor series approximation of $\Phi_{\tau}$
+% about a point on the surface $\mathbf{x}_s$, we get:
+% \begin{align}
+% \label{eqn:atsdf}
+% \Phi_{\tau}(\mathbf{x}) &\approx \Phi_{\tau}(\mathbf{x}_s) + \nabla \Phi(\mathbf{x}_s)^{T} (\mathbf{x} - \mathbf{x}_s) \nonumber \\
+%  &= \nabla \Phi(\mathbf{x}_s)^{T} (\mathbf{x} - \mathbf{x}_s) = \mathbf{\hat{n}}(\mathbf{x}_s)^{T}(\mathbf{x} - \mathbf{x}_s)
+% \end{align}
+% where we denote $\nabla \Phi(\mathbf{x}_s) = \mathbf{\hat{n}}(\mathbf{x}_s)$, the unit surface normal at $\mathbf{x}_s$, 
+% encoding the observation that $\Phi$ changes fastest along the surface normal, and $||\nabla \Phi|| = 1$.
+% 
+% Now consider a ray from an ideal (noise-free) pinhole depth sensor with origin at $\mathbf{o}$ that 
+% hits the surface at $\mathbf{x}_s$. Not only does this ray provide the measurement $\mathbf{x}_s$,
+% it also carves out empty space from $\mathbf{o}$ to $\mathbf{x}_s$.  First, we parametrize the ray as 
+% \begin{equation}
+% \mathbf{x}(u) = \mathbf{x}_s - u\mathbf{\hat{r}}
+% \end{equation}
+% where $u \in \mathbf{R}$ and $\mathbf{\hat{r}}$ is the unit vector from $\mathbf{o}$ to $\mathbf{x}_s$.
+% 
+% Then, we use \eref{eqn:atsdf} to approximate $\Phi$ along the ray as (\figref{fig:raycast_diagram})
+% \begin{equation}
+% \Phi_{\tau}(\mathbf{x}(u)) \approx \mathbf{\hat{n}}(\mathbf{x}_s)^{T}(\mathbf{x}_s - u\mathbf{\hat{r}} - \mathbf{x}_s)
+% = -u\mathbf{\hat{n}}(\mathbf{x}_s)^{T}\mathbf{\hat{r}}
+% \end{equation}
+% 
+% Some works \cite{Bylow2013} approximate
+% $\mathbf{\hat{n}}$ by locally fitting a plane around $\mathbf{x}_s$, but this comes at the cost of 
+% computation. \ssnote{My rewrite stops here. Confused.}
+% 
+% Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
+% sensor origin to the scene. At each timstep $t$ we have a set of rays
+% $Z_t$. Call the origin of the ray $o$, and the endpoint of the ray $\mathbf{x}$.
+% The length of the ray is given by $z = \|\mathbf{o}
+% - \mathbf{x}\|$. The direction of the ray is given by $\mathbf{\hat{r}} =
+% \frac{\mathbf{o} - \mathbf{x}}{z}$. The endpoint of each ray represents a point
+% on the surface. So if  the sensor is perfect, we know that the signed distance
+% function $\Phi(\mathbf{x}) = 0$ at that point. In practice, the ray is
+% corrupted by noise. Call $d$ the true distance from the origin of the sensor to
+% the surface along the ray. Then $z$ is actually a random variable drawn from a
+% distribution dependant on $d$ called the \textit{hit probability}
+% (\figref{fig:integration_diagram}).
+% 
+% The ray also implies that all the points in space along the ray from the sensor
+% origin up to the endpoint must be outside of any surface (or else the ray would
+% have been occluded by a a surface). Because real objects have non-zero
+% thickness, some part of the space along the ray beyond the endpoint will be
+% inside an object.
+% 
+% Further, very near the surface of the object, the signed distance field can
+% be approximated by the distance along the ray to the endpoint of  the ray
+% (\figref{fig:raycast_diagram}). Near $\mathbf{x}$, the signed distance field
+% is approximately the distance to $\mathbf{x}$. So, whenever $|u|$ is very
+% small:
+% 
+% \begin{equation} 
+% \label{eq:pointwise_tsdf} 
+% 	\Phi(\mathbf{x} - u\mathbf{\hat{r}}) \approx u 
+% \end{equation}
+% 
+% The approximation is better whenever the ray is approximately
+% perpendicular to the surface, and worst whenever the ray is parallel to the
+% surface. Because of this, some works \cite{Bylow2013} instead approximate
+% $\Phi$ by locally fitting a plane around $\mathbf{x}$ using the neighboring
+% points and using the distance to that plane as a local approximation, \ie:
+% 
+% \begin{equation} 
+% \label{eq:planar_tsdf} 
+% 	\Phi(\mathbf{x} - u\mathbf{\hat{r}}) \approx -u~\mathbf{\hat{r}} \cdot
+% 	\mathbf{\hat{n}_x}
+% \end{equation}
+% 
+% \noindent where $\mathbf{\hat{n}_x}$ is the local surface normal around
+% $\mathbf{x}$. In general, the planar approximation (Eqn. \ref{eq:planar_tsdf})
+% is much better than the pointwise approximation (Eqn. \ref{eq:pointwise_tsdf}),
+% especially when surfaces are nearly parallel to the sensor -- but computing surface normals is not
+% always computationally feasible. In our work, we have chosen to use
+% the simpler pointwise approximation.
 
 \begin{figure*}
    \begin{subfigure}{1.0\columnwidth}
@@ -481,7 +486,7 @@ the simpler pointwise approximation.
    \caption{\figref{fig:raycast_diagram} is a diagram of a ray hitting a
    surface from the camera, and a voxel that the ray passes through. The length of the ray from the point at
       which the ray intersects the voxel and the surface, $u$, is an
-      approximation of the signed distance function $\Phi$, when $u$ is small.
+      approximation of the signed distance field $\Phi$, when $u$ is small.
       \figref{fig:integration_diagram} shows a hypothetical plot of the
       hit probability of a ray $P\left(z - d = u \right) $, the pass
       probability $P\left(z - d < u\right)$, vs. $u$, where $z$ is the
@@ -489,28 +494,28 @@ the simpler pointwise approximation.
       to the surface. The hit integration region is inside $[-\tau, \tau]$,
       wheras regions closer to the camera than  $\tau + \epsilon$ are in the space carving region (Section \ref{section:carving}). }
 \end{figure*} 
-
-This observation leads to the Truncated Signed Distance Function (TSDF)
-\cite{Curless1996}. The TSDF is defined as:
-
-\begin{equation}
-	\Phi_{\tau}(\mathbf{x}) = 
-	\begin{cases}
-		\Phi(\mathbf{x}) &  \text{if} |\Phi(\mathbf{x})| < \tau \\
-		\text{undefined} & \text{otherwise}
-	\end{cases}
-\end{equation}
-
-\noindent where $\tau \in \mathbf{R}$ is the ``truncation distance'' in which
-the TSDF is defined. Following \cite{Curless1996}, to update the TSDF with a
-particular sensor measurement, we update each voxel along the ray from $u =
--\tau$ to $\tau$, and take the weighted running average of distance field estimates over time. To do
-this, we can introduce a global weighting function $W : \mathbf{R}^3 \to
-\mathbf{R^{+}}$ that represents the confidence in the estimate of the TSDF at
-every point in space.
+% 
+% This observation leads to the Truncated Signed Distance Field (TSDF)
+% \cite{Curless1996}. The TSDF is defined as:
+% 
+% \begin{equation}
+% 	\Phi_{\tau}(\mathbf{x}) = 
+% 	\begin{cases}
+% 		\Phi(\mathbf{x}) &  \text{if} |\Phi(\mathbf{x})| < \tau \\
+% 		\text{undefined} & \text{otherwise}
+% 	\end{cases}
+% \end{equation} 
+% 
+% \noindent where $\tau \in \mathbf{R}$ is the ``truncation distance'' in which
+% the TSDF is defined. Following \cite{Curless1996}, to update the TSDF with a
+% particular sensor measurement, we update each voxel along the ray from $u =
+% -\tau$ to $\tau$, and take the weighted running average of distance field estimates over time. To do
+% this, we can introduce a global weighting function $W : \mathbf{R}^3 \to
+% \mathbf{R^{+}}$ that represents the confidence in the estimate of the TSDF at
+% every point in space.
 
 \begin{algorithm}[t!]
-	\caption{Truncated Signed Distance Function}
+	\caption{Truncated Signed Distance Field}
 	\label{alg:TSDF}
 	\begin{algorithmic}[1]
 		\For {$t \in [1 \ldots T]$} \Comment{\textit{For each timestep}}
@@ -539,12 +544,18 @@ every point in space.
 	\end{algorithmic}
 \end{algorithm}
 
-The TSDF algorithm is outlined in Algorithm \ref{alg:TSDF}. It begins by
-initializing the TSDF to an undefined value with a weight of $0$, then for each
-depth scan, it updates the weight and TSDF value for all points along each ray
-within the truncation distance $\tau$. The weight is updated according
-to the scale-invariant weighting function $\alpha_{\tau}(u) : [-\tau,\tau]\to
-\mathbf{R^{+}} $ for which the following holds:
+The algorithm for updating the TSDF given a depth scan used in
+\cite{Curless1996, Newcombe, Whelan2013, Bylow2013} is outlined in Algorithm
+\ref{alg:TSDF}. For each voxel in the scene, we store a signed distance value,
+and a weight $W : \mathbf{R}^3 \to \mathbf{R^{+}}$ representing the confidence
+in the distance measurement. By taking a weighted running average of the
+distance measurments over time, we minimize 
+
+We initialize the TSDF to an undefined value with a
+weight of $0$, then for each depth scan, we update the weight and TSDF value
+for all points along each ray within the truncation distance $\tau$. The weight
+is updated according to the scale-invariant weighting function $\alpha_{\tau}(u) :
+[-\tau,\tau]\to \mathbf{R^{+}} $ for which the following holds:
 
 \begin{equation}
 	\forall \tau, \int_{-\tau}^{\tau} \alpha_{\tau}(u) du = K 
@@ -552,13 +563,12 @@ to the scale-invariant weighting function $\alpha_{\tau}(u) : [-\tau,\tau]\to
  
  \noindent and $K$ is a constant. This is to ensure that changing the truncation
  distance does not change the speed at which the TSDF converges.  
- 
-Ideally, the weighting function should be determined by the hit probability of
-the sensor and should correspond to the probability that $\Phi(\mathbf{x} - u
-\mathbf{\hat{r}}) = 0$. It is possible \cite{Nguyen2012} to
-directly compute the weight from the hit probability of the sensor; but in favor
-of better performance, linear, exponential, and constant approximations of
-$\alpha_{\tau}$ can be used \cite{Curless1996, Newcombe, Whelan2013, Bylow2013}.
+
+ It is possible \cite{Nguyen2012} to directly compute the weighting function
+ $\alpha_{\tau}$ from the hit probability (Eqn. \ref{eqn:hitprobability}) of the
+ sensor; but in favor of better performance, linear, exponential, and constant
+ approximations of $\alpha_{\tau}$ can be used \cite{Curless1996, Newcombe,
+ Whelan2013, Bylow2013}.
 
 Here, we simply use a constant approximation $\alpha_{\tau}(u) = \frac{1}{2
 \tau}$, and use the hit probability of the sensor instead to  dynamically select
@@ -566,12 +576,21 @@ the value of $\tau$, as in \cite{Nguyen2012} (\figref{fig:integration_diagram}).
 This results in poorer surface reconstruction quality in areas of high noise
 than methods which more closely approximate the hit probability of the sensor.
 
+Generally, either the weight $\alpha_{\tau}$ \cite{Newcombe, Whelan2013}, or
+the distance update of the ray (Alg. \ref{alg:TSDF} line
+\ref{alg:line:tsdf_update}) \cite{Curless1996, Bylow2013} ought to be scaled by
+the dot product of the local surface normal (computed by differentiating the
+depth image) and the direction of the ray to improve reconstruction of surfaces
+that are not perpendicular to the image plane. However, we found computing
+surface normals to be computationally infeasible on the mobile device, and so
+neglect this in our implementation.
+
 \subsection{Colorization}
 \label{section:color}
 To create colored surface reconstructions, we use a method following Bylow
 \etal \cite{Bylow2013}, also used in \textit{Kintinuous} \cite{Whelan2013},
 which directly stores color information as volumetric data. Alongside the
-truncated signed distance function, we store a volumetric color function
+truncated signed distance field, we store a volumetric color function
 $C : \mathbf{R}^3 \to \mathbf{R}^{3+}$, and a color weighting function
 $W_{c} :
 \mathbf{R}^3 \to \mathbf{R^{+}}$.
@@ -608,20 +627,22 @@ of simplicity, at the expense of color consistency with changes in illumination.
 \label{section:dynamic_trunc}
 Following the approach of Nguyen \etal\cite{Nguyen2012}, we use a dynamic
 trunction distance based on the noise model of the sensor rather than a fixed
-truncation distance. The truncation distance is given as a function of depth:
+truncation distance to better use noisy data far from the sensor. The truncation
+distance is given as a function of depth:
 
 \begin{equation} \mathcal{T} (z) = \beta\sigma_{z} \end{equation}
 
 \noindent where $\sigma_{z}$ is the standard deviation of the noise for a depth
-reading of $z$, and $\beta$ is a scaling parameter which represents the number of
-standard deviations of the noise we want to integrate over. Algorithm
-\ref{alg:TSDF}, line \ref{alg:line:dynamic_tsdf} shows how this is used.
-
-Using the dynamic truncation distance has the effect that further away from the
-sensor, where depth measurements are less certain and sparser, depth
-measurements are smoothed over a larger area of the distance field; while nearer
-to the sensor, where depth measurments are more certain and closer together, the
-truncation distance is smaller.
+reading of $z$ (eqn. \ref{eqn:hitprobability}), and $\beta$ is a scaling
+parameter which represents the number of standard deviations of the noise we
+want to integrate over. Algorithm \ref{alg:TSDF}, line
+\ref{alg:line:dynamic_tsdf} shows how this is used.
+% 
+% Using the dynamic truncation distance has the effect that further away from the
+% sensor, where depth measurements are less certain and sparser, depth
+% measurements are smoothed over a larger area of the distance field; while nearer
+% to the sensor, where depth measurements are more certain and closer together,
+% the truncation distance is smaller.
 
 \subsection{Space Carving}
 \label{section:carving}
@@ -651,7 +672,7 @@ space carving, inconsistent data is removed.
 
 \subsection{The Dynamic Spatially Hashed TSDF}
 \label{section:spatialhash}
-Each voxel contains an estimate of the signed distance function and an
+Each voxel contains an estimate of the signed distance field and an
 associated weight. In our implementation, these are packed into a single 32-bit
 integer. The first 16 bits are a fixed-point signed distance value, and the
 last 16 bits  are an unsigned integer weighting value. Color is similarly
@@ -662,30 +683,26 @@ TSDF.
 Unfortunately, a flat volumetric representation of the world using voxels is
 incredibly memory intensive. The amount of memory storage required grows as
 $\mathcal{O}(N^3)$, where $N$ is the number of voxels per side of the 3D voxel
-array. For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube
-with color would occupy 8 Gigabytes of memory. Worse, most of that memory would be
-uselessly storing unseen free space.
+array. 
+
+% For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube
+% with color would occupy 8 Gigabytes of memory. Worse, most of that memory would be
+% uselessly storing unseen free space.
 
 For a large-scale real-time suface reconstruction application, a less
 memory-intensive and more dynamic approach is needed. Confronted with this
 problem, other approaches have either used  octrees \cite{Wurm2010}, or have
-prematurely extracted isosurfaces from a moving TSDF volume to save memory
+prematurely extracted isosurfaces from a moving TSDF volume to save memory 
 \cite{Whelan2013}. Neither of these approaches is desirable for our application.
 Octrees, while maximally memory efficient, have significant drawbacks when it comes to
-accessing and iterating over the volumetric data. An octree compresses
-volumetric data by dividing the space recursively into octants. The leaves of
-the tree contain the underlying volumetric data. Octants which contain no
-leaves do not contain any allocated volumetric data. This allows the octree to
-be incredibly memory efficient if the underlying volumetric data is sparse.
-
-However, consider that every time an octree is \emph{queried},  a
-logarithmic $\mathcal{O}(M)$ cost is incurred, where $M$ is the depth of the
+accessing and iterating over the volumetric data. Every time an octree is
+queried,  a logarithmic $\mathcal{O}(M)$ cost is incurred, where $M$ is the depth of the
 Octree. In contrast, queries in a flat array are $\mathcal{O}(1)$.  If implemented na\"{\i}vely, an
 octree will store pointers to child octants in each parent octant. The octants
 themselves may be dynamically allocated on the heap. Each traversal through the
 tree requires $\mathcal{O}(M)$ heap pointer dereferences in the worst case.
 Even worse, adjacent voxels may not be adjacent in memory, resulting in very
-poor caching performance \cite{CacheStructures}.
+poor caching performance \cite{CacheStructures}. 
 
 \begin{figure*}
   \centering
@@ -713,47 +730,53 @@ poor caching performance \cite{CacheStructures}.
 		 \label{fig:freiburg_2m}
 	 \end{subfigure}  
 	 \end{minipage}
-    \begin{minipage}{0.25\linewidth}
-	  \begin{subfigure}{\linewidth} \centering
-	      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
-	      \caption{}
-	 	 \label{fig:frustum_cull}
-	  \end{subfigure}
-	  \begin{subfigure}{\linewidth} \centering
-	    \includegraphics[width=1.0\textwidth]{img/projection_mapping}
-	      \caption{} 
-	      \label{fig:projection_mapping}
-	  \end{subfigure} 
-\end{minipage}
-     \begin{minipage}{0.23\linewidth}
- 	  	\begin{subfigure}{\linewidth} \centering
+    \begin{minipage}{0.45\linewidth}
+% 	  \begin{subfigure}{\linewidth} \centering
+% 	    \includegraphics[width=1.0\textwidth]{img/projection_mapping}
+% 	      \caption{} 
+% 	      \label{fig:projection_mapping}
+% 	  \end{subfigure}
+		\begin{subfigure}{\linewidth} \footnotesize
+		\begin{tabular} {| l | r | r |}
+		\hline
+		Voxel Class & Voxel Count & \% of Bounding Box \\ \hline
+		Unknown Culled & 62,105,216 & 77.0\% \\ \hline
+		Unknown & 12,538,559 & 15.5\% \\ \hline
+		Outside & 3,303,795 & 4.1\% \\ \hline
+		Inside & 2,708,430 & 3.4\% \\ \hline
+		\end{tabular}
+		\caption{}
+		\label{table:volumecount}  
+		\end{subfigure} 
+ 	  	\begin{subfigure}{0.45\linewidth} \centering
  	    \includegraphics[width=1.0\textwidth]{img/chunks.pdf}
  	      \caption{}
  	  	\label{fig:chunks} 
  	  \end{subfigure} 
+ 	  \begin{subfigure}{0.45\linewidth} \centering
+	      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
+	      \caption{}
+	 	 \label{fig:frustum_cull}
+	  \end{subfigure}
    \end{minipage}
   \caption{ We compare our spatial hashing (SH)
-      approach to a na\"{\i}ve algorithm which simply allocates a monolithic
-      block of volume memory for the entire space needed (FG) (Fig.
-      \ref{fig:memory_data}).
-      Memory is recorded for voxels of 3cm resolution, using both surface and
-      color data. Chunks are of $16 \times 16 \times 16$ voxels. This figure
-      does not account for the memory allocated for display meshes. We also collected memory
-      usage statistics for the Freiburg \cite{FREIBURG} office dataset (Fig.
-      \ref{fig:memory_data2}), varying the size of the depth frustum. Extending
-      the depth frustum to 5 meters (\figref{fig:freiburg_5m}) results in a reconstructin of the entire
-      room, wheras limiting the depth frustum to 2 meters (Fig.
-      \ref{fig:freiburg_2m}) limits the reconstruction to the desk scene. Fig.
-      \ref{fig:frustum_cull} shows all the TSDF chunks which intersect the depth camera frustum  and are within $\tau$ of a hit as green cubes. Only these
-      chunks are updated when new data is received. The scene shown is a
-      reconstruction of the Freiburg office \cite{FREIBURG} dataset at a
-      resolution of 3cm. Fig \ref{fig:projection_mapping} shows a cutaway of a
-      chunk containing an object. In projection mapping (Alg. \ref{alg:projection_mapping}),  a particular voxel with
-      center $v_c$ is projected onto the depth camera at time $t$. The depth image is binlinearly interpolated to get
-      $z_p$, a depth reading at the projected point. In \figref{fig:chunks}, chunks of voxels (grey) are allocated near
+      approach to a na\"{\i}ve algorithm which simply allocates a single
+      block of volume memory for the entire space needed (FG)
+      (\figref{fig:memory_data}). Memory is recorded for voxels of 3cm
+      resolution, using both surface and color data. Chunks are of $16 \times 16 \times 16$ voxels. Memory
+      usage statistics for the Freiburg \cite{FREIBURG} office dataset are shown
+      in (\figref{fig:memory_data2}), varying the size of the depth frustum.
+      Extending the depth frustum to 5 meters (\figref{fig:freiburg_5m}) results in a reconstructin of the entire
+      room, wheras limiting the depth frustum to 2 meters
+      (\figref{fig:freiburg_2m}) limits the reconstruction to the desk scene.
+      \figref{fig:frustum_cull} shows all the TSDF chunks which intersect the
+      depth camera frustum  and are within $\tau$ of a hit as green cubes. Only
+      these chunks are updated when new data is received.In \figref{fig:chunks}, chunks of voxels (grey) are allocated near
   the surface (blue) of the scene. Chunks are spatially hashed \cite{SpatialHashing} into a
-      dynamic hash map. Lookups into the hash map are constant time. Within each
-      chunk, voxels are allocated in a 3D array.}
+      dynamic hash map. Table \ref{table:volumecount} shows voxel statistics for
+      the Freiburg 5m (\figref{fig:freiburg_5m}) dataset. Culled voxels are not stored in
+       memory. Unknown voxels have a weight of 0. Inside and Outside voxels have
+      a weight $> 0$ and an SDF than is $\leq 0$ and $> 0$ respectively. }
 \end{figure*} 
 
 Instead of using an Octree, or a fixed 3D array (as in \cite{Newcombe,
@@ -814,26 +837,20 @@ along the ray according to its distance to an observed surface. The most
 straightfoward way of doing this is to simply iterate over each ray, and then
 use a fast rasterization algorithm \cite{RayTracing} to determine which voxels
 intersect with the ray. We will call this the Raycasting approach.
-However, this approach is extremely computationally expensive, having a
-performance bound by $\mathcal{O}(N_{\text{ray}} \times l_{\text{ray}})$, where
-$N_{\text{ray}}$ is the number of rays in a scan, and $l_{\text{ray}}$  is 
+However, has aperformance bound by $\mathcal{O}(N_{\text{ray}} \times
+l_{\text{ray}})$, where $N_{\text{ray}}$ is the number of rays in a scan, and $l_{\text{ray}}$  is 
 proportional to the length of a ray being integrated. If we use a fixed-size
 truncation distance and do not perform space carving, $l_{\text{ray}} = \tau$.
-However, with space-carving, the length of a ray being integrated is
-potentially unbounded.
+However, with space-carving (sec. \ref{section:carving}), the length of a ray
+being integrated is potentially unbounded.
 
 A useful approximation of raycasting is \textit{projection mapping}. Used in
-\cite{Nguyen2012, Bylow2013, Klingensmith2014}, projection mapping works by
-projecting points in the voxel grid onto the depth image and comparing the depth value
+\cite{Newcombe,Nguyen2012, Bylow2013, Klingensmith2014}, projection mapping
+works by projecting points in the voxel grid onto the depth image and comparing the depth value
 there with the geometric distance from the center of the voxel to the camera
 plane, and using that to approximate the distance along the ray from the camera
-to the voxel. This is analogous to \textit{shadow mapping} \cite{Shadowmapping}
-from computer graphics, where raycast shadows are approximated by projecting
-onto a depth map from the perspective of the light source, except in our case, 
-``shadows'' are regions occluded from the depth sensor.  Figure 
-\ref{fig:projection_mapping} diagrams projection mapping, which is described in
-Algorithm \ref{alg:projection_mapping}. Instead of iterating over each ray,
-projection mapping iterates over each voxel. By projecting the voxel's center
+to the voxel. Algorithm \ref{alg:projection_mapping} Describes projection mapping. Instead of
+iterating over each ray, projection mapping iterates over each voxel. By projecting the voxel's center
 onto the depth image, we can compare the actual depth reading to the distance
 from the voxel's center to the camera origin as an approximation of the
 distance to the surface, $u$. 
@@ -842,25 +859,19 @@ distance to the surface, $u$.
 	\caption{Projection Mapping}
 	\label{alg:projection_mapping}
 	\begin{algorithmic}[1]
-		\LineComment{For each voxel in a chunk:} 
-		\For {$\mathbf{v}_c \in V$}
+		\For {$\mathbf{v}_c \in V$} \Comment{For each voxel}
 		\State {$z \gets   \|\mathbf{o}_t - \mathbf{v}_c\|$}
-		\LineComment{Project center onto depth image:}
 		\State{$z_p \gets \mathbf{InterpolateDepth}(\mathbf{Project}(\mathbf{v}_c))$}
 		\State{$u \gets z_p - z$} 
-		\LineComment {Dynamic truncation distance.}
-		\State{$\tau \gets \mathcal{T} (z_p)$} 
-		\LineComment{Within the space carving region:}
-	    \If{$u \in [\tau + \epsilon, z_p]$}
+		\State{$\tau \gets \mathcal{T} (z_p)$}  \Comment{Dynamic truncation}
+	    \If{$u \in [\tau + \epsilon, z_p]$} \Comment{Space carving region}
 	    	\If {$\Phi_{\tau}(\mathbf{v}_c) \leq 0$ }
 		    	\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \text{undefined}$}
 		    	\label{alg:line:voxel_carve}
 				\State {$W(\mathbf{v}_c) \gets 0$}
 			\EndIf
 	    \EndIf
-		\LineComment{Within the hit region:}
-		\If{$u \in [-\tau, \tau]$} 			 
-		   \LineComment{Update the TSDF and weight.}
+		\If{$u \in [-\tau, \tau]$}  \Comment{Hit region}
 			\State {$\Phi_{\tau}(\mathbf{v}_c) \gets \frac{ W(\mathbf{v}_c)
 			\Phi_{\tau}(\mathbf{v}_c)+ \alpha(u) u}{W(\mathbf{v}_c) +\alpha(u)}$}
 			\label{alg:line:tsdf_update}
@@ -873,20 +884,12 @@ distance to the surface, $u$.
 Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
 the number of voxels affected by a depth scan. This value is nearly constant
 over time, and depending on the resolution of the TSDF, may be significantly
-less than the number of points. When using space carving (Section
-\ref{section:carving}), raycasting has an additional performance hit bounded by
-the length of the rays, wheras projection mapping does not suffer from this
-performance hit. 
+less than the number of points. However, projection mapping suffers from resolution-dependant aliasing errors,
+because the length of the ray taken from projection mapping may differ from the
+true depth of the ray by up to the length of the diagonal of the voxel.  
+Section \ref{section:scan_compare} compares the performance and quality of
+these methods.
 
-However, projection mapping suffers from resolution-dependant aliasing errors,
-because the value of $u'$ taken from projection mapping may differ from the true
-depth of the ray by up to the length of the diagonal of the voxel. Nuanced
-surface information from many adjacent rays passing through a single voxel is
-lost in the projection mapping case. This can be mitigated somewhat by
-\textit{oversampling} each voxel (that is, considering many sampled points
-inside each voxel) and taking the average projected depth over all the samples
--- but the speed of the approach decreases linearly with the number of 
-additional samples taken. 
 
 \subsection{Rendering}
 \label{section:render}
@@ -991,17 +994,17 @@ using depth data, and can result in mis-alignment of depth scans.
 		 \caption{}
 		 \label{fig:night3}
 	 \end{subfigure} 
-	 	 \begin{subfigure} {0.2\linewidth} \centering
+	 	 \begin{subfigure} {0.25\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
 		 \caption{}
 		 \label{fig:dragon_color}
 	 \end{subfigure}
-	 	 \begin{subfigure}{0.25\linewidth} \centering  
+	 	 \begin{subfigure}{0.3\linewidth} \centering  
 		 \includegraphics[width=1.0\textwidth]{img/dragon_closeup.png} 
 		 \caption{}
 		 \label{fig:dragon_closeup}
 	 \end{subfigure} 
- 	  \begin{subfigure}{0.35\linewidth} \centering
+ 	  \begin{subfigure}{0.35\linewidth} \centering \footnotesize
 % \includegraphics[width=1.0\textwidth]{img/timing_data.pdf}
 % 		 \caption{}
 % 		 \label{fig:timing}
@@ -1137,7 +1140,7 @@ paused. After mapping is complete, the user can save the map to disk.
 We implemented both the raycasting and voxel projection modes of depth scan
 integration (Sec. \ref{section:scan_integration}), and compared them in terms of
 speed and quality. We found that projection mapping was far more efficient than
-raycasting when space carving was used (\figref{fig:timing}). However,
+raycasting when space carving was used (Table \ref{table:timing}). However,
 projection mapping results undesirable aliasing artifacts; especially on
 surfaces nearly parallel with the camera's visual axis. Additionally, color consistency suffers
 with projection carving, because rather than color being averaged by all the
@@ -1175,21 +1178,24 @@ chunks as unknown, and stored as known, we found that the vast majority (77\%)
 of space is culled, and of the space that is actually stored in chunks, 67.6\%
 is unknown (Table \ref{table:volumecount}).
 
-\begin{table}
-\begin{tabular} {| l | r | r |}
-\hline
-Voxel Class & Voxel Count & \% of Bounding Box \\ \hline
-Unknown Culled & 62,105,216 & 77.0\% \\ \hline
-Unknown & 12,538,559 & 15.5\% \\ \hline
-Outside & 3,303,795 & 4.1\% \\ \hline
-Inside & 2,708,430 & 3.4\% \\ \hline
-\end{tabular}
-\caption{Voxel statistics for the Freiburg (\figref{fig:freiburg_5m}) dataset.
-$16\times16\times16$ chunks are allocated at a 2cm resolution. Culled voxels are
-not stored in memory. Unknown voxels have a weight of 0. Inside and Outside
-voxels have a weight $> 0$ and an SDF than is $\leq 0$ and $> 0$ respectively. }
-\label{table:volumecount}
-\end{table} 
+% \begin{table}
+% \footnotesize
+% \hfill
+% \centering
+% \begin{tabular} {| l | r | r |}
+% \hline
+% Voxel Class & Voxel Count & \% of Bounding Box \\ \hline
+% Unknown Culled & 62,105,216 & 77.0\% \\ \hline
+% Unknown & 12,538,559 & 15.5\% \\ \hline
+% Outside & 3,303,795 & 4.1\% \\ \hline
+% Inside & 2,708,430 & 3.4\% \\ \hline
+% \end{tabular}
+% \caption{Voxel statistics for the Freiburg (\figref{fig:freiburg_5m}) dataset.
+% $16\times16\times16$ chunks are allocated at a 2cm resolution. Culled voxels are
+% not stored in memory. Unknown voxels have a weight of 0. Inside and Outside
+% voxels have a weight $> 0$ and an SDF than is $\leq 0$ and $> 0$ respectively. }
+% \label{table:volumecount}
+% \end{table} 
 
 % \subsection{Limitations due to Odometry Drift}
 % Since we do not update pose using depth data, odometry pose drift severely 
