@@ -958,20 +958,35 @@ using depth data, and can result in mis-alignment of depth scans.
 		 \caption{}
 		 \label{fig:night3}
 	 \end{subfigure} 
-	 	 \begin{subfigure} {0.25\linewidth} \centering
+	 	 \begin{subfigure} {0.2\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
 		 \caption{}
 		 \label{fig:dragon_color}
 	 \end{subfigure}
-	 	 \begin{subfigure}{0.3\linewidth} \centering  
+	 	 \begin{subfigure}{0.25\linewidth} \centering  
 		 \includegraphics[width=1.0\textwidth]{img/dragon_closeup.png} 
 		 \caption{}
 		 \label{fig:dragon_closeup}
 	 \end{subfigure} 
-	  \begin{subfigure}{0.35\linewidth} \centering
-\includegraphics[width=1.0\textwidth]{img/timing_data.pdf}
-		 \caption{}
-		 \label{fig:timing}
+ 	  \begin{subfigure}{0.35\linewidth} \centering
+% \includegraphics[width=1.0\textwidth]{img/timing_data.pdf}
+% 		 \caption{}
+% 		 \label{fig:timing}
+			\begin{tabular} { | l | l | l | r | r |}
+			\hline
+			Method       & Color & Carving & Desktop& Tablet\\
+			\hline 
+			Raycast & No& No&$\mathbf{14 \pm 02}$ & $\mathbf{62 \pm 13}$ \\ \hline
+			Raycast & Yes & No& $\mathbf{20 \pm 05}$ & $\mathbf{80 \pm 16}$ \\ \hline
+			Raycast & No & Yes & $53 \pm  10$ & $184 \pm 40$ \\ \hline
+			Raycast & Yes & Yes &$58 \pm 16$  & $200 \pm 37$\\ \hline \hline
+			Project & No & No & $33 \pm 05$ & $106 \pm 22$ \\ \hline
+			Project & Yes & No & $39 \pm 05$  & $125 \pm 23$ \\ \hline
+			Project  & No & Yes & $\mathbf{34 \pm 04}$  & $\mathbf{116 \pm 19}$ \\ \hline
+			Project & Yes & Yes  & $\mathbf{40 \pm 05}$ & $\mathbf{128 \pm 24}$ \\ \hline
+			\end{tabular}
+			\caption{}
+			\label{table:timing}
 	 \end{subfigure} 
 	 \caption{\figref{fig:overhead_night} shows an overhead view of
 	 an outdoor scene captured at night with the yellowstone device at a
@@ -986,9 +1001,13 @@ using depth data, and can result in mis-alignment of depth scans.
 	 counter-clockwise from the top left: color image, projection mapping without
 	 space carving, projection mapping with space carving, and raycasting without
 	 space carving. During the scan, the user was looking mostly toward the
-	 ceiling, at the colorful dragon. \figref{fig:timing} shows
-      scan insertion times for each of the methods as recorded on a desktop
-      computer.}
+	 ceiling, at the colorful dragon. Table \ref{table:timing} shows timing data
+	 for different scan insertion methods is shown for the ``Room'' dataset (\figref{fig:apartment_color}) in milliseconds. Raycasting
+			(Alg. \ref{alg:TSDF}) is compared with Projection Mapping (Alg.
+			\ref{alg:projection_mapping}) on both a desktop machine and a \textit{Tango}
+			tablet. Results are shown with and without space carving (Sec.
+			\ref{section:carving}) and colorization (Sec. \ref{section:color}).The fastest
+			method in each category is shown in bold.}
 	 \label{fig:device_data}
  \end{figure*} 
 
