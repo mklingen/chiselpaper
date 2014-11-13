@@ -29,7 +29,13 @@
 \newcommand{\sref}[1]{Section~\ref{#1}}
 % Figure
 \newcommand{\figref}[1]{Fig.\ref{#1}}
+% Table
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+% Algorithm
+\newcommand{\algoref}[1]{Alg.\ref{#1}}
 
+
+\newcommand{\naive}{na\"{\i}ve}
 
 
 % Include other packages here, before hyperref.
@@ -84,12 +90,12 @@ using Spatially Hashed Truncated Signed Distance Fields}
 %\thispagestyle{empty}
 \begin{figure*}
   \centering
-    	 \begin{subfigure}{0.39\linewidth} \centering
+    	 \begin{subfigure}{0.5\linewidth} \centering
 		 \includegraphics[width=1\textwidth]{img/mapdevice}
 		 \caption{}
 		 \label{fig:map_device}
 	 \end{subfigure}
-      	 \begin{subfigure}{0.39\linewidth} \centering
+      	 \begin{subfigure}{0.35\linewidth} \centering
 		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
 		 \caption{}
 		 \label{fig:apartment_color}
@@ -162,8 +168,7 @@ depth sensors to mobile devices, opening up the exciting potential for
 real-time 3D reconstruction using a wireless, handheld device. In particular,
 the devices we use in this work, Google's \textit{Project Tango} \cite{Tango}
 phone and tablet use a small active infrared projection depth  sensor combined
-with high-performance IMUs and a wide field of view camera (Sec.
-\ref{section:hardware}) Other devices, such as the Occiptal Inc.
+with high-performance IMUs and a wide field of view camera (\sref{section:hardware}) Other devices, such as the Occiptal Inc.
 \textit{Structure Sensor} \cite{StructureSensor} have similar capabilities.  How
 can we do real-time 3D reconstruction on these devices?
 
@@ -190,18 +195,18 @@ distance field (TSDF) \cite{Curless1996} of the scene. The TSDF stores a
 voxelized estimate of the distance to the nearest surface in the scene, up to a
 fixed distance. While allowing for very high quality reconstructions, the TSDF
 is very memory intensive. The size of the TSDF needed to reconstruct an entire
-house may be on the order of several gigabytes  (Sec. \ref{section:memory}), and
+house may be on the order of several gigabytes  (\sref{section:memory}), and
 rendering the resulting reconstruction in real-time would overwhelm the graphics
-capabilities of the mobile device \textbf{(TODO: Justify this)}. Previous works
-\cite{Whelan2013, WhelanLoopClose} have extended the TSDF to larger scenes by
-storing a \textit{moving} voxelization and throwing away data incrementally --
-but we are interested in preserving the volumetric data for later use.
+capabilities of the mobile device. Previous works \cite{Whelan2013,
+WhelanLoopClose} have extended the TSDF to larger scenes by storing a
+\textit{moving} voxelization and throwing away data incrementally -- but we are
+interested in preserving the volumetric data for later use.
 
 We note in this work that most ( $\sim 93\%$) of the space in a typical scene
-is in fact empty (Table \ref{table:volumecount}). Iterating over empty space
+is in fact empty (\tabref{table:volumecount}). Iterating over empty space
 for the puposes of reconstruction and rendering wastes computation time; and storing it
 wastes memory. Noting this fact, we introduce a novel data structure, the
-Dynamic Spatially Hashed \cite{SpatialHashing} TSDF (Sec. \ref{section:spatialhash}),
+Dynamic Spatially Hashed \cite{SpatialHashing} TSDF (\sref{section:spatialhash}),
 which stores the distance field data as a two-level structure in which static
 3D \textit{chunks} of voxels are dynamically allocated according to the
 presence of surfaces in the scene.Because the data structure has
@@ -211,20 +216,20 @@ minimize the amount of time we spend on each depth scan and keep the
 reconstruction running in real-time on the device.
 
 For localization, we use a mix of  visual-intertial odometry \cite{VINS} and
-sparse keypoint-based mapping \cite{FastSlam} as a black box (Sec.
-\ref{section:pose}). These approaches use only the 2D wide-angle camera and the
-IMU, and take in no information from the depth sensor. As a consequence, our
-approach is \textit{open-loop} in the sense that it does not attempt to explicitly estimate the pose of the sensor
-from the 3D reconstruction. In spite of this limitation, we found that
-using only open-loop visual odometry was sufficient to create high quality,
-house-scale reconstructions (\figref{fig:overhead_night}).
+sparse keypoint-based mapping \cite{FastSlam} as a black box
+(\sref{section:pose}). These approaches use only the 2D wide-angle camera and
+the IMU, and take in no information from the depth sensor. As a consequence,
+our approach is \textit{open-loop} in the sense that it does not attempt to
+explicitly estimate the pose of the sensor from the 3D reconstruction. In spite
+of this limitation, we found that using only open-loop visual odometry was
+sufficient to create high quality, house-scale reconstructions
+(\figref{fig:overhead_night}).
 
  We provide qualitative and  quantitative results on publicly available RGB-D
  datasets \cite{FREIBURG}, and on datasets collected in real-time from two
- devices (Sec. \ref{section:experiments}). We compare different approaches for
- creating (Sec. \ref{section:scan_compare}) and storing (Sec.
- \ref{section:memory}) theTSDF in terms of memory efficiency, speed, and
- reconstruction quality.
+ devices (\sref{section:experiments}). We compare different approaches for
+ creating (\sref{section:scan_compare}) and storing (\sref{section:memory}) the
+ TSDF in terms of memory efficiency, speed, and reconstruction quality.
 
 \section{Related Work}
 % \begin{itemize}
@@ -261,7 +266,7 @@ Mapping paradigms generally fall into one of two categories:
 landmark-based (or \emph{sparse}) mapping, and high-resolution \emph{dense}
 mapping \cite{FastSlam} . The distinction between the two is that sparse mapping
 generates a metrically consistent map of landmarks based on key features in the
-environment, while dense mapping globally registeredters all sensor data into a
+environment, while dense mapping globally registers all sensor data into a
 high-resolution data structure. In this work, we are concerned primarily with
 dense mapping, which is essential for high quality 3D reconstruction.
 
@@ -283,10 +288,10 @@ by means of monocular stereo computation and keypoint tracking.
 
 One of the simplest means of dense 3D mapping is to  store multiple registered
 point clouds of the scene. While simple, point clouds fail to capture local
-scene structure, are highly redundant, and noisy. Additionally, point clouds
-fail to capture \emph{negative} information about the scene :  \ie, determining
-which parts of the scene are empty. This information is crucial in situations
-where the sensor is noisy, or has large patches of missing data \cite{Klingensmith2014}.
+scene structure, are highly redundant, noisy, and fail to capture
+\emph{negative} information about the scene :  \ie, about which parts of
+the scene are empty. This information is crucial in situations where the sensor
+is noisy, or has large patches of missing data \cite{Klingensmith2014}.
 
 Elfes \cite{Elfes1989} introduced the concept of \emph{Occupancy Grid
 Mapping}, which divides the world into a grid of voxels, each of which contains
@@ -345,7 +350,7 @@ areas far away from the sensor.
 \subsection{Preliminaries}
 \label{section:prelim}
 Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
-sensor origin to the scene. At each timstep $t$ we have a set of rays
+sensor origin to the scene. At each timestep $t$ we have a set of rays
 $Z_t$ (\figref{fig:raycast_diagram}). Call the origin of the ray $o$, and the
 endpoint of the ray $\mathbf{x}$. 
 The length of the ray is given by $z = \|\mathbf{o}
@@ -473,8 +478,8 @@ point.
 % \end{equation}
 % 
 % \noindent where $\mathbf{\hat{n}_x}$ is the local surface normal around
-% $\mathbf{x}$. In general, the planar approximation (Eqn. \ref{eq:planar_tsdf})
-% is much better than the pointwise approximation (Eqn. \ref{eq:pointwise_tsdf}),
+% $\mathbf{x}$. In general, the planar approximation (\eref{eq:planar_tsdf})
+% is much better than the pointwise approximation (\eref{eq:pointwise_tsdf}),
 % especially when surfaces are nearly parallel to the sensor -- but computing surface normals is not
 % always computationally feasible. In our work, we have chosen to use
 % the simpler pointwise approximation.
@@ -501,7 +506,8 @@ point.
       probability $P\left(z - d < u\right)$, vs. $u$, where $z$ is the
       measurement from the sensor, and $d$ is the true distance from the sensor
       to the surface. The hit integration region is inside $[-\tau, \tau]$,
-      wheras regions closer to the camera than  $\tau + \epsilon$ are in the space carving region (Section \ref{section:carving}). }
+      whereas regions closer to the camera than  $\tau + \epsilon$ are in the
+      space carving region (\sref{section:carving}). }
 \end{figure*} 
 % 
 % This observation leads to the Truncated Signed Distance Field (TSDF)
@@ -554,11 +560,11 @@ point.
 \end{algorithm}
 
 The algorithm for updating the TSDF given a depth scan used in
-\cite{Curless1996, Newcombe, Whelan2013, Bylow2013} is outlined in Algorithm
-\ref{alg:TSDF}. For each voxel in the scene, we store a signed distance value,
-and a weight $W : \mathbf{R}^3 \to \mathbf{R^{+}}$ representing the confidence
+\cite{Curless1996, Newcombe, Whelan2013, Bylow2013} is outlined in
+\algoref{alg:TSDF}. For each voxel in the scene, we store a signed distance
+value, and a weight $W : \mathbf{R}^3 \to \mathbf{R^{+}}$ representing the confidence
 in the distance measurement. By taking a weighted running average of the
-distance measurments over time, we minimize 
+distance measurements over time, we minimize 
 
 We initialize the TSDF to an undefined value with a
 weight of $0$, then for each depth scan, we update the weight and TSDF value
@@ -574,7 +580,7 @@ is updated according to the scale-invariant weighting function $\alpha_{\tau}(u)
  distance does not change the speed at which the TSDF converges.  
 
  It is possible \cite{Nguyen2012} to directly compute the weighting function
- $\alpha_{\tau}$ from the hit probability (Eqn. \ref{eqn:hitprobability}) of the
+ $\alpha_{\tau}$ from the hit probability \eref{eqn:hitprobability} of the
  sensor; but in favor of better performance, linear, exponential, and constant
  approximations of $\alpha_{\tau}$ can be used \cite{Curless1996, Newcombe,
  Whelan2013, Bylow2013}.
@@ -586,7 +592,7 @@ This results in poorer surface reconstruction quality in areas of high noise
 than methods which more closely approximate the hit probability of the sensor.
 
 Generally, either the weight $\alpha_{\tau}$ \cite{Newcombe, Whelan2013}, or
-the distance update of the ray (Alg. \ref{alg:TSDF} line
+the distance update of the ray (\algoref{alg:TSDF} line
 \ref{alg:line:tsdf_update}) \cite{Curless1996, Bylow2013} ought to be scaled by
 the dot product of the local surface normal (computed by differentiating the
 depth image) and the direction of the ray to improve reconstruction of surfaces
@@ -635,14 +641,14 @@ of simplicity, at the expense of color consistency with changes in illumination.
 \subsection{Dynamic Truncation Distance}
 \label{section:dynamic_trunc}
 Following the approach of Nguyen \etal\cite{Nguyen2012}, we use a dynamic
-trunction distance based on the noise model of the sensor rather than a fixed
+truncation distance based on the noise model of the sensor rather than a fixed
 truncation distance to better use noisy data far from the sensor. The truncation
 distance is given as a function of depth:
 
 \begin{equation} \mathcal{T} (z) = \beta\sigma_{z} \end{equation}
 
 \noindent where $\sigma_{z}$ is the standard deviation of the noise for a depth
-reading of $z$ (eqn. \ref{eqn:hitprobability}), and $\beta$ is a scaling
+reading of $z$ \eref{eqn:hitprobability}, and $\beta$ is a scaling
 parameter which represents the number of standard deviations of the noise we
 want to integrate over. Algorithm \ref{alg:TSDF}, line
 \ref{alg:line:dynamic_tsdf} shows how this is used.
@@ -660,7 +666,7 @@ data (that is, information about what parts of the space do not contain an
 obstacle) increases over positive data \cite{Klingensmith2014}. Rays can be
 viewed as \textit{constraints} on possible values of the distance field. Rays
 passing through empty space constrain possible values of the signed distance
-field to be positive at all points along the ray, wheras rays hitting objects 
+field to be positive at all points along the ray, whereas rays hitting objects 
 only inform us about the presence of a surface very near the endpoint of the ray.
 
 For this reason, we augment our TSDF algorithm with a \textit{space carving}
@@ -701,10 +707,10 @@ prematurely extracted isosurfaces from a moving TSDF volume to save memory
 Octrees, while maximally memory efficient, have significant drawbacks when it comes to
 accessing and iterating over the volumetric data. Every time an octree is
 queried,  a logarithmic $\mathcal{O}(M)$ cost is incurred, where $M$ is the depth of the
-Octree. In contrast, queries in a flat array are $\mathcal{O}(1)$.  If implemented na\"{\i}vely, an
-octree will store pointers to child octants in each parent octant. The octants
-themselves may be dynamically allocated on the heap. Each traversal through the
-tree requires $\mathcal{O}(M)$ heap pointer dereferences in the worst case.
+Octree. In contrast, queries in a flat array are $\mathcal{O}(1)$. An octree
+stores pointers to child octants in each parent octant. The octants themselves
+may be dynamically allocated on the heap. Each traversal through the tree
+requires $\mathcal{O}(M)$ heap pointer dereferences in the worst case.
 Even worse, adjacent voxels may not be adjacent in memory, resulting in very
 poor caching performance \cite{CacheStructures}. 
 
@@ -764,20 +770,20 @@ poor caching performance \cite{CacheStructures}.
 	  \end{subfigure}
    \end{minipage}
   \caption{ We compare our spatial hashing (SH)
-      approach to a na\"{\i}ve algorithm which simply allocates a single
+      approach to a \naive algorithm which simply allocates a single
       block of volume memory for the entire space needed (FG)
       (\figref{fig:memory_data}). Memory is recorded for voxels of 3cm
       resolution, using both surface and color data. Chunks are of $16 \times 16 \times 16$ voxels. Memory
       usage statistics for the Freiburg \cite{FREIBURG} office dataset are shown
       in (\figref{fig:memory_data2}), varying the size of the depth frustum.
       Extending the depth frustum to 5 meters (\figref{fig:freiburg_5m}) results in a reconstructin of the entire
-      room, wheras limiting the depth frustum to 2 meters
+      room, whereas limiting the depth frustum to 2 meters
       (\figref{fig:freiburg_2m}) limits the reconstruction to the desk scene.
       \figref{fig:frustum_cull} shows all the TSDF chunks which intersect the
       depth camera frustum  and are within $\tau$ of a hit as green cubes. Only
       these chunks are updated when new data is received.In \figref{fig:chunks}, chunks of voxels (grey) are allocated near
   the surface (blue) of the scene. Chunks are spatially hashed \cite{SpatialHashing} into a
-      dynamic hash map. Table \ref{table:volumecount} shows voxel statistics for
+      dynamic hash map. \tabref{table:volumecount} shows voxel statistics for
       the Freiburg 5m (\figref{fig:freiburg_5m}) dataset. Culled voxels are not stored in
        memory. Unknown voxels have a weight of 0. Inside and Outside voxels have
       a weight $> 0$ and an SDF than is $\leq 0$ and $> 0$ respectively. }
@@ -790,7 +796,7 @@ level we have \emph{chunks} of voxels (\figref{fig:chunks}). Each chunk consists
 fixed grid of ${N_v}^3$ voxels, which are stored in a flat 3D array. Chunks are
 allocated dynamically from a growing pool of heap memory as data is added, and
 are indexed in a spatial 3D hash map \cite{SpatialHashing} by their spatial
-coordinates. Following Teschner \emph{et. al} \cite{SpatialHashing}, we use the
+coordinates. Following Teschner \etal \cite{SpatialHashing}, we use the
 hashing function:
 
 \begin{equation}
@@ -835,17 +841,17 @@ performance.
 
 \subsection{Depth Scan Integration}
 \label{section:scan_integration}
-To perform the process described in Alg. \ref{alg:TSDF}, it is necessary
+To perform the process described in \algoref{alg:TSDF}, it is necessary
 to consider each ray in each depth scan and upate each voxel
 along the ray according to its distance to an observed surface. The most
 straightfoward way of doing this is to simply iterate over each ray, and then
 use a fast rasterization algorithm \cite{RayTracing} to determine which voxels
 intersect with the ray. We will call this the Raycasting approach.
-However, has aperformance bound by $\mathcal{O}(N_{\text{ray}} \times
+However, has performance bound by $\mathcal{O}(N_{\text{ray}} \times
 l_{\text{ray}})$, where $N_{\text{ray}}$ is the number of rays in a scan, and $l_{\text{ray}}$  is 
 proportional to the length of a ray being integrated. If we use a fixed-size
 truncation distance and do not perform space carving, $l_{\text{ray}} = \tau$.
-However, with space-carving (sec. \ref{section:carving}), the length of a ray
+However, with space-carving (\sref{section:carving}), the length of a ray
 being integrated is potentially unbounded.
 
 A useful approximation of raycasting is \textit{projection mapping}. Used in
@@ -853,8 +859,8 @@ A useful approximation of raycasting is \textit{projection mapping}. Used in
 works by projecting points in the voxel grid onto the depth image and comparing the depth value
 there with the geometric distance from the center of the voxel to the camera
 plane, and using that to approximate the distance along the ray from the camera
-to the voxel. Algorithm \ref{alg:projection_mapping} Describes projection mapping. Instead of
-iterating over each ray, projection mapping iterates over each voxel. By projecting the voxel's center
+to the voxel. \algoref{alg:projection_mapping} Describes projection mapping.
+Instead of iterating over each ray, projection mapping iterates over each voxel. By projecting the voxel's center
 onto the depth image, we can compare the actual depth reading to the distance
 from the voxel's center to the camera origin as an approximation of the
 distance to the surface, $u$. 
@@ -891,7 +897,7 @@ over time, and depending on the resolution of the TSDF, may be significantly
 less than the number of points. However, projection mapping suffers from resolution-dependant aliasing errors,
 because the length of the ray taken from projection mapping may differ from the
 true depth of the ray by up to the length of the diagonal of the voxel.  
-Section \ref{section:scan_compare} compares the performance and quality of
+\sref{section:scan_compare} compares the performance and quality of
 these methods.
 
 
@@ -1031,22 +1037,21 @@ using depth data, and can result in mis-alignment of depth scans.
 	 \caption{\figref{fig:overhead_night} shows an overhead view of
 	 an outdoor scene captured at night with the yellowstone device at a
 	 resolution of 3 cm. The yellow pyramid represents the depth camera frustum. The white
-	 lines are the aggregate trajectory of the device. Figures \ref{fig:night2}
-	 and \ref{fig:night3} show closeups of the scene taken live from the device.
-	 The scene was captured using projection mapping (Sec.
-	 \ref{section:scan_integration}), without space
-	 carving (Sec. \ref{section:carving}). Different depth scan integration techniques are compared. Fig.
-	 \ref{fig:dragon_color} shows the color image for reference.  Fig.
-	 \ref{fig:dragon_closeup} is a closeup of a lantern in the scene; 
+	 lines are the aggregate trajectory of the device. Figures \figref{fig:night2}
+	 and \figref{fig:night3} show closeups of the scene taken live from the device.
+	 The scene was captured using projection mapping
+	 (\sref{section:scan_integration}), without space carving 
+	 (\sref{section:carving}). Different depth scan integration techniques are
+	compared. \figref{fig:dragon_color} shows the color image for reference. 
+	\figref{fig:dragon_closeup} is a closeup of a lantern in the scene; 
 	 counter-clockwise from the top left: color image, projection mapping without
 	 space carving, projection mapping with space carving, and raycasting without
 	 space carving. During the scan, the user was looking mostly toward the
-	 ceiling, at the colorful dragon. Table \ref{table:timing} shows timing data
+	 ceiling, at the colorful dragon. \tabref{table:timing} shows timing data
 	 for different scan insertion methods is shown for the ``Room'' dataset (\figref{fig:apartment_color}) in milliseconds. Raycasting
-			(Alg. \ref{alg:TSDF}) is compared with Projection Mapping (Alg.
-			\ref{alg:projection_mapping}) on both a desktop machine and a \textit{Tango}
-			tablet. Results are shown with and without space carving (Sec.
-			\ref{section:carving}) and colorization (Sec. \ref{section:color}).The fastest
+			(\algoref{alg:TSDF}) is compared with Projection Mapping 
+			(\algoref{alg:projection_mapping}) on both a desktop machine and a
+			\textit{Tango} tablet. Results are shown with and without space carving (\sref{section:carving}) and colorization (\sref{section:color}).The fastest
 			method in each category is shown in bold.}
 	 \label{fig:device_data}
  \end{figure*} 
@@ -1091,7 +1096,7 @@ which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
 %  can be distorted by as much as 30 centimeters. Depth distortion on the
 %  Yellowstone device is comparably negligible.  To get an accurate
 %  reconstruction of the world, it is critical to correct for this distortion.
-%  This is done by inverting the distortion model (Eqn. \ref{eqn:distort}) to
+%  This is done by inverting the distortion model (\eref{eqn:distort}) to
 %  estimate the true depth $z$ from the distorted reading $D$.
 %   
 %  \begin{figure} \centering
@@ -1132,7 +1137,7 @@ resolution as small as 2cm in real-time using only visual-intertial odometry for
 pose estimation. \figref{fig:map_device} shows a map of an office building floor
 being reconstructed in real-time using the phone device. This scenario is also
 shown in an attached video. Using the tablet device, we have reconstructed
-(nightime) outdoor scenes in real-time (\figref{fig:overhead_night}).
+(night time) outdoor scenes in real-time (\figref{fig:overhead_night}).
 
 In the course of online mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
@@ -1142,9 +1147,9 @@ paused. After mapping is complete, the user can save the map to disk.
 \subsection{Comparing Depth Scan Integration Algorithms} 
 \label{section:scan_compare}
 We implemented both the raycasting and voxel projection modes of depth scan
-integration (Sec. \ref{section:scan_integration}), and compared them in terms of
+integration (\sref{section:scan_integration}), and compared them in terms of
 speed and quality. We found that projection mapping was far more efficient than
-raycasting when space carving was used (Table \ref{table:timing}). However,
+raycasting when space carving was used (\tabref{table:timing}). However,
 projection mapping results undesirable aliasing artifacts; especially on
 surfaces nearly parallel with the camera's visual axis. Additionally, color consistency suffers
 with projection carving, because rather than color being averaged by all the
@@ -1157,12 +1162,12 @@ using our approach.
 \subsection{Memory Usage}
 \label{section:memory}
 We additionally compared memory usage statistics of our chunked approach to a
-na\"{\i}ve approach which allocates a single block of memory to tightly fit the
+\naive approach which allocates a single block of memory to tightly fit the
 entire volume explored (\figref{fig:memory_data}). As the size of the space
 explored increases, our approach uses about a tenth as much memory as the
-na\"{\i}ve approach. This is because the majority of the space explored contains no
-surfaces. Notice that in \figref{fig:memory_data}, the na\"{\i}ve approach uses
-nearly 300MB of RAM wheras our approach never allocates more than 47MB of RAM
+\naive approach. This is because the majority of the space explored contains no
+surfaces. Notice that in \figref{fig:memory_data}, the \naive approach uses
+nearly 300MB of RAM whereas our approach never allocates more than 47MB of RAM
 for the entire scene, which is a 15 meter long hallway.
 
 We tested our approach on the publicly available Freiburg RGB-D dataset
@@ -1171,16 +1176,16 @@ capture system (\figref{fig:freiburg_2m}). In the Freiburg office dataset, a
 \textit{Kinect} sensor makes a loop around a central desk scene. The room is
 roughly 12 by 12 meters in area.  Memory usage statistics (Fig.
 \ref{fig:memory_data2}) reveal that when all of the depth data is used
-(including very far away data from the surrounding walls), a na\"{\i}ve fixed grid
-approach would use nearly 2GB of memory at a 2cm resolution, wheras our
+(including very far away data from the surrounding walls), a \naive fixed grid
+approach would use nearly 2GB of memory at a 2cm resolution, whereas our
 approach uses only around 700MB. When the depth frustum is cut off at 2 meters
 (mapping only the desk structure without the surrounding room), our approach
-uses only 50MB of memory, wheras the na\"{\i}ve approach would use nearly 300MB.
+uses only 50MB of memory, whereas the \naive approach would use nearly 300MB.
 
 Measuring the amount of space in the bounding box that is culled, stored in
 chunks as unknown, and stored as known, we found that the vast majority (77\%)
 of space is culled, and of the space that is actually stored in chunks, 67.6\%
-is unknown (Table \ref{table:volumecount}).
+is unknown (\tabref{table:volumecount}).
 
 % \begin{table}
 % \footnotesize
@@ -1300,7 +1305,7 @@ yet to see whether our approach can be combined with GPU solutions to deliver
 large-scale, very high resolution reconstructions.One of the biggest
 bottlenecks in volumetric integration algorithms is the overhead associated
 with transferring data to the GPU. Because of this, all other TSDF-based
-approaches (\cite{Newcombe, Whelan2013, Bylow2013, Nguyen2012}) keep only a
+approaches \cite{Newcombe, Whelan2013, Bylow2013, Nguyen2012} keep only a
 fixed amount of memory for the TSDF allocated on the GPU. A fruitful avenue of
 future research would be in implementing the dynamic spatial hash map on the GPU
 in an efficient way. That would allow even larger, or potentially higher
