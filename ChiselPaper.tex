@@ -344,8 +344,9 @@ do not prematurely throw away distance field data by converting it into a
 mesh -- instead, we turn small areas of the scene into meshes for the purpose
 of rendering, while \textit{preserving} the underlying distance field data. By
 carefully considering what parts of the space should be turned into distance
-fields at each timestep, we avoid needless computation and memory allocation in
-areas far away from the sensor. 
+fields at each timestep, we avoid needless computation
+(\tabref{table:meshingtimes}}) and memory allocation (\figref{fig:memory_data}) 
+in areas far away from the sensor.
 
 \section{Approach} 
 \subsection{Preliminaries}
@@ -1158,6 +1159,22 @@ especially around the silhouettes of objects (\figref{fig:dragon_closeup}). We
 note that using both space carving \emph{and} raycasting is not fast enough for real-time mapping on the device
 using our approach.
 
+\begin{table}
+\footnotesize
+\hfill
+\centering
+\begin{tabular} {| l | r | r |}
+\hline
+TSDF Method & Meshing Time & Update Time\\ \hline
+$256^3$ Fixed Grid                      & $2067 \pm 679$ & $3769 \pm 1279 $  \\
+\hline $16^3$ Spatial Hashing & $102 \pm 25$ &  $128 \pm 24$\\ \hline
+\end{tabular}
+\caption{The time taken per frame in milliseconds to generate meshes
+(\sref{section:render}), and update the TSDF using colorization, space carving, and projection mapping
+are shown for the ``Room'' (\figref{fig:apartment_color}) dataset.}
+\label{table:meshingtimes}
+\end{table}
+
 \subsection{Memory Usage}
 \label{section:memory}
 We additionally compared memory usage statistics of our chunked approach to a
@@ -1179,7 +1196,10 @@ roughly 12 by 12 meters in area.  Memory usage statistics (Fig.
 approach would use nearly 2GB of memory at a 2cm resolution, whereas our
 approach uses only around 700MB. When the depth frustum is cut off at 2 meters
 (mapping only the desk structure without the surrounding room), our approach
-uses only 50MB of memory, whereas the \naive approach would use nearly 300MB.
+uses only 50MB of memory, whereas the \naive approach would use nearly 300MB. We
+also found that running marching cubes on a fixed grid rather than
+incrementally on spatially hashed chunks (\sref{section:render}) to be
+prohibitively slow (\tabref{table:meshingtimes}).
 
 Measuring the amount of space in the bounding box that is culled, stored in
 chunks as unknown, and stored as known, we found that the vast majority (77\%)
@@ -1248,7 +1268,7 @@ is unknown (\tabref{table:volumecount}).
 % 	 \begin{subfigure}{0.49\columnwidth} \centering
 % 		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
 % 		 \caption{}
-% 		 \label{fig:apartment_color}
+% 		 \label{fig:apartment_color} 
 % 	 \end{subfigure}
 % 	 \begin{subfigure} {0.49\columnwidth} \centering
 % 		 \includegraphics[width=1\textwidth]{img/apartment_scene_topdown_nocolor.png}
@@ -1291,7 +1311,7 @@ Our approach is able to create and render large-scale 3D reconstructions of
 scenes in real-time using only the limited computational resources of a
 \textit{Tango} device. We accomplish this without any GPU computing, and use
 only the fixed function pipeline to render the scene. We do this out of
-necessity to meet the computing requirements of a mobile device.
+necessity to meet the computing requirements of a mobile device. 
 
 However, the optimizations we have made are equally applicable to other
 settings beyond mobile devices. By using a dynamic spatial hash map to store
@@ -1306,11 +1326,11 @@ future research would be in implementing the dynamic spatial hash map on the GPU
 in an efficient way. That would allow even larger, or potentially higher
 resolution reconstructions.
 
-Another area of potential research is in loop closure and relocalization.
-Whelan \etal\cite{WhelanLoopClose} introduced a means of warping the mesh output
-by \textit{Kintinuous} consistently with global pose updates involving loop
-closures. But the 3D volumetric data from the TSDF is lost in this process. Is
-it possible to warp the TSDF data directly?
+% Another area of potential research is in loop closure and relocalization.
+% Whelan \etal\cite{WhelanLoopClose} introduced a means of warping the mesh output
+% by \textit{Kintinuous} consistently with global pose updates involving loop
+% closures. But the 3D volumetric data from the TSDF is lost in this process. Is
+% it possible to warp the TSDF data directly?
 
 % Finally, there is the question of applications. What can be done with a
 % real-time dense 3D reconstruction on a mobile device? Applications ranging from
