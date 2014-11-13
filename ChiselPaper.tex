@@ -52,6 +52,7 @@
 
 % Pages are numbered in submission mode, and unnumbered in camera-ready
 \ifcvprfinal\pagestyle{empty}\fi
+
 \begin{document}  
 
 %%%%%%%%% TITLE
@@ -569,15 +570,17 @@ distance measurements over time, we minimize
 We initialize the TSDF to an undefined value with a
 weight of $0$, then for each depth scan, we update the weight and TSDF value
 for all points along each ray within the truncation distance $\tau$. The weight
-is updated according to the scale-invariant weighting function $\alpha_{\tau}(u) :
-[-\tau,\tau]\to \mathbf{R^{+}} $ for which the following holds:
+is updated according to the scale-invariant weighting function $\alpha_{\tau}(u)
+:[-\tau,\tau]\to \mathbf{R^{+}} $.
 
-\begin{equation}
-	\forall \tau, \int_{-\tau}^{\tau} \alpha_{\tau}(u) du = K 
-\end{equation}
- 
- \noindent and $K$ is a constant. This is to ensure that changing the truncation
- distance does not change the speed at which the TSDF converges.  
+%  for which the following holds:
+% 
+% \begin{equation}
+% 	\forall \tau, \int_{-\tau}^{\tau} \alpha_{\tau}(u) du = K 
+% \end{equation}
+%  
+%  \noindent and $K$ is a constant. This is to ensure that changing the truncation
+%  distance does not change the speed at which the TSDF converges.  
 
  It is possible \cite{Nguyen2012} to directly compute the weighting function
  $\alpha_{\tau}$ from the hit probability \eref{eqn:hitprobability} of the
@@ -688,11 +691,8 @@ integer. The first 16 bits are a fixed-point signed distance value, and the
 last 16 bits  are an unsigned integer weighting value. Color is similarly
 stored as a 32 bit integer, with 8 bits per color channel, and an 8 bit weight.
 A similar method is used in \cite{Newcombe, Whelan2013, Bylow2013} to store the
-TSDF.
-
-Unfortunately, a flat volumetric representation of the world using voxels is
-incredibly memory intensive. The amount of memory storage required grows as
-$\mathcal{O}(N^3)$, where $N$ is the number of voxels per side of the 3D voxel
+TSDF. Unfortunately, the amount of memory storage required for a fixed grid
+grows as $\mathcal{O}(N^3)$, where $N$ is the number of voxels per side of the 3D voxel
 array. 
 
 % For example, at a resolution of $3\text{cm}$,  a $30\text{m}$ TSDF cube
@@ -865,6 +865,15 @@ onto the depth image, we can compare the actual depth reading to the distance
 from the voxel's center to the camera origin as an approximation of the
 distance to the surface, $u$. 
 
+Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
+the number of voxels affected by a depth scan. This value is nearly constant
+over time, and depending on the resolution of the TSDF, may be significantly
+less than the number of points. However, projection mapping suffers from resolution-dependant aliasing errors,
+because the length of the ray taken from projection mapping may differ from the
+true depth of the ray by up to the length of the diagonal of the voxel.  
+\sref{section:scan_compare} compares the performance and quality of
+these methods.
+
 \begin{algorithm} 
 	\caption{Projection Mapping}
 	\label{alg:projection_mapping}
@@ -890,32 +899,23 @@ distance to the surface, $u$.
 	\EndFor
 	\end{algorithmic}
 \end{algorithm}
-
-Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
-the number of voxels affected by a depth scan. This value is nearly constant
-over time, and depending on the resolution of the TSDF, may be significantly
-less than the number of points. However, projection mapping suffers from resolution-dependant aliasing errors,
-because the length of the ray taken from projection mapping may differ from the
-true depth of the ray by up to the length of the diagonal of the voxel.  
-\sref{section:scan_compare} compares the performance and quality of
-these methods.
-
-
 \subsection{Rendering}
 \label{section:render}
-\textit{Kinect Fusion} \cite{Newcombe}, renders the TSDF by real-time
-raytracing on the GPU. Raytracing has the advantage of being a pixel-perfect
-representation of the surface, and performance scales only with the resolution
-of the rendering rather than with the size of the space. However, real-time
-raytracting requires intensive GPU computation that we simply do not have on
-the mobile device. For that reason, it is necessary to develop a real-time
-rendering solution that is amenable to the limited graphics capabilities of mobile devices.
+% \textit{Kinect Fusion} \cite{Newcombe}, renders the TSDF by real-time
+% raytracing on the GPU. Raytracing has the advantage of being a pixel-perfect
+% representation of the surface, and performance scales only with the resolution
+% of the rendering rather than with the size of the space. However, real-time
+% raytracting requires intensive GPU computation that we simply do not have on
+% the mobile device. For that reason, it is necessary to develop a real-time
+% rendering solution that is amenable to the limited graphics capabilities of mobile devices.
 
 We take inspiration from some work in computer graphics for rendering large
 natural terrains \cite{GPUGEMS3} using incremental Marching Cubes
 \cite{Lorensen1987}. For each chunk, we store a triangle mesh.
 Meshing is done asynchronously with the depth scan integration, and is
-performed lazily. Triangle meshes are generated at the isosurface
+performed lazily. 
+
+Triangle meshes are generated at the isosurface
 $\Phi_{\tau}(\mathbf{x}) = 0$ whenever the chunk has been updated by a depth
 scan since the last time the chunk was rendered. As in \cite{Bylow2013,
 Whelan2013},  colors are computed for each vertex by trilinear interpolation of
@@ -927,14 +927,13 @@ rendered as a colored bounding box.
 
 \subsection{Pose Estimation}
 \label{section:pose}
-We will assume we  have \textit{a priori} black-box pose estimation of
-the sensor from a seperate tracking system. Specifically, in our experiments,
-pose data is estimated from an onboard visual-intertial odometry system that
-fuses data from a wide-angle camera, an intertial measurement unit, and a
-gyroscope at 60 Hz using 2D feature tracking and an Extended Kalman Filter. A
-more detailed discussion of this system can be found in \cite{VINS}. 
-
-Unlike \textit{Kinect Fusion} \cite{Newcombe} and \textit{Kintinuous}
+We will assume we  have \textit{a priori} black-box pose estimation of the
+sensor from a seperate tracking system. Specifically, in our experiments, pose
+data is estimated from an onboard visual-intertial odometry system that fuses
+data from a wide-angle camera, an intertial measurement unit, and a gyroscope at
+60 Hz using 2D feature tracking and an Extended Kalman Filter. A more detailed
+discussion of this system can be found in \cite{VINS}.  Unlike
+\textit{Kinect Fusion} \cite{Newcombe} and \textit{Kintinuous}
 \cite{Whelan2013}, our approach makes no attempt to estimate the pose of the
 sensor directly from depth data. Instead, we use depth data only for surface
 reconstruction. Unfortunately, decoupling the pose estimation and surface
@@ -1296,31 +1295,23 @@ necessity to meet the computing requirements of a mobile device.
 
 However, the optimizations we have made are equally applicable to other
 settings beyond mobile devices. By using a dynamic spatial hash map to store
-TSDF data instead of a monolithic array, much larger areas can be
-reconstructed while maintaining all of the distance field data.
+TSDF data instead of a fixed array, much larger areas can be reconstructed while
+maintaining all of the distance field data.
 
 Admittedly, our reconstructions are much lower resolution than state of the art
-mapping techniques, which typically push for sub-centimeter resolution. We have
-yet to see whether our approach can be combined with GPU solutions to deliver
-large-scale, very high resolution reconstructions.One of the biggest
-bottlenecks in volumetric integration algorithms is the overhead associated
-with transferring data to the GPU. Because of this, all other TSDF-based
-approaches \cite{Newcombe, Whelan2013, Bylow2013, Nguyen2012} keep only a
-fixed amount of memory for the TSDF allocated on the GPU. A fruitful avenue of
+TSDF mapping techniques, which typically push for sub-centimeter resolution.
+We have yet to see whether our approach can be combined with GPU solutions to deliver
+large-scale, very high resolution reconstructions. A fruitful avenue of
 future research would be in implementing the dynamic spatial hash map on the GPU
 in an efficient way. That would allow even larger, or potentially higher
 resolution reconstructions.
-% 
-% Another area of potential research is in loop closure and pose estimation. Our
-% approach is purely \textit{open-loop}, taking in pose estimates from visual
-% odometry as \textit{a prioi} ground truth. Reconstruction can probably be
-% improved if dense 3D data is used to inform the pose estimator. More
-% importantly, a means of dealing with global pose estimation using the dense
-% reconstruction is neeeded. Whelan \etal\cite{WhelanLoopClose} introduced a
-% means of warping the mesh output by \textit{Kintinuous} consistently with global
-% pose updates involving loop closures. Can a similar method be used to
-% \textit{directly} warp the TSDF chunk data to take loop closures into account?
-% 
+
+Another area of potential research is in loop closure and relocalization.
+Whelan \etal\cite{WhelanLoopClose} introduced a means of warping the mesh output
+by \textit{Kintinuous} consistently with global pose updates involving loop
+closures. But the 3D volumetric data from the TSDF is lost in this process. Is
+it possible to warp the TSDF data directly?
+
 % Finally, there is the question of applications. What can be done with a
 % real-time dense 3D reconstruction on a mobile device? Applications ranging from
 % robot localization and planning to house-scale modelling and augmented reality
