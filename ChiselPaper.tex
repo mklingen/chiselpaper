@@ -12,6 +12,8 @@
 \usepackage{color}
 \definecolor{light-gray}{gray}{0.4}
  \usepackage[noend]{algpseudocode} 
+ \usepackage[noadjust]{cite}
+  
 
 % list of commenters
 \newcommand{\ssnote}[1]{{\xxnote{SS}{red}{#1}}}
@@ -54,6 +56,7 @@ using Spatially Hashed Truncated Signed Distance Fields}
 
 \newcommand{\fix}{\marginpar{FIX}}
 \newcommand{\new}{\marginpar{NEW}}
+\renewcommand{\citepunct}{,\citepunctpenalty\,}
 
 \algnewcommand{\LineComment}[1]{\State \(\triangleright\)
 \textcolor{light-gray}{\textit{#1}}}
@@ -100,7 +103,7 @@ using Spatially Hashed Truncated Signed Distance Fields}
   reconstructed apartment scene at a resolution of 3cm exported from the
   device.}
   \label{fig:first_figure}
-\end{figure*}
+\end{figure*} 
 
 
 \begin{abstract}
@@ -1352,7 +1355,7 @@ particular, Niessner \etal \cite{NiessnerHashing} produce $4mm$ resolution maps
 of comparable or larger size than our own through the use of commodity GPU
 hardware and a dynamic spatial hash map. Ultimately, as more powerful mobile
 GPUs become available, reconstructions at these resolutions will become
-feasible on mobile devices.
+feasible on mobile devices. 
 
 Another issue is that, since our pose estimation technique is
 \textit{open-loop} with respect to the 3D reconstruction, we fail to correct for
@@ -1381,7 +1384,7 @@ Nerurkar, and Simon Lynen and other ATAP members for their close collaboration
 and support on this project. Thanks to Ryan Hickman for collecting outdoor data.
 
 
-\bibliographystyle{plain}
+\bibliographystyle{IEEEtran}
 % argument is your BibTeX string definitions and bibliography database(s)
 \bibliography{densemapping, ./densemapping} 
 \end{document}
