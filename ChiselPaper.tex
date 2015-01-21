@@ -12,7 +12,7 @@
 \usepackage{color}
 \definecolor{light-gray}{gray}{0.4}
  \usepackage[noend]{algpseudocode} 
- \usepackage[noadjust]{cite}
+ \usepackage{cite}
   
 
 % list of commenters
@@ -41,6 +41,10 @@
 \newcommand{\eg}{\textit{e. g.}}
 \newcommand{\etal}{\textit{et al.}}
 
+\newif\iffinalcopy
+\finalcopyfalse % or
+
+
 % Include other packages here, before hyperref.
 
 % If you comment hyperref and then uncomment it, you should delete
@@ -51,37 +55,40 @@
 \begin{document}
 
 %%%%%%%%% TITLE
-\title{\Large Chisel: Real-time Dense Reconstruction on a Mobile Device \\
-using Spatially Hashed Truncated Signed Distance Fields}
+\title{\Large Real-time Dense 3D Mapping on a Mobile Device \\
+using Spatially Hashed Signed Distance Fields}
 
 \newcommand{\fix}{\marginpar{FIX}}
 \newcommand{\new}{\marginpar{NEW}}
-\renewcommand{\citepunct}{,\citepunctpenalty\,}
 
 \algnewcommand{\LineComment}[1]{\State \(\triangleright\)
 \textcolor{light-gray}{\textit{#1}}}
 
 %\nipsfinalcopy % Uncomment for camera-ready version
 
-\author
-{
-	Matthew Klingensmith \\
-	Carnegie Mellon Robotics Institute\\
-	\texttt{mklingen@andrew.cmu.edu}
-	\and
-	Ivan Dryanovski \\
-	The Graduate Center,\\
-	City University of New York\\
-	\texttt{idryanovski@gc.cuny.edu}
-	\and
-	Sidd Srinivasa \\
-	Carnegie Mellon Robotics Institute\\
-	\texttt{ss5@andrew.cmu.edu}
-	\and
-	Jizhong Xiao \\
-	The City College of New York \\
-	\texttt{jxiao@ccny.cuny.edu}
-} 
+\iffinalcopy
+	\author
+	{
+		Matthew Klingensmith \\
+		Carnegie Mellon Robotics Institute\\
+		\texttt{mklingen@andrew.cmu.edu}
+		\and
+		Ivan Dryanovski \\
+		The Graduate Center,\\
+		City University of New York\\
+		\texttt{idryanovski@gc.cuny.edu}
+		\and
+		Sidd Srinivasa \\
+		Carnegie Mellon Robotics Institute\\
+		\texttt{ss5@andrew.cmu.edu}
+		\and
+		Jizhong Xiao \\
+		The City College of New York \\
+		\texttt{jxiao@ccny.cuny.edu}
+	} 
+\else
+	\author{\Large{Author names omitted for review. Paper Number 32}}
+\fi
 
 \maketitle
 %\thispagestyle{empty}
@@ -1377,11 +1384,13 @@ the mesh output by \textit{Kintinuous} consistently with global pose updates
 % robot localization and planning to house-scale modelling and augmented reality
 % gaming are all possible.
 
-\section*{Acknowledgements}
-This work was done as part of Google's Advanced Technologies and Projects
-division (ATAP) for \emph{Project Tango}. Thanks to Johnny Lee, Joel Hesch, Esha
-Nerurkar, and Simon Lynen and other ATAP members for their close collaboration
-and support on this project. Thanks to Ryan Hickman for collecting outdoor data.
+\iffinalcopy
+	\section*{Acknowledgements}
+	This work was done as part of Google's Advanced Technologies and Projects
+	division (ATAP) for \emph{Project Tango}. Thanks to Johnny Lee, Joel Hesch, Esha
+	Nerurkar, and Simon Lynen and other ATAP members for their close collaboration
+	and support on this project. Thanks to Ryan Hickman for collecting outdoor data.
+\fi
 
 
 \bibliographystyle{IEEEtran}
