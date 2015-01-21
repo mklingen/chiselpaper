@@ -37,9 +37,9 @@
 
 
 \newcommand{\naive}{na\"{\i}ve }
-\newcommand{\ie}{\textit{i. e.}}
-\newcommand{\eg}{\textit{e. g.}}
-\newcommand{\etal}{\textit{et al.}}
+\newcommand{\ie}{\textit{i.e. }}
+\newcommand{\eg}{\textit{e.g. }}
+\newcommand{\etal}{\textit{et al. }}
 
 \newif\iffinalcopy
 \finalcopyfalse % or
@@ -313,10 +313,9 @@ One of the simplest means of dense 3D mapping is to  store multiple registered
 point clouds of the scene. These point-based methods \cite{RusinkiewiczPoints,
 TanskanenMetric, WeiseScanning} naturally convert depth data into projected 3D
 points. While simple, point clouds fail to capture local scene structure, are
-highly redundant, noisy, and fail to capture \emph{negative} information about
-the scene :  \ie, about which parts of the scene are empty. This information is
-crucial in situations where the sensor is noisy, or has large patches of
-missing data \cite{Klingensmith2014}.
+highly redundant, noisy, and fail to capture \emph{negative} (non-surface)
+information about the scene. This information is crucial in situations where the sensor is noisy,
+or has large patches of missing data \cite{Klingensmith2014}.
 
 Elfes \cite{Elfes1989} introduced the concept of \emph{Occupancy Grid
 Mapping}, which divides the world into a grid of voxels, each of which contains
