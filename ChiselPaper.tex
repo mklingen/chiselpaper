@@ -1,6 +1,5 @@
-\documentclass[10pt,twocolumn,letterpaper]{article}
+\documentclass[conference]{IEEEtran}
 
-\usepackage{cvpr}
 \usepackage{times}
 \usepackage{epsfig}
 \usepackage{graphicx}
@@ -36,7 +35,9 @@
 
 
 \newcommand{\naive}{na\"{\i}ve}
-
+\newcommand{\ie}{\textit{i. e.}}
+\newcommand{\eg}{\textit{e. g.}}
+\newcommand{\etal}{\textit{et al.}}
 
 % Include other packages here, before hyperref.
 
@@ -45,15 +46,7 @@
 % run, let it finish, and you should be clear).
 \usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
 
-% \cvprfinalcopy % *** Uncomment this line for the final submission
-
-\def\cvprPaperID{826} % *** Enter the CVPR Paper ID here
-\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
-
-% Pages are numbered in submission mode, and unnumbered in camera-ready
-\ifcvprfinal\pagestyle{empty}\fi
-
-\begin{document}  
+\begin{document}
 
 %%%%%%%%% TITLE
 \title{\Large Chisel: Real-time Dense Reconstruction on a Mobile Device \\
@@ -345,7 +338,7 @@ mesh -- instead, we turn small areas of the scene into meshes for the purpose
 of rendering, while \textit{preserving} the underlying distance field data. By
 carefully considering what parts of the space should be turned into distance
 fields at each timestep, we avoid needless computation
-(\tabref{table:meshingtimes}}) and memory allocation (\figref{fig:memory_data}) 
+(\tabref{table:meshingtimes}) and memory allocation (\figref{fig:memory_data}) 
 in areas far away from the sensor.
 
 \section{Approach} 
@@ -683,7 +676,7 @@ Space carving gives us two advantages: first, it dramatically improves the
 surface reconstruction in areas of very high noise (especially around the edges
 of objects: see \figref{fig:dragon_closeup}), and second, it removes
 some inconsistencies caused by moving objects and localization errors. 
-
+ 
 \subsection{The Dynamic Spatially Hashed TSDF}
 \label{section:spatialhash}
 Each voxel contains an estimate of the signed distance field and an
@@ -1337,13 +1330,12 @@ resolution reconstructions.
 % robot localization and planning to house-scale modelling and augmented reality
 % gaming are all possible.
 
-\ifcvprfinal
 \section*{Acknowledgements}
 This work was done as part of Google's Advanced Technologies and Projects
 division (ATAP) for \emph{Project Tango}. Thanks to Johnny Lee, Joel Hesch, Esha
 Nerurkar, and Simon Lynen and other ATAP members for their close collaboration
 and support on this project. Thanks to Ryan Hickman for collecting outdoor data.
-\fi
+
 
 \bibliographystyle{plain}
 % argument is your BibTeX string definitions and bibliography database(s)
