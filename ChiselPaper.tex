@@ -55,7 +55,7 @@
 \begin{document}
 
 %%%%%%%%% TITLE
-\title{\Large Real-time Dense 3D Mapping on a Mobile Device \\
+\title{\Large Real Time Large Scale 3D Reconstruction Onboard a Mobile Device \\
 using Spatially Hashed Signed Distance Fields}
 
 \newcommand{\fix}{\marginpar{FIX}}
@@ -155,22 +155,24 @@ real-time from two devices.
 
 \section{Introduction}
 Recently, mobile phone manufacturers have started adding
-depth sensors to mobile devices, opening up the exciting potential for
-real-time 3D reconstruction using a wireless, handheld sensor. In particular,
-the devices we use in this work, Google's \textit{Project Tango} \cite{Tango}
-phone and tablet have small active infrared projection depth  sensors combined
-with high-performance IMUs and wide field of view cameras
+depth sensors and high-quality inertial sensors to mobile devices. In
+particular, the devices we use in this work, Google's \textit{Project Tango} \cite{Tango}
+phone and tablet have very small active infrared projection depth sensors
+combined with high-performance IMUs and wide field of view cameras
 (\sref{section:hardware}). Other devices, such as the Occiptal Inc.
-\textit{Structure Sensor} \cite{StructureSensor} have similar capabilities.  How
-can we do real-time 3D reconstruction on these devices?
+\textit{Structure Sensor} \cite{StructureSensor} have similar capabilities.
+These devices offer an onboard, fully integrated sensing platform for 3D mapping
+and localization, with applications ranging from mobile robots to handheld,
+wireless augmented reality. (\textbf{TODO: CITES FOR THESE APPLICATIONS})  How
+can we enable real-time 3D reconstruction on these devices?
 
-Real-time 3D reconstruction is a well-known problem in computer vision. The task
-is to extract the true 3D geometry and color of a real scene from a sequence of
-noisy sensor readings online. Solutions to this problem are useful for
-navigation, mapping, object scanning, and more. The problem can be broken down
-into two components: localization (\ie finding out where the sensor is), and
-mapping (\ie reconstructing the scene geometry). Generally, localization is
-accomplished by a combination of odometry \cite{VINS} and landmark-based
+Real-time 3D reconstruction is a well-known problem in computer vision and
+robotics. The task is to extract the true 3D geometry and possibly color of a
+real scene from a sequence of noisy sensor readings online. Solutions to this
+problem are useful for navigation, mapping, object scanning, and more. The
+problem can be broken down into two components: localization (\ie finding out
+where the sensor is), and mapping (\ie reconstructing the scene geometry). 
+Generally, localization is accomplished by a combination of odometry \cite{VINS} and landmark-based
 localization \cite{FastSlam}, and is efficiently solved by considering only a
 \textit{sparse} representation of the world -- that is, as a collection of
 poses and landmark associations. To be useful for high quality 3D
@@ -179,16 +181,19 @@ consider the full geometric representation of the world either as surfaces,
 points, or volumes \cite{Hartley2004}.
 
 Consider house-scale (300 square meter) real-time 3D mapping and localization on
-a \textit{Tango} device.  A user (or robot) walks around a building, scanning
+a \textit{Tango} device.  A user (or robot) moves around a building, scanning
 the scene by waving the device around. At house-scale, we are only concerned with features
 at a resolution of about 2-3 cm (walls, floors, furniture, applicances, etc.).
-To facilitate scanning, real-time feedback is given to the user on the device.
-The user should be able to locate themselves inside the building, and should be
-able to export the result after the scan is complete without losing any data.
-\figref{fig:first_figure} shows an example of this use case in progress.
+To facilitate scanning, real-time feedback is given to the user on the device's
+screen. The user should be able to locate themselves inside the building, and
+should be able to export the result after the scan is complete without losing any data.
+\figref{fig:first_figure} shows an example of this use case in progress. As
+another motivating example, we consider a small flying robot equipped with a
+\textit{Tango} sensor onboard; the robot must navigate indoor spaces by mapping
+them online. (\textbf{TODO: WRITE THIS SECTION AND REFERENCE IT.}).
 
 House-scale mapping on a mobile device requires that the 3D reconstruction
-algorithm must run entirely on the device, and fast enough to allow user
+algorithm must run entirely onboard, and fast enough to allow user
 interaction. Importantly, the entire dense 3D reconstruction must fit inside
 the device's limited (2-4GB) memory (\sref{section:hardware}). Because the mobile
 device might lack a powerful discrete graphics processing unit (GPU), we will not be able to rely
