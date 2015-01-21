@@ -223,7 +223,7 @@ WhelanLoopClose} have extended the TSDF to larger scenes by storing a
 \textit{moving} voxelization and throwing away data incrementally -- but we are
 interested in preserving the volumetric data for later use.
 
-We note in this work that most ( $\sim 93\%$) of the space in a typical scene
+We note experimentally that most ( $\sim 93\%$) of the space in a typical scene
 is in fact empty (\tabref{table:volumecount}). Iterating over empty space
 for the puposes of reconstruction and rendering wastes computation time; and storing it
 wastes memory. Noting this fact, we make use of a data structure introduced by
@@ -348,6 +348,16 @@ function within a small distance (called the \emph{truncation distance}) from
 observed surfaces, and thus is called the Truncated Signed Distance Field
 (TSDF).  While using more memory than occupancy grids, the TSDF creates much
 higher quality surface reconstructions by preserving local structure.
+
+In robotics, distance fields have found use in motion planning
+\cite{RatliffChomp}, mapping \cite{VandapelKA05}, and scene understanding.
+Distance fields provide useful information to robots: the distance to the
+nearest obstacle, and the gradient direction to take them away from obstacles. 
+A recent work by Wagner \etal \cite{WagnerICRA13} explores the direct use of a
+TSDF for robot arm motion planning; making use of the gradient information
+implicitly stored in the TSDF to locally optimize robot trajectories. We are
+interested in similarly planning trajectories for autonomous flying robots by
+directly using TSDF data.
 
 \emph{Kinect Fusion} \cite{Newcombe} uses a TSDF to simultanesously extract the
 pose of a moving depth camera and the geometry of a scene in real-time. Making
@@ -1189,19 +1199,22 @@ which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
 %  entire image, unlike the distortion model which is computed on a per-pixel
 %  basis.
 %  
-\subsection{House Scale Online Mapping}
+\subsection{Use Case: House Scale Online Mapping}
 \label{section:mapping}
-Using our algorithm, we are able to create and display large scale maps at a
-resolution as small as 2cm in real-time using only visual-inertial odometry for
-pose estimation. \figref{fig:map_device} shows a map of an office building floor
-being reconstructed in real-time using the phone device. This scenario is also
-shown in an attached video. Using the tablet device, we have reconstructed
-(night time) outdoor scenes in real-time (\figref{fig:overhead_night}).
+Using our system, we are able to create and display large scale maps at a
+resolution as small as 2cm in real-time on board the device.
+\figref{fig:map_device} shows a map of an office building floor being
+reconstructed in real-time using the phone device.  This scenario is also shown
+in an attached video. \figref{fig:drift} shows a similar reconstruction of a
+$\sim 100m$ office floor. Using the tablet device, we have reconstructed (night
+time) outdoor scenes in real-time (\figref{fig:overhead_night}).
 
 In the course of online mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
 localizing the device using visual-inertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
+ 
+ \subsection{Use Case: Aerial Robot Motion Planning}
  
 \subsection{Comparing Depth Scan Fusion Algorithms} 
 \label{section:scan_compare}
@@ -1389,11 +1402,15 @@ techniques combining visual intertial odometry, sparse landmark localization
 and dense 3D reconstruction in a way that is efficient enough to allow
 real-time relocalization on a mobile device.
 
-Finally, an area of potential research is in global loop closure and
+A further area of potential research is in global loop closure and
 relocalization. Whelan \etal\cite{WhelanLoopClose} introduced a means of warping
 the mesh output by \textit{Kintinuous} consistently with global pose updates
  involving loop closures. But the 3D volumetric data from the TSDF is lost in
  this process. Is it possible to warp the TSDF data directly?
+
+Finally, our task of using onboard TSDF mapping for aerial robot navigation
+remains incomplete. Further work is needed to allow an aerial robot to navigate
+autonomously using our system.
 
 % Finally, there is the question of applications. What can be done with a
 % real-time dense 3D reconstruction on a mobile device? Applications ranging from
