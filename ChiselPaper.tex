@@ -11,9 +11,10 @@
 \usepackage{algorithm}
 \usepackage{color}
 \definecolor{light-gray}{gray}{0.4}
- \usepackage[noend]{algpseudocode} 
- \usepackage{cite}
-  
+\usepackage[noend]{algpseudocode} 
+%\usepackage[noadjust]{cite}
+\usepackage[sort&compress,numbers]{natbib} % required by RSS
+
 
 % list of commenters
 \newcommand{\ssnote}[1]{{\xxnote{SS}{red}{#1}}}
@@ -43,6 +44,12 @@
 
 \newif\iffinalcopy
 \finalcopyfalse % or
+
+
+\usepackage{xspace} 
+\newcommand{\chisel}{\textsc{Chisel}\xspace}
+
+\usepackage{booktabs} % Pretty tabular
 
 
 % Include other packages here, before hyperref.
@@ -202,6 +209,23 @@ another motivating example, we consider a small flying robot equipped with a
 \textit{Tango} sensor onboard; the robot must navigate indoor spaces by mapping
 them online. (\textbf{TODO: WRITE THIS SECTION AND REFERENCE IT.}).
 
+\begin{figure}[t!]
+  \centering
+    	 \begin{subfigure}{\linewidth} \centering
+		 \includegraphics[width=1\textwidth]{img/mapdevice}
+		 \caption{\chisel building a map
+      of an entire office building floor on a mobile device in real-time.}
+		 \label{fig:map_device}
+	 \end{subfigure}
+      	 \begin{subfigure}{\linewidth} \centering
+		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
+		 \caption{Reconstructed apartment scene at a resolution of 3cm.}
+		 \label{fig:apartment_color}
+	 \end{subfigure}
+      \caption{\chisel running on Google's \textit{Project Tango}~\cite{Tango} device.}
+  \label{fig:first_figure}
+\end{figure} 
+
 House-scale mapping on a mobile device requires that the 3D reconstruction
 algorithm must run entirely onboard, and fast enough to allow user
 interaction. Importantly, the entire dense 3D reconstruction must fit inside
@@ -211,7 +235,7 @@ on general purpose GPU computing to make the problem tractable in either
 creating or rendering the 3D reconstruction.
 
 Many state-of-the-art real-time 3D reconstruction algorithms \cite{Newcombe,
-Whelan2013, WhelanLoopClose, Bylow2013, NiessnerHashing} work by computing a truncated
+Whelan2013,WhelanLoopClose,Bylow2013,NiessnerHashing} work by computing a truncated
 signed distance field (TSDF) \cite{Curless1996} of the scene. The TSDF stores a
 voxelized estimate of the distance to the nearest surface in the scene, up to a
 fixed distance. While allowing for very high quality reconstructions, the TSDF
@@ -806,13 +830,15 @@ to store the TSDF data to reduce iteration performance by an order of magnitude.
 % 	      \label{fig:projection_mapping}
 % 	  \end{subfigure}
 		\begin{subfigure}{\linewidth} \footnotesize
-		\begin{tabular} {| l | r | r |}
-		\hline
-		Voxel Class & Voxel Count & \% of Bounding Box \\ \hline
-		Unknown Culled & 62,105,216 & 77.0\% \\ \hline
-		Unknown & 12,538,559 & 15.5\% \\ \hline
-		Outside & 3,303,795 & 4.1\% \\ \hline
-		Inside & 2,708,430 & 3.4\% \\ \hline
+		\begin{tabular} {rrr}
+		\toprule
+		Voxel Class & Voxel Count & \% of Bounding Box \\ 
+		\midrule
+		Unknown Culled & 62,105,216 & 77.0 \\ 
+		Unknown & 12,538,559 & 15.5 \\ 
+		Outside & 3,303,795 & 4.1 \\ 
+		Inside & 2,708,430 & 3.4 \\ 
+		\bottomrule
 		\end{tabular}
 		\caption{}
 		\label{table:volumecount}  
@@ -1231,14 +1257,13 @@ note that using both space carving \emph{and} raycasting is not fast enough for 
 using our approach.
 
 \begin{table}
-\footnotesize
-\hfill
 \centering
-\begin{tabular} {| l | r | r |}
-\hline
-TSDF Method & Meshing Time & Update Time\\ \hline
-$256^3$ Fixed Grid                      & $2067 \pm 679$ & $3769 \pm 1279 $  \\
-\hline $16^3$ Spatial Hashing & $102 \pm 25$ &  $128 \pm 24$\\ \hline
+\begin{tabular} {rr@{ $\pm$ }lr@{ $\pm$ }l} \toprule
+TSDF Method & \multicolumn{2}{c}{Meshing Time (ms.)} & \multicolumn{2}{c}{Update Time (ms.)}\\ 
+\midrule
+$256^3$ Fixed Grid     & 2067 & 679 & 3769 & 1279  \\
+$16^3$ Spatial Hashing & 102  &  25 & 128 &   24   \\ 
+\bottomrule
 \end{tabular}
 \caption{The time taken per frame in milliseconds to generate meshes
 (\sref{section:render}), and update the TSDF using colorization, space carving, and projection mapping
