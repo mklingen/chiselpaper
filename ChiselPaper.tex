@@ -1340,30 +1340,34 @@ is unknown (\tabref{table:volumecount}).
 %\end{itemize}
  
 \section{Discussion and Future Work}
-Our approach is able to create and render large-scale 3D reconstructions of
+Our system is able to create and render large-scale 3D reconstructions of
 scenes in real-time using only the limited computational resources of a
 \textit{Tango} device. We accomplish this without any GPU computing, and use
 only the fixed function pipeline to render the scene. We do this out of
 necessity to meet the computing requirements of a mobile device. 
 
-However, the optimizations we have made are equally applicable to other
-settings beyond mobile devices. By using a dynamic spatial hash map to store
-TSDF data instead of a fixed array, much larger areas can be reconstructed while
-maintaining all of the distance field data.
-
 Admittedly, our reconstructions are much lower resolution than state of the art
-TSDF mapping techniques, which typically push for sub-centimeter resolution.
-We have yet to see whether our approach can be combined with GPU solutions to deliver
-large-scale, very high resolution reconstructions. A fruitful avenue of
-future research would be in implementing the dynamic spatial hash map on the GPU
-in an efficient way. That would allow even larger, or potentially higher
-resolution reconstructions.
+TSDF mapping techniques, which typically push for sub-centimeter resolution. In
+particular, Niessner \etal \cite{NiessnerHashing} produce $4mm$ resolution maps
+of comparable or larger size than our own through the use of commodity GPU
+hardware and a dynamic spatial hash map. Ultimately, as more powerful mobile
+GPUs become available, reconstructions at these resolutions will become
+feasible on mobile devices.
 
-% Another area of potential research is in loop closure and relocalization.
-% Whelan \etal\cite{WhelanLoopClose} introduced a means of warping the mesh output
-% by \textit{Kintinuous} consistently with global pose updates involving loop
-% closures. But the 3D volumetric data from the TSDF is lost in this process. Is
-% it possible to warp the TSDF data directly?
+Another issue is that, since our pose estimation technique is
+\textit{open-loop} with respect to the 3D reconstruction, we fail to correct for
+pose drift using the 3D model. Many previous works \cite{StuecklerSparseDense,
+niessner2014combining} have combined sparse keypoint mapping, visual odometry
+and dense reconstruction to reduce pose drift. Future research must adapt SLAM
+techniques combining visual intertial odometry, sparse landmark localization
+and dense 3D reconstruction in a way that is efficient enough to allow
+real-time relocalization on a mobile device.
+
+Finally, an area of potential research is in global loop closure and
+relocalization. Whelan \etal\cite{WhelanLoopClose} introduced a means of warping
+the mesh output by \textit{Kintinuous} consistently with global pose updates
+ involving loop closures. But the 3D volumetric data from the TSDF is lost in
+ this process. Is it possible to warp the TSDF data directly?
 
 % Finally, there is the question of applications. What can be done with a
 % real-time dense 3D reconstruction on a mobile device? Applications ranging from
