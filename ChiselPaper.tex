@@ -62,7 +62,9 @@
 \begin{document}
 
 %%%%%%%%% TITLE
-\title{\Large Real Time Large Scale 3D Reconstruction Onboard a Mobile Device \\
+\title{\Large \chisel : Real Time Large Scale 3D Reconstruction Onboard a Mobile
+Device
+\\
 using Spatially Hashed Signed Distance Fields}
 
 \newcommand{\fix}{\marginpar{FIX}}
@@ -101,32 +103,25 @@ using Spatially Hashed Signed Distance Fields}
 %\thispagestyle{empty}
 \begin{figure*}
   \centering
-    	 \begin{subfigure}{0.3\linewidth} \centering
-		 \includegraphics[width=1\textwidth]{img/mapdevice}
-		 \caption{}
-		 \label{fig:map_device}
+  	 \begin{subfigure}{0.4\linewidth}\centering
+	 \includegraphics[width=1\textwidth]{img/aerial.jpg}
+	 \caption{}
+	 \label{fig:robot}
 	 \end{subfigure}
-      	 \begin{subfigure}{0.3\linewidth} \centering
-		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
-		 \caption{}
-		 \label{fig:apartment_color}
-	 \end{subfigure}
-	 \begin{subfigure}{0.35\linewidth}\centering
+	 \begin{subfigure}{0.4\linewidth}\centering
 	 \includegraphics[width=1\textwidth]{img/corridor_composite.png}
 	 \caption{}
 	 \label{fig:drift}
 	 \end{subfigure}
-      \caption{\figref{fig:map_device} shows our algorithm recording a map
-      of an office building floor on a mobile device in real time, at a resolution of 3cm. A video of our approach running
-  in real time is attached. \figref{fig:apartment_color} shows a
-  reconstructed apartment scene at a resolution of 3cm exported from the
-  device. \figref{fig:drift} shows a top down view of a $\sim 100$ meter long
-  corridor reconstructed by a user holding the device. The left figure shows the reconstruction achieved
-  by visual odometry alone, with $\sim 5$ meter drift present at the end of the
-  corridor. The right figure shows the reconstruction after the trajectory has
-  been globally optimized offline using bundle adjustment, overlaid on the
-  floorplan of the building.}
-  \label{fig:first_figure}
+      \caption{ \figref{fig:robot} shows an aerial robot with
+      a \textit{Yellowstone} tablet device attached to the top. The
+      device is light enough to allow the robot to fly. \figref{fig:drift} shows a top down view of a $\sim
+      100$ meter long corridor reconstructed by a user holding the device. The
+      left figure shows the reconstruction achieved by visual odometry alone, 
+     with $\sim 5$ meter drift present at the end of the corridor. The right
+     figure shows the reconstruction after the trajectory has been globally 
+    optimized offline using bundle adjustment, overlaid on the floorplan of the building.}
+  \label{fig:robot_figure}
 \end{figure*} 
 
 
@@ -756,8 +751,8 @@ only inform us about the presence of a surface very near the endpoint of the ray
 
 For this reason, we augment our TSDF algorithm with a \textit{space carving}
 constraint. Along each ray within the space carving region (Fig.
-\ref{fig:integration_diagram}), we clear away data that has a nonpositive stored
-SDF. Algorithm \ref{alg:TSDF}, line \ref{alg:line:voxel_carve} shows how this is
+\ref{fig:integration_diagram}), we \chisel away data that has a nonpositive
+stored SDF. Algorithm \ref{alg:TSDF}, line \ref{alg:line:voxel_carve} shows how this is
 accomplished. 
 
 Space carving gives us two advantages: first, it dramatically improves the
@@ -1240,6 +1235,11 @@ localizing the device using visual-inertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
  
  \subsection{Use Case: Aerial Robot Motion Planning}
+ One of the main advantages of fully-integrated hardware systems such as the
+ \textit{Tango} device is that they are light enough to mount on small mobile
+ robots. As a motivating example, we explore the problem of motion planning in a
+ scene created onboard the device using \chisel. \figref{fig:robot} shows a
+ robot on which we mounted a tablet device.
  
 \subsection{Comparing Depth Scan Fusion Algorithms} 
 \label{section:scan_compare}
