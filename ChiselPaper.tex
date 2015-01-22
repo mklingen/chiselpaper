@@ -223,8 +223,8 @@ WhelanLoopClose} have extended the TSDF to larger scenes by storing a \textit{mo
 and throwing away data incrementally -- but we are interested in preserving the
 volumetric data for later use.
 
-We note experimentally that most ( $\sim 93\%$) of the space in a typical scene
-is in fact empty (\tabref{table:volumecount}). Iterating over empty space
+Experimentally, we found that most ( $\sim 93\%$) of the space in a typical
+scene is in fact empty (\tabref{table:volumecount}). Iterating over empty space
 for the puposes of reconstruction and rendering wastes computation time; and storing it
 wastes memory. Noting this fact, we make use of a data structure introduced by
 Niessner \etal \cite{NiessnerHashing}, the Dynamic Spatially Hashed
@@ -320,20 +320,20 @@ interested in similarly planning trajectories for autonomous flying robots by
 directly using TSDF data (\sref{section:robot}).
 
 \emph{Kinect Fusion} \cite{Newcombe} uses a TSDF to simultanesously extract the
-pose of a moving depth camera and the geometry of a scene in real-time. Making
-heavy use of the GPU for scan fusion and rendering, Fusion is capable of
-creating extremely high-quality, high-resolution surface reconstructions within
+pose of a moving depth camera and scene geometry in real-time. Making
+heavy use of the GPU for scan fusion and rendering, \textit{Fusion} is capable
+of creating extremely high-quality, high-resolution surface reconstructions within
 a small area. However, like occupancy grid mapping, the algorithm relies on a
 single fixed-size 3D grid of voxels, and thus is not suitable for reconstructing
-very large scenes due to memory constraints. This limitation has generated much
-interest in extending the TSDF fusion paradigm to larger scenes. 
-\emph{Kintinuous} \cite{Whelan2013} extends Kinect Fusion to larger scenes by
-storing only a time-limited moving window of the TSDF in the GPU. As the camera moves
-outside of the window, areas which are no longer visible are turned into a
-surface representation. Hence, distance field data is prematurely thrown away
-to save memory. As we want to save distance field data so it can be used later
-for post-processing, motion planning, and other applications, a \textit{moving
-window} approach is not suitable.
+very large scenes due to memory constraints. This limitation has generated
+interest in extending  TSDF fusion to larger scenes. 
+Moving window approaches, such as \emph{Kintinuous} \cite{Whelan2013} extend
+Kinect Fusion to larger scenes by storing  a moving voxel grid in the GPU. As
+the camera moves outside of the grid, areas which are no longer visible are
+turned into a surface representation. Hence, distance field data is prematurely 
+thrown away to save memory. As we want to save distance field data so it can be
+used later for post-processing, motion planning, and other applications, a
+moving window approach is not suitable.
 
 Recent works have focused on extending TSDF fusion to larger scenes by
 compressing the distance field representation to avoid storing and iterating
@@ -345,7 +345,7 @@ An approach by Niessner \etal \cite{NiessnerHashing} uses a two-layer
 hierarichal data structure that uses spatial hashing \cite{SpatialHashing} to
 store the TSDF data. This approach avoids the needless complexity of other
 hierarchical data structures, boasting $\mathcal{O}(1)$ queries, and avoids
-storing or updating empty space far away from objects.
+storing or updating empty space far away from surfaces.
 
 Our system (called \chisel)  adapts the spatially hashed datastructure of
 Niessner \etal \cite{NiessnerHashing} to \Tango devices. By carefully
@@ -676,7 +676,7 @@ want to integrate over. Algorithm \ref{alg:TSDF}, line
 \subsection{Space Carving}
 \label{section:carving}
 When depth data is highly noisy and sparse, the relative importance of negative
-data (that is, information about what parts of the space do not contain an
+data (that is, information about what parts of the scene do not contain an
 obstacle) increases over positive data \cite{Klingensmith2014}. Rays can be
 viewed as \textit{constraints} on possible values of the distance field. Rays
 passing through empty space constrain possible values of the signed distance
