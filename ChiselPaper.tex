@@ -102,37 +102,6 @@ using Spatially Hashed Signed Distance Fields}
 
 \maketitle
 \thispagestyle{empty}
-\begin{figure*} 
-  \centering
-  \begin{subfigure}{0.45\linewidth}\centering
-	 \includegraphics[width=0.5\textwidth]{img/aerial.jpg}
-	 \caption{}
-	 \label{fig:robot}
-  \end{subfigure}
- 	 \begin{subfigure}{0.45\linewidth}\centering
- 	 \includegraphics[width=1\textwidth]{img/corridor_composite.png}
- 	 \caption{}
- 	 \label{fig:drift}
- 	 \end{subfigure}
-	\begin{subfigure}{0.45\linewidth}\centering
-	 \includegraphics[width=1\textwidth]{img/path_plan.pdf}
-	 \caption{}
-	 \label{fig:path_plan}
-	 \end{subfigure}
-      \caption{ \figref{fig:robot} shows an aerial robot with
-      a \textit{Yellowstone} tablet device attached to the top. The
-      device is light enough to allow the robot to fly.
-      \figref{fig:path_plan} shows two motion plans for a
-      simple 3D sphere robot, varying $\epsilon$, the minimum
-      allowed robot radius. \figref{fig:drift} shows a top down view of a $\sim
-      100$ meter long corridor reconstructed by a user holding the device. The
-      left figure shows the reconstruction achieved by visual odometry alone,
-      with $\sim 5$ meter drift present at the end of the corridor. The right 
-      figure shows the reconstruction after the trajectory has been globally
-      optimized offline using bundle adjustment, overlaid on the floorplan of the building.}
-  \label{fig:robot_figure}
-\end{figure*} 
-
 
 \begin{abstract}
 We detail a system for real-time house-scale (300 square meter or more)
@@ -211,7 +180,7 @@ should be able to export the result after the scan is complete without losing an
 \figref{fig:first_figure} shows an example of this use case in progress. As
 another motivating example, we consider a small flying robot equipped with a
 \textit{Tango} sensor onboard; the robot must navigate indoor spaces by mapping
-them online. (\textbf{TODO: WRITE THIS SECTION AND REFERENCE IT.}).
+them online (\sref{section:robot}).
 
 \begin{figure}[t!]
   \centering
@@ -262,14 +231,14 @@ of voxels are dynamically allocated according to the presence of surfaces in the
 scene. Because the data structure has $\mathcal{O}(1)$ access performance, we
 are able to quickly identify which parts of the scene should be rendered,
 updated, or deleted. This allows us to minimize the amount of time we spend on
-each depth scan and keep the reconstruction running in real-time on the device.
+each depth scan and keep the reconstruction running in real-time on the device. 
 
 For localization, we use a mix of  visual-inertial odometry \cite{VINS} and
 sparse keypoint-based mapping \cite{FastSlam} as a black box
 (\sref{section:pose}). These approaches use only the 2D wide-angle camera and
 the IMU, and take in no information from the depth sensor. As a consequence,
-our approach is \textit{open-loop} in the sense that it does not attempt to
-explicitly estimate the pose of the sensor from the 3D reconstruction. In spite
+our mapping system  is \textit{open-loop} in the sense that it does not attempt
+to explicitly estimate the pose of the sensor from the 3D reconstruction. In spite
 of this limitation, we found that using only open-loop visual odometry was
 sufficient to create high quality, house-scale reconstructions
 (\figref{fig:overhead_night}). Additionally, at any time, the user can choose to
@@ -431,7 +400,7 @@ high noise. The space carving and truncation algorithms are informed by a
 parametric noise model trained for the sensor using the method of Nguyen \etal
 \cite{Nguyen2012}.
 
-\section{Approach} 
+\section{System Implementation} 
 \subsection{Preliminaries}
 \label{section:prelim}
 Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
@@ -816,8 +785,9 @@ stores pointers to child octants in each parent octant. The octants themselves
 may be dynamically allocated on the heap. Each traversal through the tree
 requires $\mathcal{O}(M)$ heap pointer dereferences in the worst case.
 Even worse, adjacent voxels may not be adjacent in memory, resulting in very
-poor caching performance \cite{CacheStructures}.  We found that using an octree
-to store the TSDF data to reduce iteration performance by an order of magnitude.
+poor caching performance \cite{CacheStructures}.  Like \cite{NiessnerHashing},
+we found that using an octree to store the TSDF data to reduce iteration
+performance by an order of magnitude when compared to a fixed grid.
 
 \begin{figure*}[t!]
   \centering
@@ -860,39 +830,16 @@ to store the TSDF data to reduce iteration performance by an order of magnitude.
 	\label{table:volumecount}  
 \end{table}
 
-
-
-
-\ssnote{THIS NEEDS TO BE EDITED AND ADDED TO THE ACTUAL TEXT.}
-  \ssnote{ We compare our spatial hashing (SH)
-      approach to a \naive algorithm which simply allocates a single
-      block of volume memory for the entire space needed (FG)
-      (\figref{fig:memory_data}). Memory is recorded for voxels of 3cm
-      resolution, using both surface and color data. Chunks are of $16 \times 16 \times 16$ voxels. Memory
-      usage statistics for the Freiburg \cite{FREIBURG} office dataset are shown
-      in (\figref{fig:memory_data2}), varying the size of the depth frustum.
-      Extending the depth frustum to 5 meters (\figref{fig:freiburg_5m}) results in a reconstructin of the entire
-      room, whereas limiting the depth frustum to 2 meters
-      (\figref{fig:freiburg_2m}) limits the reconstruction to the desk scene.
-      \figref{fig:frustum_cull} shows all the TSDF chunks which intersect the
-      depth camera frustum  and are within $\tau$ of a hit as green cubes. Only
-      these chunks are updated when new data is received.In \figref{fig:chunks}, chunks of voxels (grey) are allocated near
-  the surface (blue) of the scene. Chunks are spatially hashed \cite{SpatialHashing} into a
-      dynamic hash map. \tabref{table:volumecount} shows voxel statistics for
-      the Freiburg 5m (\figref{fig:freiburg_5m}) dataset. Culled voxels are not stored in
-       memory. Unknown voxels have a weight of 0. Inside and Outside voxels have
-      a weight $> 0$ and an SDF than is $\leq 0$ and $> 0$ respectively. }
-
-
-
 Instead of using an Octree, or a fixed 3D array , we use a hybrid data
 structure introduced by Niessner \etal \cite{NiessnerHashing} which maintains
 some of the advantages of both. We divide the world into a two-level tree. In
-the first level we have \emph{chunks} of voxels (\figref{fig:chunks}). Each
-chunk consists of a fixed grid of ${N_v}^3$ voxels, which are stored in a flat
-3D array. Chunks are allocated dynamically from a growing pool of heap memory
-as data is added, and are indexed in a spatial 3D hash map \cite{SpatialHashing}
-y their spatial coordinates. As in Teschner \etal \cite{SpatialHashing}, and
+the first level we have \emph{chunks} of voxels.  In \figref{fig:chunks}, chunks
+of voxels (grey) are allocated near the surface (blue) of the scene. Chunks are
+spatially hashed \cite{SpatialHashing} into a dynamic hash map.  Each chunk
+consists of a fixed grid of ${N_v}^3$ voxels, which are stored in a flat 3D
+array. Chunks are allocated dynamically from a growing pool of heap memory as
+data is added, and are indexed in a spatial 3D hash map \cite{SpatialHashing} y
+their spatial coordinates. As in Teschner \etal \cite{SpatialHashing},  and
 \cite{NiessnerHashing} we use the hashing function:
 
 \begin{equation}
@@ -929,13 +876,14 @@ Since the frustum is a conservative approximation of the space that could be
 updated by a depth scan, some of the chunks that are visible to the frustum will
 have no depth data associated with them. For this reason, we also store a flag
 inside each chunk indicating whether or not that chunk ever contained the
-endpoint of a ray from the depth camera (\figref{fig:frustum_cull}). Those
-chunks which do not get updated during a depth scan are garbage collected
-(deleted from the hash map), reducing memory overhead. Since the size of the
-camera frustum is fixed, the garbage collection process has $\mathcal{O}(1)$
-performance. Niessner \etal \cite{NiessnerHashing} use a similar approach for
-deciding which voxel chunk should be updated, though with raycasting rather than
-geometric frustum culling.
+endpoint of a ray from the depth camera. \figref{fig:frustum_cull} shows all the
+TSDF chunks which intersect the depth camera frustum  and are within $\tau$ of a hit as green cubes. Only
+these chunks are updated when new data is received.  Chunks which do not get
+updated during a depth scan are garbage collected (deleted from the hash map),
+reducing memory overhead. Since the size of the camera frustum is fixed, the
+garbage collection process has $\mathcal{O}(1)$ performance. Niessner \etal
+\cite{NiessnerHashing} use a similar approach for deciding which voxel chunk
+should be updated, though with raycasting rather than geometric frustum culling.
 
 \subsection{Depth Scan Fusion}
 \label{section:scan_integration}
@@ -1042,9 +990,17 @@ the pose of the sensor directly from depth data. Instead, we use depth data
 only for surface reconstruction. Unfortunately, decoupling the pose estimation
 and surface reconstruction results in failure to correct for drift in the pose
 estimation using depth data, and can result in mis-alignment of depth scans
-(\figref{fig:drift}). We found that using direct scan-to-model ICP (as in
-\cite{Newcombe}) to augment visual odometry and sparse keypoint mapping to be
-too slow to run in real-time on the device along with TSDF fusion.
+\figref{fig:drift} shows a top down view of a $\sim
+100$ meter long corridor reconstructed by a user holding the device. The
+left figure shows the reconstruction achieved by visual odometry alone,
+with $\sim 5$ meter drift present at the end of the corridor. The right 
+figure shows the reconstruction after the trajectory has been globally
+optimized offline using bundle adjustment, overlaid on the floorplan of
+ the building. We found that using direct scan-to-model ICP (as in
+ \cite{Newcombe}) to augment visual odometry and sparse keypoint mapping to be
+ too slow to run in real-time on the device along with TSDF fusion. This is not
+ to say that another approach combining sparse keypoints with occlusion data
+ from the TSDF (as in \cite{StuecklerSparseDense}), would not work.
 
 % Section removed to save space
 % \subsubsection{Pose Interpolation}
@@ -1168,7 +1124,7 @@ too slow to run in real-time on the device along with TSDF fusion.
 \label{section:experiments}
 \subsection{Hardware}
 \label{section:hardware}
-We implemented our approach on two devices: a \textit{Project Tango}
+We implemented \chisel on two devices: a \textit{Project Tango}
 ``Yellowstone" tablet device, and a \textit{Project Tango} ``Peanut'' mobile 
 phone device. The phone device has 2GB of RAM, a quadcore
 CPU, a six-axis gyroscope and accelerometer, a wide-angle $120^\circ$ field of
@@ -1253,11 +1209,33 @@ localizing the device using visual-inertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
  
  \subsection{Use Case: Aerial Robot Motion Planning}
+ \label{section:robot}
+  \begin{figure}
+  \centering
+   	 \begin{subfigure}{0.55\columnwidth}\centering
+ 	 \includegraphics[width=1\textwidth]{img/corridor_composite.png}
+ 	 \caption{System pose drift in a long corridor.}
+ 	 \label{fig:drift}
+ 	 \end{subfigure}
+  \begin{subfigure}{0.43\columnwidth}\centering
+	 \includegraphics[width=1.0\textwidth]{img/aerial.jpg}
+	 \caption{An aerial robot with a tablet device attached.}
+	 \label{fig:robot}
+  \end{subfigure}
+	\begin{subfigure}{1.0\columnwidth}\centering
+	 \includegraphics[width=1\textwidth]{img/path_plan.pdf}
+	 \caption{A 3D motion plan through the TSDF}
+	 \label{fig:path_plan}
+	 \end{subfigure}
+      \caption{}
+  \label{fig:robot_figure}
+\end{figure} 
  One of the main advantages of fully-integrated hardware systems such as the
  \textit{Tango} device is that they are light enough to mount on small mobile
  robots. As a motivating example, we explore the problem of motion planning in a
  scene created onboard the device using \chisel. \figref{fig:robot} shows a
- robot on which we mounted a tablet device. 
+ robot on which we mounted a tablet device. The device is light enough to allow
+ the robot to fly.
  
  We simulate a motion planning problem for an aerial robot by simply planning
  for a sphere-shaped robot in 3D. Note that a sphere-shaped robot can be
@@ -1295,8 +1273,8 @@ with projection carving, because rather than color being averaged by all the
 rays passing through each voxel, only a single color is used for each projected
 voxel center. The use of space carving drastically reduces noise artifacts,
 especially around the silhouettes of objects (\figref{fig:dragon_closeup}). We
-note that using both space carving \emph{and} raycasting is not fast enough for real-time mapping on the device
-using our approach.
+note that using both space carving \emph{and} raycasting is not fast enough for
+real-time mapping on the device using our system.
 
 \begin{table}
 \centering
@@ -1315,34 +1293,40 @@ are shown for the ``Room'' (\figref{fig:apartment_color}) dataset.}
 
 \subsection{Memory Usage}
 \label{section:memory}
-We additionally compared memory usage statistics of our chunked approach to a
-\naive approach which allocates a single block of memory to tightly fit the
-entire volume explored (\figref{fig:memory_data}). As the size of the space
-explored increases, our approach uses about a tenth as much memory as the
-\naive approach. This is because the majority of the space explored contains no
-surfaces. Notice that in \figref{fig:memory_data}, the \naive approach uses
-nearly 300MB of RAM whereas our approach never allocates more than 47MB of RAM
+
+\tabref{table:volumecount} shows voxel statistics for the Freiburg 5m
+(\figref{fig:freiburg_5m}) dataset. Culled voxels are not stored in  memory.
+Unknown voxels have a weight of 0. Inside and Outside voxels have a weight $>
+0$ and an SDF than is $\leq 0$ and $> 0$ respectively. Measuring the amount of
+space in the bounding box that is culled, stored in chunks as unknown, and
+stored as known, we found that the vast majority (77\%) of space is culled, and
+of the space that is actually stored in chunks, 67.6\% is unknown. This fact
+drives the memory savings we get from using the spatial hashmap
+technique from Niessner \etal \cite{NiessnerHashing}.
+
+We compared memory usage statistics of the dynamic spatial hashmap (SH) to
+a \naive fixed-grid datastructure (FG) which allocates a single block of memory to
+tightly fit the entire volume explored (\figref{fig:memory_data}). As the size of the space
+explored increases,  spatial hashing  with $16 \times 16 \times
+16$ chunks uses about a tenth as much memory as the fixed grid algorithm. Notice
+that in \figref{fig:memory_data}, the \naive datastructure uses nearly 300MB of RAM 
+whereas the spatial hashing datastructure never allocates more than 47MB of RAM
 for the entire scene, which is a 15 meter long hallway.
 
-We tested our approach on the publicly available Freiburg RGB-D dataset
-\cite{FREIBURG}, which contains ground truth pose information from a motion
+We tested the spatial hashing datastructure (SH) on the publicly available Freiburg
+RGB-D dataset \cite{FREIBURG}, which contains ground truth pose information from a motion
 capture system (\figref{fig:freiburg_2m}). In the Freiburg office dataset, a
 \textit{Kinect} sensor makes a loop around a central desk scene. The room is
 roughly 12 by 12 meters in area.  Memory usage statistics (Fig.
 \ref{fig:memory_data2}) reveal that when all of the depth data is used
 (including very far away data from the surrounding walls), a \naive fixed grid
-approach would use nearly 2GB of memory at a 2cm resolution, whereas our
-approach uses only around 700MB. When the depth frustum is cut off at 2 meters
-(mapping only the desk structure without the surrounding room), our approach
-uses only 50MB of memory, whereas the \naive approach would use nearly 300MB. We
-also found that running marching cubes on a fixed grid rather than
-incrementally on spatially hashed chunks (\sref{section:render}) to be
-prohibitively slow (\tabref{table:meshingtimes}).
-
-Measuring the amount of space in the bounding box that is culled, stored in
-chunks as unknown, and stored as known, we found that the vast majority (77\%)
-of space is culled, and of the space that is actually stored in chunks, 67.6\%
-is unknown (\tabref{table:volumecount}).
+datastructure (FG) would use nearly 2GB of memory at a 2cm resolution, whereas
+spatial hashing with $16 \times 16 \times 16$ chunks uses only around 700MB.
+When the depth frustum is cut off at 2 meters (mapping only the desk structure
+without the surrounding room), spatial hashing uses only 50MB of memory, whereas
+the \naive datastructure would use nearly 300MB. We also found that running marching
+cubes on a fixed grid rather than incrementally on spatially hashed chunks
+(\sref{section:render}) to be prohibitively slow (\tabref{table:meshingtimes}).
 
 % \begin{table}
 % \footnotesize
