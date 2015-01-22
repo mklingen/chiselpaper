@@ -1050,27 +1050,27 @@ optimized offline using bundle adjustment, overlaid on the floorplan of
  \begin{figure*} [htb]\centering
 	 \begin{subfigure}[b] {0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance3}
-		 \caption{}
+		 \caption{An outdoor scene (overhead view).}
 		 \label{fig:overhead_night}
 	 \end{subfigure}
 	 \begin{subfigure}[b]{0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance2}
-		 \caption{}
+		 \caption{Closeup of a bench.}
 		 \label{fig:night2}
 	 \end{subfigure}
 	 	 \begin{subfigure}[b]{0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance1} 
-		 \caption{}
+		 \caption{Closeup of a facade.}
 		 \label{fig:night3}
 	 \end{subfigure} 
 	 	 \begin{subfigure}[b] {0.25\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
-		 \caption{}
+		 \caption{A 15 meter hallway.}
 		 \label{fig:dragon_color}
 	 \end{subfigure}
 	 	 \begin{subfigure}[b]{0.3\linewidth} \centering  
 		 \includegraphics[width=1.0\textwidth]{img/dragon_closeup.png} 
-		 \caption{}
+		 \caption{Comparison of fusion techniques.}
 		 \label{fig:dragon_closeup}
 	 \end{subfigure} 
  	  \begin{subfigure}[b]{0.35\linewidth} \centering \footnotesize
@@ -1092,28 +1092,14 @@ optimized offline using bundle adjustment, overlaid on the floorplan of
 			 & Yes & Yes  & $\mathbf{40 \pm 05}$ & $\mathbf{128 \pm 24}$ \\ 
 			\bottomrule
 			\end{tabular}
-			\caption{}
+			\caption{Single scan fusion time.}
 			\label{table:timing}
 	 \end{subfigure} 
-	 \caption{\figref{fig:overhead_night} shows an overhead view of
-	 an outdoor scene captured at night with the yellowstone device at a
-	 resolution of 3 cm. The yellow pyramid represents the depth camera frustum. The white
-	 lines are the aggregate trajectory of the device. Figures \figref{fig:night2}
-	 and \figref{fig:night3} show closeups of the scene taken live from the device.
-	 The scene was captured using projection mapping
-	 (\sref{section:scan_integration}), without space carving 
-	 (\sref{section:carving}). Different depth scan fusion techniques are
-	compared. \figref{fig:dragon_color} shows the color image for reference. 
-	\figref{fig:dragon_closeup} is a closeup of a lantern in the scene; 
-	 counter-clockwise from the top left: color image, projection mapping without
+	 \caption{\figref{fig:dragon_closeup} is a closeup of
+	 \figref{fig:dragon_color}.
+	 Counter-clockwise from the top left: color image, projection mapping without
 	 space carving, projection mapping with space carving, and raycasting without
-	 space carving. During the scan, the user was looking mostly toward the
-	 ceiling, at the colorful dragon. \tabref{table:timing} shows timing data
-	 for different scan insertion methods is shown for the ``Room'' dataset (\figref{fig:apartment_color}) in milliseconds. Raycasting
-			(\algoref{alg:TSDF}) is compared with Projection Mapping 
-			(\algoref{alg:projection_mapping}) on both a desktop machine and a
-			\textit{Tango} tablet. Results are shown with and without space carving (\sref{section:carving}) and colorization (\sref{section:color}).The fastest
-			method in each category is shown in bold.}
+	 space carving. }
 	 \label{fig:device_data}
  \end{figure*} 
 
@@ -1199,7 +1185,10 @@ resolution as small as 2cm in real-time on board the device.
 reconstructed in real-time using the phone device.  This scenario is also shown
 in an attached video. \figref{fig:drift} shows a similar reconstruction of a
 $\sim 100m$ office floor. Using the tablet device, we have reconstructed (night
-time) outdoor scenes in real-time (\figref{fig:overhead_night}).
+time) outdoor scenes in real-time.\figref{fig:overhead_night} shows an overhead
+view of an outdoor scene captured at night with the yellowstone device at a
+ resolution of 3 cm. The yellow pyramid represents the depth camera frustum. 
+The white lines show the trajectory of the device.
 
 In the course of online mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
@@ -1262,17 +1251,24 @@ additional computation cost.
 \subsection{Comparing Depth Scan Fusion Algorithms} 
 \label{section:scan_compare}
 We implemented both the raycasting and voxel projection modes of depth scan
-fusion (\sref{section:scan_integration}), and compared them in terms of
-speed and quality. We found that projection mapping was far more efficient than
-raycasting when space carving was used (\tabref{table:timing}). However,
-projection mapping results undesirable aliasing artifacts; especially on
-surfaces nearly parallel with the camera's visual axis. Additionally, color consistency suffers
-with projection carving, because rather than color being averaged by all the
-rays passing through each voxel, only a single color is used for each projected
-voxel center. The use of space carving drastically reduces noise artifacts,
-especially around the silhouettes of objects (\figref{fig:dragon_closeup}). We
-note that using both space carving \emph{and} raycasting is not fast enough for
-real-time mapping on the device using our system.
+fusion (\sref{section:scan_integration}), and compared them in terms of speed
+and quality. \tabref{table:timing} shows timing data for different scan
+insertion methods is shown for the ``Room'' dataset
+(\figref{fig:apartment_color}) in milliseconds. Raycasting (\algoref{alg:TSDF})
+is compared with Projection Mapping (\algoref{alg:projection_mapping}) on both a
+desktop machine and a \textit{Tango} tablet. Results are shown with and without
+space carving (\sref{section:carving}) and colorization
+(\sref{section:color}).The fastest method in each category is shown in bold. We
+found that projection mapping was far more efficient than raycasting when space
+carving was used. However, projection mapping results undesirable aliasing
+artifacts; especially on surfaces nearly parallel with the camera's visual axis.
+Additionally, color consistency suffers with projection carving, because rather
+than color being averaged by all the rays passing through each voxel, only a
+single color is used for each projected voxel center. The use of space carving
+drastically reduces noise artifacts, especially around the silhouettes of
+objects (\figref{fig:dragon_closeup}). We note that using both space carving
+\emph{and} raycasting is not fast enough for real-time mapping on the device
+using our system.
 
 \begin{table}
 \centering
