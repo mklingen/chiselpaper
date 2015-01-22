@@ -2,9 +2,9 @@
 
 \usepackage{times}
 \usepackage{epsfig}
-\usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{graphicx}
 \usepackage[font=footnotesize]{caption}
 \usepackage{subcaption} 
 \usepackage{amsmath,amssymb,amsthm}
@@ -100,27 +100,35 @@ using Spatially Hashed Signed Distance Fields}
 \fi
 
 \maketitle
-%\thispagestyle{empty}
-\begin{figure*}
+\thispagestyle{empty}
+\begin{figure*} 
   \centering
-  	 \begin{subfigure}{0.4\linewidth}\centering
-	 \includegraphics[width=1\textwidth]{img/aerial.jpg}
+  \begin{subfigure}{0.45\linewidth}\centering
+	 \includegraphics[width=0.5\textwidth]{img/aerial.jpg}
 	 \caption{}
 	 \label{fig:robot}
-	 \end{subfigure}
-	 \begin{subfigure}{0.4\linewidth}\centering
-	 \includegraphics[width=1\textwidth]{img/corridor_composite.png}
+  \end{subfigure}
+ 	 \begin{subfigure}{0.45\linewidth}\centering
+ 	 \includegraphics[width=1\textwidth]{img/corridor_composite.png}
+ 	 \caption{}
+ 	 \label{fig:drift}
+ 	 \end{subfigure}
+	\begin{subfigure}{0.45\linewidth}\centering
+	 \includegraphics[width=1\textwidth]{img/path_plan.pdf}
 	 \caption{}
-	 \label{fig:drift}
+	 \label{fig:path_plan}
 	 \end{subfigure}
       \caption{ \figref{fig:robot} shows an aerial robot with
       a \textit{Yellowstone} tablet device attached to the top. The
-      device is light enough to allow the robot to fly. \figref{fig:drift} shows a top down view of a $\sim
+      device is light enough to allow the robot to fly.
+      \figref{fig:path_plan} shows two motion plans for a
+      simple 3D sphere robot, varying $\epsilon$, the minimum
+      allowed robot radius. \figref{fig:drift} shows a top down view of a $\sim
       100$ meter long corridor reconstructed by a user holding the device. The
-      left figure shows the reconstruction achieved by visual odometry alone, 
-     with $\sim 5$ meter drift present at the end of the corridor. The right
-     figure shows the reconstruction after the trajectory has been globally 
-    optimized offline using bundle adjustment, overlaid on the floorplan of the building.}
+      left figure shows the reconstruction achieved by visual odometry alone,
+      with $\sim 5$ meter drift present at the end of the corridor. The right 
+      figure shows the reconstruction after the trajectory has been globally
+      optimized offline using bundle adjustment, overlaid on the floorplan of the building.}
   \label{fig:robot_figure}
 \end{figure*} 
 
@@ -214,7 +222,7 @@ them online. (\textbf{TODO: WRITE THIS SECTION AND REFERENCE IT.}).
 	 \end{subfigure}
       	 \begin{subfigure}{\linewidth} \centering
 		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
-		 \caption{Reconstructed apartment scene at a resolution of 3cm.}
+		 \caption{Reconstructed apartment scene at a voxel resolution of 2cm.}
 		 \label{fig:apartment_color}
 	 \end{subfigure}
       \caption{\chisel running on Google's \textit{Project Tango}~\cite{Tango} device.}
@@ -1239,7 +1247,31 @@ paused. After mapping is complete, the user can save the map to disk.
  \textit{Tango} device is that they are light enough to mount on small mobile
  robots. As a motivating example, we explore the problem of motion planning in a
  scene created onboard the device using \chisel. \figref{fig:robot} shows a
- robot on which we mounted a tablet device.
+ robot on which we mounted a tablet device. 
+ 
+ We simulate a motion planning problem for an aerial robot by simply planning
+ for a sphere-shaped robot in 3D. Note that a sphere-shaped robot can be
+ represented as a point when planning in a distance field. All that must be done
+ for a robot with radius $\epsilon$  is to define:
+ 
+ \begin{equation}
+   d_{\epsilon}(x) = \Phi_\tau(x) - \epsilon
+ \end{equation}
+ 
+ \noindent We can then find the optimal 3D trajectory $\xi$ which minimizes:
+ 
+ \begin{equation}
+      c_{\epsilon}(\xi) = \sum_{x \in \xi} \left(\tau - d_{\epsilon}(x)\right) +
+      \|\xi\|_2
+ \end{equation}
+ 
+\noindent where $\|\xi\|_2$ is the length of the trajectory. This can be
+accomplished using the A* algorithm on a lattice grid, with a Euclidean
+heuristic function. Whenever $d < 0$, the robot is considered to be in
+collision, and no expansions are made. \figref{fig:path_plan} shows two example
+paths through a pre-scanned TSDF. Notice that by varying $\epsilon$,
+trajectories can be made to skirt closer or further from obstacles without
+additional computation cost.
  
 \subsection{Comparing Depth Scan Fusion Algorithms} 
 \label{section:scan_compare}
