@@ -383,29 +383,32 @@ store the TSDF data. This approach avoids the needless complexity of other
 hierarchical data structures, boasting $\mathcal{O}(1)$ queries, and avoids
 storing or updating empty space far away from objects.
 
-We adapt the approach of Niessner \etal \cite{NiessnerHashing} to
-\textit{Tango} devices. By carefully considering what parts of the space should
-be turned into distance fields at each timestep, we avoid needless computation
-(\tabref{table:meshingtimes}) and memory allocation (\figref{fig:memory_data})
-in areas far away from the sensor. Unlike \cite{NiessnerHashing}, we do not make
-use of any general purpose GPU computing. All TSDF fusion is performed on the
-mobile processor, and the volumetric data structure is stored on the CPU.
-Instead of rendering the scene via raycasting, we generate polygonal meshes
-incrementally for only the parts of the scene that need to be rendered. Since
-the depth sensor found on the \textit{Tango} device is significantly more noisy
-than other commercial depth sensors, we introduce \textit{space carving}
-(\sref{section:carving}) and \textit{dynamic trunction} (\sref{section:dynamic_trunc}) into
-the TSDF fusion algorithm to improve reconstruction quality under conditions of
-high noise. The space carving and truncation algorithms are informed by a
-parametric noise model trained for the sensor using the method of Nguyen \etal
-\cite{Nguyen2012}.
+Our system (called \chisel)  adapts the spatially hashed datastructure of
+Niessner \etal \cite{NiessnerHashing} to \textit{Tango} devices. By carefully
+considering what parts of the space should be turned into distance fields at
+each timestep, we avoid needless computation (\tabref{table:meshingtimes}) and
+memory allocation (\figref{fig:memory_data}) in areas far away from the sensor.
+Unlike \cite{NiessnerHashing}, we do not make use of any general purpose GPU
+computing. All TSDF fusion is performed on the mobile processor, and the
+volumetric data structure is stored on the CPU. Instead of rendering the scene
+via raycasting, we generate polygonal meshes incrementally for only the parts
+of the scene that need to be rendered. Since the depth sensor found on the
+\textit{Tango} device is significantly more noisy than other commercial depth
+sensors, we reintroduce space carving \cite{Elfes1989} from occupancy grid
+mapping (\sref{section:carving}) and dynamic trunction
+(\sref{section:dynamic_trunc}) into the TSDF fusion algorithm to improve
+reconstruction quality under conditions of high noise. The space carving and
+truncation algorithms are informed by a parametric noise model trained for the
+sensor using the method of Nguyen \etal \cite{Nguyen2012}.
 
 \section{System Implementation} 
 \subsection{Preliminaries}
 \label{section:prelim}
 Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
 sensor origin to the scene.  At each timestep $t$ we have a set of
-rays $Z_t$ (\figref{fig:raycast_diagram}). Call the origin of the ray $o$, and the endpoint of the ray $\mathbf{x}$. 
+rays $Z_t$. \figref{fig:raycast_diagram} is a diagram of a ray hitting a
+ surface from the camera, and a voxel that the ray passes through.  Call  the
+ origin of the ray $o$, and the endpoint of the ray $\mathbf{x}$.
 The length of the ray is given by $z = \|\mathbf{o}
 - \mathbf{x}\|$. The direction of the ray is given by $\mathbf{\hat{r}} =
 \frac{\mathbf{o} - \mathbf{x}}{z}$. The endpoint of each ray represents a point
@@ -542,26 +545,16 @@ point.
    \begin{subfigure}{1.0\columnwidth}
      \centering
          \includegraphics[width=1.0\textwidth]{img/Raycast}
-      \caption{}
+      \caption{Raycasting through a voxel.}
   \label{fig:raycast_diagram}
    \end{subfigure}
       \begin{subfigure}{1.0\columnwidth}
      \centering
          \includegraphics[ width=1.0\textwidth]{img/tsdf_integration.pdf}
-         \caption{}
+         \caption{Noise model and the space carving region.}
   \label{fig:integration_diagram}
    \end{subfigure}
-   \caption{\figref{fig:raycast_diagram} is a diagram of a ray hitting a
-   surface from the camera, and a voxel that the ray passes through. The length of the ray from the point at
-      which the ray intersects the voxel and the surface, $u$, is an
-      approximation of the signed distance field $\Phi$, when $u$ is small.
-      \figref{fig:integration_diagram} shows a hypothetical plot of the
-      hit probability of a ray $P\left(z - d = u \right) $, the pass
-      probability $P\left(z - d < u\right)$, vs. $u$, where $z$ is the
-      measurement from the sensor, and $d$ is the true distance from the sensor
-      to the surface. The hit integration region is inside $[-\tau, \tau]$,
-      whereas regions closer to the camera than  $\tau + \epsilon$ are in the
-      space carving region (\sref{section:carving}). }
+   \caption{}
 \end{figure*} 
 % 
 % This observation leads to the Truncated Signed Distance Field (TSDF)
@@ -728,10 +721,16 @@ field to be positive at all points along the ray, whereas rays hitting objects
 only inform us about the presence of a surface very near the endpoint of the ray.
 
 For this reason, we augment our TSDF algorithm with a \textit{space carving}
-constraint. Along each ray within the space carving region (Fig.
-\ref{fig:integration_diagram}), we \chisel away data that has a nonpositive
-stored SDF. Algorithm \ref{alg:TSDF}, line \ref{alg:line:voxel_carve} shows how this is
-accomplished. 
+\cite{Elfes1989} constraint.   \figref{fig:integration_diagram} shows a hypothetical
+plot of the hit probability of a ray $P\left(z - d = u \right) $, the pass probability
+$P\left(z - d < u\right)$, vs. $u$, where $z$ is the measurement from the
+sensor, and $d$ is the true distance from the sensor to the surface. The
+hit integration region is inside $[-\tau, \tau]$, whereas regions closer
+to the camera than  $\tau + \epsilon$ are in the space carving region.
+Along each ray within the space carving region, we \chisel away data that
+has a nonpositive stored SDF. Algorithm \ref{alg:TSDF}, line
+\ref{alg:line:voxel_carve} shows how this is
+accomplished.
 
 Space carving gives us two advantages: first, it dramatically improves the
 surface reconstruction in areas of very high noise (especially around the edges
