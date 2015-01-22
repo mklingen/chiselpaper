@@ -314,7 +314,7 @@ highly redundant, noisy, and fail to capture \emph{negative} (non-surface)
 information about the scene. This information is crucial in situations where the sensor is noisy,
 or has large patches of missing data \cite{Klingensmith2014}.
 
-Elfes \cite{Elfes1989} introduced the concept of \emph{Occupancy Grid
+Elfes \cite{Elfes1989} introduced \emph{Occupancy Grid
 Mapping}, which divides the world into a grid of voxels, each of which contains
 an occupancy probability. Occupancy grids provide a principled alternative to
 simple point clouds. They preserve local structure, and gracefully handle
@@ -653,12 +653,10 @@ neglect this in our implementation.
 
 \subsection{Colorization}
 \label{section:color}
-To create colored surface reconstructions, we use a method following Bylow
-\etal \cite{Bylow2013}, also used in \textit{Kintinuous} \cite{Whelan2013},
-which directly stores color information as volumetric data. Alongside the
-truncated signed distance field, we store a volumetric color function
-$C : \mathbf{R}^3 \to \mathbf{R}^{3+}$, and a color weighting function
-$W_{c} :
+As in \cite{Bylow2013, Whelan2013}, we create colored surface reconstructions by
+directly storing color as volumetric data. Alongside the truncated signed
+distance field, we store a volumetric color function $C : \mathbf{R}^3 \to
+\mathbf{R}^{3+}$, and a color weighting function $W_{c} :
 \mathbf{R}^3 \to \mathbf{R^{+}}$.
 
 Color is updated in exactly the same manner as the TSDF. We assume that each
@@ -679,8 +677,9 @@ color weighting function. In both \cite{Bylow2013} and \cite{Whelan2013}, the co
 product of the ray's direction and an estimate of the surface normal. But since
 surface normal estimation is computationally expensive, we instead use the same
 weight for both distance and color. The choice of color space (red/green/blue,
-hue/saturation/value, etc.) depends on the application. As in \cite{Bylow2013}, we have chosen RGB space for the sake
-of simplicity, at the expense of color consistency with changes in illumination.
+hue/saturation/value, etc.) depends on the application. As in \cite{Bylow2013},
+we have chosen RGB space for the sake of simplicity, at the expense of color
+consistency with changes in illumination.
 
 % We must also deal with the fact that color images and depth data may be
 % asynchronous. In our case, depth data is often delayed behind color data by as
@@ -691,10 +690,10 @@ of simplicity, at the expense of color consistency with changes in illumination.
 
 \subsection{Dynamic Truncation Distance}
 \label{section:dynamic_trunc}
-Following the approach of Nguyen \etal\cite{Nguyen2012}, we use a dynamic
-truncation distance based on the noise model of the sensor rather than a fixed
-truncation distance to better use noisy data far from the sensor. The truncation
-distance is given as a function of depth:
+As in\cite{Nguyen2012, NiessnerHashing}, we use a dynamic truncation distance based on the
+noise model of the sensor rather than a fixed truncation distance to better use
+noisy data far from the sensor. The truncation distance is given as a function
+of depth:
 
 \begin{equation} \mathcal{T} (z) = \beta\sigma_{z} \end{equation}
 
@@ -916,12 +915,12 @@ Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
 the number of voxels affected by a depth scan. This value is nearly constant
 over time, and depending on the resolution of the TSDF, may be significantly
 less than the number of rays in a scan. However, projection mapping suffers from
-resolution-dependant aliasing errors, because the length of the ray taken from projection mapping may differ from the
-true depth of the ray by up to the length of the diagonal of the voxel. 
-Further, by ignoring the visual hull of the voxel and only projecting its
-center, we ignore the fact that multiple depth cones may pass through one voxel
-in a single scan.  \sref{section:scan_compare} compares the performance and
-quality of these methods.
+resolution-dependant aliasing errors, because the length of the ray taken from
+projection mapping may differ from the true depth of the ray by up to the
+length of the diagonal of the voxel. Further, by ignoring the visual hull of the
+voxel and only projecting its center, we ignore the fact that multiple depth
+cones may pass through one voxel in a single scan.  \sref{section:scan_compare}
+compares the performance and quality of these methods.
 
 \begin{algorithm} 
 	\caption{Projection Mapping}
@@ -958,11 +957,11 @@ quality of these methods.
 % the mobile device. For that reason, it is necessary to develop a real-time
 % rendering solution that is amenable to the limited graphics capabilities of mobile devices.
 
-We take inspiration from work in computer graphics for rendering large
-natural terrains \cite{GPUGEMS3} using incremental Marching Cubes
-\cite{Lorensen1987}. For each chunk, we store a triangle mesh.
-Meshing is done asynchronously with the depth scan fusion, and is
-performed lazily (\ie, only when chunks need to be rendered).
+We use an approach from computer graphics for rendering large
+terrains \cite{GPUGEMS3} using incremental Marching Cubes \cite{Lorensen1987}.
+For each chunk, we store a triangle mesh. Meshing is done asynchronously with
+the depth scan fusion, and is performed lazily (\ie, only when chunks need to
+be rendered).
 
 Triangle meshes are generated at the isosurface
 $\Phi_{\tau}(\mathbf{x}) = 0$ whenever the chunk has been updated by a depth
@@ -1046,7 +1045,7 @@ optimized offline using bundle adjustment, overlaid on the floorplan of
 % \ref{fig:map_device}).
 % 
 % At any time, the user can save the volumetric representation of the TSDF, or a
-% surface mesh generated by marching cubes to disk.
+% surface mesh generated by marching cubes to disk. 
 
  \begin{figure*} [htb]\centering
 	 \begin{subfigure}[b] {0.3\linewidth} \centering
