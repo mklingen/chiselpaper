@@ -398,6 +398,12 @@ z \sim \mathcal{N}(d, \sigma_d)
 true depth $d$. We train this model using a method from \textit{Nguyen} \etal
 \cite{Nguyen2012}.
 
+Another complication is that since depth sensors are not ideal, an actual depth
+reading corresponds to many possible rays through the scene. Therefore, each
+depth reading represents a \textit{cone}, rather than a ray. The ray passing
+through the center of the cone closely approximates it near the sensor, but the
+approximation gets worse further away.
+
 % Rays are in practice stored in a 2D depth image at each timestep. We can
 % calibrate the depth sensor as a pinhole camera with camera intrinsics $\{f_x,
 % f_y, c_x, c_y\}$. Using the intrinsics, we can project onto the camera plane
@@ -827,37 +833,35 @@ memory on empty or unknown voxels.
 \subsection{Frustum Culling and Garbage Collection}
 \label{section:frustum}
 To determine which chunks should be updated by a depth scan and drawn, we use
-frustum culling. We first construct a conservative geometric convex
-approximation of the space visible to the depth camera by creating a camera
-frustum (truncated pyramid) with a far plane at the maximum depth reading of
-the camera, and the near plane at the minimum depth of the camera. We then take
-the axis-aligned bounding box of the camera frustum, and check each chunk inside
-the axis-aligned bounding box for intersection with the camera frustum.  Only
-those which intersect the frustum are updated.
+frustum culling, a well known technique in computer graphics. We  create a
+camera frustum with a far plane at the maximum depth reading of the camera, and
+the near plane at the minimum depth of the camera. We then take the 
+axis-aligned bounding box of the camera frustum, and check each chunk inside the
+axis-aligned bounding box for intersection with the camera frustum. Only those
+which intersect the frustum are updated.
 
 Since the frustum is a conservative approximation of the space that could be
 updated by a depth scan, some of the chunks that are visible to the frustum will
-have no depth data associated with them. For this reason, we also store a flag
-inside each chunk indicating whether or not that chunk ever contained the
-endpoint of a ray from the depth camera. \figref{fig:frustum_cull} shows all the
-TSDF chunks which intersect the depth camera frustum  and are within $\tau$ of a hit as green cubes. Only
-these chunks are updated when new data is received.  Chunks which do not get
-updated during a depth scan are garbage collected (deleted from the hash map),
-reducing memory overhead. Since the size of the camera frustum is fixed, the
-garbage collection process has $\mathcal{O}(1)$ performance. Niessner \etal
-\cite{NiessnerHashing} use a similar approach for deciding which voxel chunk
-should be updated, though with raycasting rather than geometric frustum culling.
+have no depth data associated with them. \figref{fig:frustum_cull} shows all the
+TSDF chunks which intersect the depth camera frustum and are within $\tau$ of
+a hit as green cubes. Only these chunks are updated when new data is received. 
+Chunks which do not get updated during a depth scan are garbage collected
+(deleted from the hash map). Since the size of the camera frustum is in a fixed
+range, the garbage collection process has $\mathcal{O}(1)$ performance. Niessner
+\etal \cite{NiessnerHashing} use a similar approach for deciding which voxel
+chunks should be updated using raycasting rather than geometric frustum
+culling. We found frustum culling faster than raycasting on the mobile CPU.
 
 \subsection{Depth Scan Fusion}
 \label{section:scan_integration}
-To perform the process described in \algoref{alg:TSDF}, it is necessary
+To fuse a depth scan into the TSDF (\algoref{alg:TSDF}), it is necessary
 to consider each depth reading in each scan and upate each
-voxel along the depth cone according to its distance to an observed surface. The
-most straightfoward way of doing this is to simply iterate over each cone, and
-then use a fast rasterization algorithm \cite{RayTracing} to determine which voxels
-intersect with the cone. Other works have approximated the cone with a ray
+voxel intersecting its depth cone according to its distance to an observed
+surface. The most straightfoward way of doing this is to simply step along
+each cone, and then use a fast rasterization algorithm \cite{RayTracing} to determine which voxels
+intersect with the cone. Most works  approximate the depth cone with a ray
 through the center of the cone \cite{Newcombe, NiessnerHashing}. We will call
-this the Raycasting approach.However, has performance bound by
+this the Raycasting approach. However, has performance bound by
 $\mathcal{O}(N_{\text{ray}} \times l_{\text{ray}})$, where $N_{\text{ray}}$ is
 the number of rays in a scan, and $l_{\text{ray}}$  is proportional to the
 length of a ray being integrated. If we use a fixed-size truncation distance
@@ -867,25 +871,23 @@ being integrated is potentially unbounded.
 
 A useful approximation of raycasting is \textit{projection mapping}. Used in
 \cite{Newcombe,Nguyen2012, Bylow2013, Klingensmith2014}, projection mapping
-works by projecting points in the voxel grid onto the depth image and comparing the depth value
-there with the geometric distance from the center of the voxel to the camera
-plane, and using that to approximate the distance along the ray from the camera
-to the voxel. \algoref{alg:projection_mapping} describes projection mapping.
+works by projecting the visual hull of each voxel onto the depth image and
+comparing the depth value there with the geometric distance from the voxel to
+the camera plane. \algoref{alg:projection_mapping} describes projection mapping.
 Instead of iterating over each ray, projection mapping iterates over each voxel.
-By projecting the voxel's visual hull or center onto the depth image, we can
-compare the actual depth reading to the distance from the voxel's center to the camera origin as an approximation of the
-distance to the surface, $u$. 
+Like most other works, we approximate each voxel's visual hull by a single point
+at the center of the voxel.
 
 Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
 the number of voxels affected by a depth scan. This value is nearly constant
 over time, and depending on the resolution of the TSDF, may be significantly
 less than the number of rays in a scan. However, projection mapping suffers from
-resolution-dependant aliasing errors, because the length of the ray taken from
-projection mapping may differ from the true depth of the ray by up to the
-length of the diagonal of the voxel. Further, by ignoring the visual hull of the
-voxel and only projecting its center, we ignore the fact that multiple depth
-cones may pass through one voxel in a single scan.  \sref{section:scan_compare}
-compares the performance and quality of these methods.
+resolution-dependant aliasing errors, because the distance to the center of a
+voxel may differ from the true length of the ray passing through the voxel by up
+to the length of the diagonal of the voxel. Further, by ignoring the visual
+hull of the voxel and only projecting its center, we ignore the fact that
+multiple depth cones may intersect a voxel during each scan.
+\sref{section:scan_compare} compares the performance and quality of these methods.
 
 \begin{algorithm} 
 	\caption{Projection Mapping}
@@ -914,15 +916,9 @@ compares the performance and quality of these methods.
 \end{algorithm}
 \subsection{Rendering}
 \label{section:render}
-% \textit{Kinect Fusion} \cite{Newcombe}, renders the TSDF by real-time
-% raytracing on the GPU. Raytracing has the advantage of being a pixel-perfect
-% representation of the surface, and performance scales only with the resolution
-% of the rendering rather than with the size of the space. However, real-time
-% raytracting requires intensive GPU computation that we simply do not have on
-% the mobile device. For that reason, it is necessary to develop a real-time
-% rendering solution that is amenable to the limited graphics capabilities of mobile devices.
-
-We use an approach from computer graphics for rendering large
+Most other TSDF fusion methods \cite{Newcombe, NiessnerHashing} render the
+scene by directly raytracing it on the GPU. Hardware limitations prevent us from doing
+this. Instead, we use an approach from computer graphics for rendering large
 terrains \cite{GPUGEMS3} using incremental Marching Cubes \cite{Lorensen1987}.
 For each chunk, we store a triangle mesh. Meshing is done asynchronously with
 the depth scan fusion, and is performed lazily (\ie, only when chunks need to
@@ -1149,10 +1145,10 @@ resolution as small as 2cm in real-time on board the device.
 reconstructed in real-time using the phone device.  This scenario is also shown
 in an attached video. \figref{fig:drift} shows a similar reconstruction of a
 $\sim 100m$ office floor. Using the tablet device, we have reconstructed (night
-time) outdoor scenes in real-time.\figref{fig:overhead_night} shows an overhead
-view of an outdoor scene captured at night with the yellowstone device at a
- resolution of 3 cm. The yellow pyramid represents the depth camera frustum. 
-The white lines show the trajectory of the device.
+time) outdoor scenes in real-time.\figref{fig:night3} shows an outdoor scene
+captured at night with the yellowstone device at a 3cm resolution. The yellow
+pyramid represents the depth camera frustum. The white lines show the trajectory
+of the device.
 
 In the course of online mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
