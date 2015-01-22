@@ -369,25 +369,25 @@ sensor using the method of Nguyen \etal \cite{Nguyen2012}.
 \subsection{Preliminaries}
 \label{section:prelim}
 Consider the geometry of the ideal pinhole depth sensor. Rays emanate from the
-sensor origin to the scene.  At each timestep $t$ we have a set of
-rays $Z_t$. \figref{fig:raycast_diagram} is a diagram of a ray hitting a
+sensor origin to the scene.  \figref{fig:raycast_diagram} is a diagram of a ray hitting a
  surface from the camera, and a voxel that the ray passes through.  Call  the
  origin of the ray $o$, and the endpoint of the ray $\mathbf{x}$.
 The length of the ray is given by $z = \|\mathbf{o}
 - \mathbf{x}\|$. The direction of the ray is given by $\mathbf{\hat{r}} =
 \frac{\mathbf{o} - \mathbf{x}}{z}$. The endpoint of each ray represents a point
-on the surface.  We can also parameterize the ray by its direction and endpoint: 
+on the surface.  We can also parameterize the ray by its direction and
+endpoint, using an interpolating parameter $u$:
 
  \begin{equation}
  	\mathbf{v}(u) = \mathbf{x} - u\mathbf{\hat{r}}
  \end{equation}
 
-In practice, the ray is corrupted by noise. Call $d$ the true
-distance from the origin of the sensor to the surface along the ray. Then $z$
-is actually a random variable drawn from a distribution dependant on $d$ called
-the \textit{hit probability} (\figref{fig:integration_diagram}). 
-
-Assuming the hit probability is Gaussian, we have:
+At each timestep $t$ we have a set of rays $Z_t$. In practice, the rays are
+corrupted by noise. Call $d$ the true distance from the origin of the sensor to
+the surface along the ray. Then $z$ is actually a random variable drawn from a
+distribution dependant on $d$ called the \textit{hit probability}
+(\figref{fig:integration_diagram}). Assuming the hit probability is Gaussian, we
+have:
 
 \begin{equation}
 \label{eqn:hitprobability}
@@ -409,12 +409,12 @@ true depth $d$. We train this model using a method from \textit{Nguyen} \etal
 \subsection{The Truncated Signed Distance Field}
 \label{section:TSDF}
 We model the world~\cite{Curless1996} as a volumetric signed distance field $\Phi: \mathbf{R}^3
-\to \mathbf{R}$. For any point in the world, $\Phi$
-outputs the distance to the nearest surface, \emph{signed} positive if the point
-is in free space and negative otherwise. Thus, the zero isocontour $(\Phi = 0)$
-encodes the surfaces of the world.
+\to \mathbf{R}$. For any point in the world $x$, $\Phi(x)$
+is the distance to the nearest surface, \emph{signed} positive if the point is
+outside of obstacles and negative otherwise. Thus, the zero isocontour $(\Phi =
+0)$ encodes the surfaces of the scene.
 
-Since we are primarily interested in reconstructing surfaces,
+Since we are mainly interested in reconstructing surfaces,
 we use the Truncated Signed Distance Field (TSDF) \cite{Curless1996}:
 \begin{equation}
 	\Phi_{\tau}(\mathbf{x}) =
@@ -423,9 +423,9 @@ we use the Truncated Signed Distance Field (TSDF) \cite{Curless1996}:
 		\text{undefined} & \text{otherwise}
 	\end{cases}
 \end{equation}
-where $\tau \in \mathbf{R}$ is the \emph{truncation distance}.  Curless
-\cite{Curless1996} notes that very near the endpoints of depth rays, the TSDF is
-closely approximated by the distance along the ray to the nearest observed
+where $\tau \in \mathbf{R}$ is the \emph{truncation distance}.  Curless and
+Levoy \cite{Curless1996} note that very near the endpoints of depth rays, the
+TSDF is closely approximated by the distance along the ray to the nearest observed
 point.   
  
 % Furthermore, computing the first-order Taylor series approximation of $\Phi_{\tau}$
@@ -574,10 +574,10 @@ The algorithm for updating the TSDF given a depth scan used in
 \cite{Curless1996} is outlined in
 \algoref{alg:TSDF}. For each voxel in the scene, we store a signed distance
 value, and a weight $W : \mathbf{R}^3 \to \mathbf{R^{+}}$ representing the confidence
-in the distance measurement. By taking a weighted running average of the
-distance measurements over time, Curless and Levoy show that the squared error
-of the distances of points in aggregate scans to the reconstructed surface is
-minimized.
+in the distance measurement. Curless and Levoy show that by taking a weighted
+running average of the distance measurements over time,  the resulting
+zero-isosurface of the TSDF minimizes the sum-squared distances to all the ray
+endpoints.
 
 We initialize the TSDF to an undefined value with a
 weight of $0$, then for each depth scan, we update the weight and TSDF value
@@ -618,14 +618,10 @@ neglect this in our implementation.
 \subsection{Colorization}
 \label{section:color}
 As in \cite{Bylow2013, Whelan2013}, we create colored surface reconstructions by
-directly storing color as volumetric data. Alongside the truncated signed
-distance field, we store a volumetric color function $C : \mathbf{R}^3 \to
-\mathbf{R}^{3+}$, and a color weighting function $W_{c} :
-\mathbf{R}^3 \to \mathbf{R^{+}}$.
-
-Color is updated in exactly the same manner as the TSDF. We assume that each
-depth ray also corresponds to a color in the RGB space. We integrate along the
-ray from $u \in [-\tau, \tau]$, and update the color:
+directly storing color as volumetric data. Color is updated in exactly the same
+manner as the TSDF.  We assume that each depth ray also corresponds to a color
+in the RGB space. We step along the ray from $u \in [-\tau, \tau]$, and update
+the color of each voxel and its weight:
 
 \begin{align}
 C(\mathbf{v}) \gets \frac{W_c(\mathbf{v}) C(\mathbf{v}) +
@@ -635,15 +631,15 @@ C(\mathbf{v}) \gets \frac{W_c(\mathbf{v}) C(\mathbf{v}) +
 W_c(\mathbf{v}) \gets W_c(\mathbf{v}) + \alpha_c(u)
 \end{align}
 
-\noindent where $\mathbf{v} = \mathbf{x} - u\mathbf{\hat{r}}$ and $\mathbf{c}
-\in \mathbf{R}^{3+}$ is the color of the ray in color space, $\alpha_c$ is a
-color weighting function. In both \cite{Bylow2013} and \cite{Whelan2013}, the color weighting function is proportional to the dot
-product of the ray's direction and an estimate of the surface normal. But since
-surface normal estimation is computationally expensive, we instead use the same
-weight for both distance and color. The choice of color space (red/green/blue,
-hue/saturation/value, etc.) depends on the application. As in \cite{Bylow2013},
-we have chosen RGB space for the sake of simplicity, at the expense of color
-consistency with changes in illumination.
+\noindent where $\mathbf{v} = \mathbf{x} - u\mathbf{\hat{r}}$,  $\mathbf{c}
+\in \mathbf{R}^{3+}$ is the color of the ray in color space, and $\alpha_c$ is a
+color weighting function. In both \cite{Bylow2013} and \cite{Whelan2013}, the
+color weighting function is proportional to the dot product of the ray's
+direction and an estimate of the surface normal. But since surface normal
+estimation is computationally expensive, we instead use the same weight for
+both distance and color. As in \cite{Bylow2013},
+we have chosen RGB color space for the sake of simplicity, at the expense of
+color consistency with changes in illumination.
 
 % We must also deal with the fact that color images and depth data may be
 % asynchronous. In our case, depth data is often delayed behind color data by as
