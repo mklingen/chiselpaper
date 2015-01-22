@@ -15,6 +15,9 @@
 %\usepackage[noadjust]{cite}
 \usepackage[sort&compress,numbers]{natbib} % required by RSS
 
+\pdfminorversion=5
+\pdfobjcompresslevel=3 
+\pdfcompresslevel=9 
 
 % list of commenters
 \newcommand{\ssnote}[1]{{\xxnote{SS}{red}{#1}}}
@@ -1195,7 +1198,7 @@ paused. After mapping is complete, the user can save the map to disk.
  \begin{equation}
       c_{\epsilon}(\xi) = a \sum_{x \in \xi} \left(\tau -
       d_{\epsilon}(x)\right) + b\|\xi\|_2
- \end{equation}
+ \end{equation} 
  
 \noindent where $\|\xi\|_2$ is the length of the trajectory, and $a, b$ are
 positive weights. This can be accomplished using the A* algorithm on a
