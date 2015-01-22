@@ -37,7 +37,7 @@
 \newcommand{\algoref}[1]{Alg.\ref{#1}}
 
 
-\newcommand{\naive}{na\"{\i}ve }
+\newcommand{\naive}{baseline\xspace}
 \newcommand{\ie}{\textit{i.e. }}
 \newcommand{\eg}{\textit{e.g. }}
 \newcommand{\etal}{\textit{et al. }}
@@ -50,6 +50,7 @@
 \newcommand{\chisel}{\textsc{Chisel}\xspace}
 
 \usepackage{booktabs} % Pretty tabular
+\usepackage{multirow} % Cells that span multiple rows
 
 
 % Include other packages here, before hyperref.
@@ -770,6 +771,24 @@ some inconsistencies caused by moving objects and localization errors.
  
 \subsection{The Dynamic Spatially Hashed TSDF}
 \label{section:spatialhash}
+
+\begin{figure}[t!]
+ 	  	\begin{subfigure}[b]{0.45\linewidth} \centering
+ 	    \includegraphics[width=1.0\textwidth]{img/chunks.pdf}
+ 	      \caption{Spatial Hashing.}
+ 	  	\label{fig:chunks} 
+ 	  \end{subfigure} 
+ 	  \begin{subfigure}[b]{0.55\linewidth} \centering
+ 	  	  \hspace{-5em}
+	      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
+	      \caption{Frustrum Culling.}
+	 	 \label{fig:frustum_cull}
+	  \end{subfigure}
+	  \caption{\figref{fig:chunks}: chunks are spatially hashed \cite{SpatialHashing} into a
+      dynamic hash map. 
+      \figref{fig:frustum_cull}: only voxels within the frustrum (in green) are stored in memory.}
+\end{figure} 
+
 Each voxel contains an estimate of the signed distance field and an
 associated weight. In our implementation, these are packed into a single 32-bit
 integer. The first 16 bits are a fixed-point signed distance value, and the
@@ -800,64 +819,52 @@ Even worse, adjacent voxels may not be adjacent in memory, resulting in very
 poor caching performance \cite{CacheStructures}.  We found that using an octree
 to store the TSDF data to reduce iteration performance by an order of magnitude.
 
-\begin{figure*}
+\begin{figure*}[t!]
   \centering
-    \begin{minipage}{0.25\linewidth}
-	 \begin{subfigure}{1.0\linewidth} \centering
+	 \begin{subfigure}[b]{0.22\linewidth} \centering
 			\includegraphics[width=1.0\textwidth]{img/memoryusage.pdf}
-			 \caption{} 
+			 \caption{Memory usage efficiency.} 
 			 \label{fig:memory_data}
 		 \end{subfigure}  
-		  \begin{subfigure}{1.0\linewidth} \centering
+		  \begin{subfigure}[b]{0.22\linewidth} \centering
 			\includegraphics[width=1.0\textwidth]{img/memoryusage2.pdf}
-			 \caption{} 
+			 \caption{Varying depth frustrum.} 
 			 \label{fig:memory_data2}
 		 \end{subfigure}
-	 \end{minipage} 
-	 \begin{minipage} {0.25\linewidth} 
-	  \begin{subfigure}{1.0\linewidth} \centering 
+	  \begin{subfigure}[b]{0.27\linewidth} \centering 
 		\includegraphics[width=1.0\textwidth]{img/freiburg_5m.png}
-		 \caption{}
+		 \caption{5m depth frustrum.}
 		 \label{fig:freiburg_5m}
 	 	\end{subfigure} 
- 		\begin{subfigure}{1.0\linewidth} \centering
+ 		\begin{subfigure}[b]{0.27\linewidth} \centering
 		\includegraphics[width=1.0\textwidth]{img/freiburg_2m.png}
-		 \caption{} 
+		 \caption{2m depth frustrum.} 
 		 \label{fig:freiburg_2m}
-	 \end{subfigure}  
-	 \end{minipage}
-    \begin{minipage}{0.45\linewidth}
-% 	  \begin{subfigure}{\linewidth} \centering
-% 	    \includegraphics[width=1.0\textwidth]{img/projection_mapping}
-% 	      \caption{} 
-% 	      \label{fig:projection_mapping}
-% 	  \end{subfigure}
-		\begin{subfigure}{\linewidth} \footnotesize
-		\begin{tabular} {rrr}
-		\toprule
-		Voxel Class & Voxel Count & \% of Bounding Box \\ 
-		\midrule
-		Unknown Culled & 62,105,216 & 77.0 \\ 
-		Unknown & 12,538,559 & 15.5 \\ 
-		Outside & 3,303,795 & 4.1 \\ 
-		Inside & 2,708,430 & 3.4 \\ 
-		\bottomrule
-		\end{tabular}
-		\caption{}
-		\label{table:volumecount}  
-		\end{subfigure} 
- 	  	\begin{subfigure}{0.45\linewidth} \centering
- 	    \includegraphics[width=1.0\textwidth]{img/chunks.pdf}
- 	      \caption{}
- 	  	\label{fig:chunks} 
- 	  \end{subfigure} 
- 	  \begin{subfigure}{0.45\linewidth} \centering
-	      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
-	      \caption{}
-	 	 \label{fig:frustum_cull}
-	  \end{subfigure}
-   \end{minipage}
-  \caption{ We compare our spatial hashing (SH)
+	 \end{subfigure}
+	 \caption{Spatial Hashing (SH) is more memory efficient than Fixed Grid (FG) and provides control over depth frustrum.}
+\end{figure*} 
+
+\begin{table}[t!]
+\centering
+	\begin{tabular} {rrr}
+	\toprule
+	Voxel Class & Voxel Count & \% of Bounding Box \\ 
+	\midrule
+	Unknown Culled & 62,105,216 & 77.0 \\ 
+	Unknown & 12,538,559 & 15.5 \\ 
+	Outside & 3,303,795 & 4.1 \\ 
+	Inside & 2,708,430 & 3.4 \\ 
+	\bottomrule
+	\end{tabular}
+	\caption{Voxel statistics for the Freiburg 5m dataset.}
+	\label{table:volumecount}  
+\end{table}
+
+
+
+
+\ssnote{THIS NEEDS TO BE EDITED AND ADDED TO THE ACTUAL TEXT.}
+  \ssnote{ We compare our spatial hashing (SH)
       approach to a \naive algorithm which simply allocates a single
       block of volume memory for the entire space needed (FG)
       (\figref{fig:memory_data}). Memory is recorded for voxels of 3cm
@@ -875,7 +882,8 @@ to store the TSDF data to reduce iteration performance by an order of magnitude.
       the Freiburg 5m (\figref{fig:freiburg_5m}) dataset. Culled voxels are not stored in
        memory. Unknown voxels have a weight of 0. Inside and Outside voxels have
       a weight $> 0$ and an SDF than is $\leq 0$ and $> 0$ respectively. }
-\end{figure*} 
+
+
 
 Instead of using an Octree, or a fixed 3D array , we use a hybrid data
 structure introduced by Niessner \etal \cite{NiessnerHashing} which maintains
@@ -1086,47 +1094,49 @@ too slow to run in real-time on the device along with TSDF fusion.
 % surface mesh generated by marching cubes to disk.
 
  \begin{figure*} [htb]\centering
-	 \begin{subfigure} {0.3\linewidth} \centering
+	 \begin{subfigure}[b] {0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance3}
 		 \caption{}
 		 \label{fig:overhead_night}
 	 \end{subfigure}
-	 \begin{subfigure}{0.3\linewidth} \centering
+	 \begin{subfigure}[b]{0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance2}
 		 \caption{}
 		 \label{fig:night2}
 	 \end{subfigure}
-	 	 \begin{subfigure}{0.3\linewidth} \centering
+	 	 \begin{subfigure}[b]{0.3\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/colorbalance1} 
 		 \caption{}
 		 \label{fig:night3}
 	 \end{subfigure} 
-	 	 \begin{subfigure} {0.25\linewidth} \centering
+	 	 \begin{subfigure}[b] {0.25\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
 		 \caption{}
 		 \label{fig:dragon_color}
 	 \end{subfigure}
-	 	 \begin{subfigure}{0.3\linewidth} \centering  
+	 	 \begin{subfigure}[b]{0.3\linewidth} \centering  
 		 \includegraphics[width=1.0\textwidth]{img/dragon_closeup.png} 
 		 \caption{}
 		 \label{fig:dragon_closeup}
 	 \end{subfigure} 
- 	  \begin{subfigure}{0.35\linewidth} \centering \footnotesize
+ 	  \begin{subfigure}[b]{0.35\linewidth} \centering \footnotesize
 % \includegraphics[width=1.0\textwidth]{img/timing_data.pdf}
 % 		 \caption{}
 % 		 \label{fig:timing}
-			\begin{tabular} { | l | l | l | r | r |}
-			\hline
-			Method       & Color & Carving & Desktop& Tablet\\
-			\hline 
-			Raycast & No& No&$\mathbf{14 \pm 02}$ & $\mathbf{62 \pm 13}$ \\ \hline
-			Raycast & Yes & No& $\mathbf{20 \pm 05}$ & $\mathbf{80 \pm 16}$ \\ \hline
-			Raycast & No & Yes & $53 \pm  10$ & $184 \pm 40$ \\ \hline
-			Raycast & Yes & Yes &$58 \pm 16$  & $200 \pm 37$\\ \hline \hline
-			Project & No & No & $33 \pm 05$ & $106 \pm 22$ \\ \hline
-			Project & Yes & No & $39 \pm 05$  & $125 \pm 23$ \\ \hline
-			Project  & No & Yes & $\mathbf{34 \pm 04}$  & $\mathbf{116 \pm 19}$ \\ \hline
-			Project & Yes & Yes  & $\mathbf{40 \pm 05}$ & $\mathbf{128 \pm 24}$ \\ \hline
+			\begin{tabular} { ccccc}
+			\toprule
+			Method       & Color & Carving & Desktop (ms.) & Tablet (ms.)\\
+			\midrule 
+			\multirow{4}{*}{Raycast} & No& No&$\mathbf{14 \pm 02}$ & $\mathbf{62 \pm 13}$ \\ 
+			 & Yes & No& $\mathbf{20 \pm 05}$ & $\mathbf{80 \pm 16}$ \\ 
+			 & No & Yes & $53 \pm  10$ & $184 \pm 40$ \\ 
+			 & Yes & Yes &$58 \pm 16$  & $200 \pm 37$\\ 
+			\midrule
+			\multirow{4}{*}{Project} & No & No & $33 \pm 05$ & $106 \pm 22$ \\ 
+			 & Yes & No & $39 \pm 05$  & $125 \pm 23$ \\ 
+			 & No & Yes & $\mathbf{34 \pm 04}$  & $\mathbf{116 \pm 19}$ \\ 
+			 & Yes & Yes  & $\mathbf{40 \pm 05}$ & $\mathbf{128 \pm 24}$ \\ 
+			\bottomrule
 			\end{tabular}
 			\caption{}
 			\label{table:timing}
