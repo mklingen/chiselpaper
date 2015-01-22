@@ -109,8 +109,8 @@ We describe a system for real-time house-scale (300 square meter or more)
 dense 3D mapping \cite{Hartley2004} using a mobile Google \Tango
 \cite{Tango} device by using a dynamic spatially hashed \cite{NiessnerHashing} truncated
 signed distance field \cite{Curless1996} for mapping, and visual-inertial
-odometry \cite{VINS} for localization. By aggressively culling parts of the
-scene that do not contain surfaces, we avoid needless computation and wasted
+odometry \cite{VINS, VINS2} for localization. By aggressively culling parts of
+the scene that do not contain surfaces, we avoid needless computation and wasted
 memory. Even under very noisy conditions, we produce high quality
 reconstructions through the use of space carving. We are able to reconstruct and
 render very large scenes at a resolution of 2-3 cm in real
@@ -236,8 +236,8 @@ are able to quickly identify which parts of the scene should be rendered,
 updated, or deleted. This allows us to minimize the amount of time we spend on
 each depth scan and keep the reconstruction running in real-time on the device. 
 
-For localization, we use a mix of  visual-inertial odometry \cite{VINS} and
-sparse keypoint-based mapping \cite{FastSlam} as a black box
+For localization, we use a mix of  visual-inertial odometry \cite{VINS, VINS2}
+and sparse keypoint-based mapping \cite{FastSlam} as a black box
 (\sref{section:pose}). These approaches use only the 2D wide-angle camera and
 the IMU, and take in no information from the depth sensor. As a consequence,
 our mapping system  is \textit{open-loop} in the sense that it does not attempt
@@ -317,7 +317,10 @@ A recent work by Wagner \etal \cite{WagnerICRA13} explores the direct use of a
 TSDF for robot arm motion planning; making use of the gradient information
 implicitly stored in the TSDF to locally optimize robot trajectories. We are
 interested in similarly planning trajectories for autonomous flying robots by
-directly using TSDF data (\sref{section:robot}).
+directly using TSDF data (\sref{section:robot}). Real-time onboard 3D mapping,
+navigation and odometry has already been achieved on flying robots
+\cite{FlyingNavigation, OSMAV}using occupancy grids. Our system is complimentary to this
+work.
 
 \emph{Kinect Fusion} \cite{Newcombe} uses a TSDF to simultanesously extract the
 pose of a moving depth camera and scene geometry in real-time. Making
@@ -937,12 +940,12 @@ destroyed once the number of allocated meshes exceeds some threshold.
 
 \subsection{Pose Estimation}
 \label{section:pose}
-We will assume we  have \textit{a priori} black-box pose estimation of the
-sensor from a seperate tracking system. Specifically, in our experiments, pose
-data is estimated from an onboard visual-inertial odometry system that fuses
+We assume we  have \textit{a priori} black-box pose estimation of the
+sensor from a seperate pose tracking system. Specifically, in our experiments,
+pose data is estimated from an onboard visual-inertial odometry system that fuses
 data from a wide-angle camera, an inertial measurement unit, and a gyroscope at
 60 Hz using 2D feature tracking and an Extended Kalman Filter. A more detailed
-discussion of this system can be found in \cite{VINS}.  Unlike
+discussion of this system can be found in \cite{VINS, VINS2}.  Unlike
 most other TSDF fusion methods \cite{Newcombe, Whelan2013,
 Bylow2013, NiessnerHashing} , our implementation makes no attempt to estimate
 the pose of the sensor directly from depth data. Instead, we use depth data 
@@ -950,7 +953,7 @@ only for surface reconstruction. Unfortunately, decoupling the pose estimation
 and surface reconstruction results in failure to correct for drift in the pose
 estimation using depth data, and can result in mis-alignment of depth scans
 \figref{fig:drift} shows a top down view of a $\sim
-100$ meter long corridor reconstructed by a user holding the device. The
+175$ meter long corridor reconstructed by a user holding the device. The
 left figure shows the reconstruction achieved by visual odometry alone,
 with $\sim 5$ meter drift present at the end of the corridor. The right 
 figure shows the reconstruction after the trajectory has been globally
@@ -1016,8 +1019,6 @@ optimized offline using bundle adjustment, overlaid on the floorplan of
 		 \label{fig:night3}
 \end{figure}
 
-
-
  \begin{figure*} [htb]\centering
 	 	 \begin{subfigure}[b] {0.25\linewidth} \centering
 		 \includegraphics[width=1.0\textwidth]{img/dragon_color.png}  
@@ -1059,10 +1060,6 @@ optimized offline using bundle adjustment, overlaid on the floorplan of
 	 space carving. \figref{table:timing} reports timing results.}
 	 \label{fig:device_data}
  \end{figure*} 
-
-
-
-
 
 \section{Experiments and Results}
 \label{section:experiments}
@@ -1144,8 +1141,8 @@ resolution as small as 2cm in real-time on board the device.
 \figref{fig:map_device} shows a map of an office building floor being
 reconstructed in real-time using the phone device.  This scenario is also shown
 in an attached video. \figref{fig:drift} shows a similar reconstruction of a
-$\sim 100m$ office floor. Using the tablet device, we have reconstructed (night
-time) outdoor scenes in real-time.\figref{fig:night3} shows an outdoor scene
+$\sim 175m$ office corridor. Using the tablet device, we have reconstructed
+(night time) outdoor scenes in real-time.\figref{fig:night3} shows an outdoor scene
 captured at night with the yellowstone device at a 3cm resolution. The yellow
 pyramid represents the depth camera frustum. The white lines show the trajectory
 of the device.
@@ -1179,33 +1176,35 @@ paused. After mapping is complete, the user can save the map to disk.
 \end{figure} 
  One of the main advantages of fully-integrated hardware systems such as the
 \Tango device is that they are light enough to mount on small mobile
- robots. As a motivating example, we explore the problem of motion planning in a
- scene created onboard the device using \chisel. \figref{fig:robot} shows a
+ robots. As a motivating example, consider the problem of motion planning in
+ a scene created onboard the device using \chisel. \figref{fig:robot} shows a
  robot on which we mounted a tablet device. The device is light enough to allow
  the robot to fly.
  
- We simulate a motion planning problem for an aerial robot by simply planning
- for a sphere-shaped robot in 3D. Note that a sphere-shaped robot can be
- represented as a point when planning in a distance field. All that must be done
- for a robot with radius $\epsilon$  is to define:
+ As in \cite{FlyingNavigation}, we simulate a motion planning problem for an
+ aerial robot by planning for a sphere-shaped robot in 3D. Note that a sphere-shaped robot can be
+ represented as a point when planning in a distance field. The distance to the
+ nearest surface for a robot with radius $\epsilon$ is:
  
  \begin{equation}
    d_{\epsilon}(x) = \Phi_\tau(x) - \epsilon
  \end{equation}
  
- \noindent We can then find the optimal 3D trajectory $\xi$ which minimizes:
+ \noindent We want to find a 3D trajectory $\xi$ which minimizes:
  
  \begin{equation}
-      c_{\epsilon}(\xi) = \sum_{x \in \xi} \left(\tau - d_{\epsilon}(x)\right) +
-      \|\xi\|_2
+      c_{\epsilon}(\xi) = a \sum_{x \in \xi} \left(\tau -
+      d_{\epsilon}(x)\right) + b\|\xi\|_2
  \end{equation}
  
-\noindent where $\|\xi\|_2$ is the length of the trajectory. This can be
-accomplished using the A* algorithm on a lattice grid, with a Euclidean
-heuristic function. Whenever $d < 0$, the robot is considered to be in
-collision, and no expansions are made. \figref{fig:path_plan} shows two example
-paths through a pre-scanned TSDF. Notice that by varying $\epsilon$,
-trajectories can be made to skirt closer or further from obstacles without
+\noindent where $\|\xi\|_2$ is the length of the trajectory, and $a, b$ are
+positive weights. This can be accomplished using the A* algorithm on a
+26-conntected lattice grid, with a simple Euclidean heuristic function. Note
+that the edge weights are garunteed to be positive (because all distances in the
+TSDF are $\leq\tau$). Whenever $d < 0$, the robot is considered to be in
+collision, and no expansions are made.
+\figref{fig:path_plan} shows two example paths through a pre-scanned TSDF scene.
+Notice that by varying $\epsilon$, trajectories can be made to skirt closer or further from obstacles without
 additional computation cost.
  
 \subsection{Comparing Depth Scan Fusion Algorithms} 
