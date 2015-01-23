@@ -175,7 +175,7 @@ geometry and texture).
 Consider house-scale (300 square meter) real-time 3D mapping and localization on
 a \Tango device.  A user (or robot) moves around a building, scanning
 the scene. At house-scale, we are only concerned with features with a resolution
-of about 2-3 cm (walls, floors, furniture, applicances, etc.). To facilitate
+of about 2-3 cm (walls, floors, furniture, appliances, etc.). To facilitate
 scanning, real-time feedback is given to the user on the device's screen.  The
 user can export the resulting 3D scan without losing any data.
 \figref{fig:first_figure} shows an example of this use case (\sref{section:mapping})
@@ -233,7 +233,7 @@ interested in preserving the volumetric data for later use.
 
 Experimentally, we found that most ( $\sim 93\%$) of the space in a typical
 scene is in fact empty (\tabref{table:volumecount}). Iterating over empty space
-for the puposes of reconstruction and rendering wastes computation time; and storing it
+for the purposes of reconstruction and rendering wastes computation time; and storing it
 wastes memory. Noting this fact, we make use of a data structure introduced by
 Niessner \etal \cite{NiessnerHashing}, the Dynamic spatially-hashed
 \cite{SpatialHashing} \TSDF (\sref{section:spatialhash}), which stores the
@@ -328,7 +328,7 @@ navigation and odometry has already been achieved on flying robots
 \cite{FlyingNavigation, OSMAV}using occupancy grids. Our system is
 complimentary to this work.
 
-\emph{Kinect Fusion} \cite{Newcombe} uses a \TSDF to simultanesously extract the
+\emph{Kinect Fusion} \cite{Newcombe} uses a \TSDF to simultaneously extract the
 pose of a moving depth camera and scene geometry in real-time. Making
 heavy use of the GPU for scan fusion and rendering, \textit{Fusion} is capable
 of creating extremely high-quality, high-resolution surface reconstructions within
@@ -346,12 +346,12 @@ moving window approach is not suitable.
 
 Recent works have focused on extending \TSDF fusion to larger scenes by
 compressing the distance field to avoid storing and iterating
-over empty space. Many have used \textit{hierarichal} data structures such as
+over empty space. Many have used \textit{hierarchal} data structures such as
 octrees or KD-trees to store the \TSDF \cite{Zeng2012, Chen2012}. However, these
 structures suffer from high complexity and complications with parallelism. 
 
 An approach by Niessner \etal \cite{NiessnerHashing} uses a two-layer
-hierarichal data structure that uses spatial hashing \cite{SpatialHashing} to
+hierarchal data structure that uses spatial hashing \cite{SpatialHashing} to
 store the \TSDF data. This approach avoids the needless complexity of other
 hierarchical data structures, boasting $\mathcal{O}(1)$ queries, and avoids
 storing or updating empty space far away from surfaces.
@@ -368,7 +368,7 @@ via raycasting, we generate polygonal meshes incrementally for only the parts
 of the scene that need to be rendered. Since the depth sensor found on the
 \Tango device is significantly more noisy than other commercial depth
 sensors, we reintroduce space carving \cite{Elfes1989} from occupancy grid
-mapping (\sref{section:carving}) and dynamic trunction
+mapping (\sref{section:carving}) and dynamic truncation
 (\sref{section:dynamic_trunc}) into the \TSDF fusion algorithm to improve
 reconstruction quality under conditions of high noise. The space carving and
 truncation algorithms are informed by a parametric noise model trained for the
@@ -394,7 +394,7 @@ endpoint, using an interpolating parameter $u$:
 At each timestep $t$ we have a set of rays $Z_t$. In practice, the rays are
 corrupted by noise. Call $d$ the true distance from the origin of the sensor to
 the surface along the ray. Then $z$ is actually a random variable drawn from a
-distribution dependant on $d$ called the \textit{hit probability}
+distribution dependent  on $d$ called the \textit{hit probability}
 (\figref{fig:integration_diagram}). Assuming the hit probability is Gaussian, we
 have:
 
@@ -481,7 +481,7 @@ point.
 % function $\Phi(\mathbf{x}) = 0$ at that point. In practice, the ray is
 % corrupted by noise. Call $d$ the true distance from the origin of the sensor to
 % the surface along the ray. Then $z$ is actually a random variable drawn from a
-% distribution dependant on $d$ called the \textit{hit probability}
+% distribution dependent  on $d$ called the \textit{hit probability}
 % (\figref{fig:integration_diagram}).
 % 
 % The ray also implies that all the points in space along the ray from the sensor
@@ -725,12 +725,12 @@ instance, a person walking in front of the sensor will only briefly effect the
  	  \begin{subfigure}[b]{0.55\linewidth} \centering
  	  	  \hspace{-5em}
 	      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
-	      \caption{Frustrum Culling.}
+	      \caption{frustum Culling.}
 	 	 \label{fig:frustum_cull}
 	  \end{subfigure}
 	  \caption{\figref{fig:chunks}: chunks are spatially-hashed \cite{SpatialHashing} into a
       dynamic hash map. 
-      \figref{fig:frustum_cull}: only voxels within the frustrum (in green) are stored in memory.}
+      \figref{fig:frustum_cull}: only voxels within the frustum (in green) are stored in memory.}
 \end{figure} 
 
 Each voxel contains an estimate of the signed distance field and an
@@ -749,7 +749,7 @@ the scene isn't known beforehand, the memory block must be resized.
 % with color would occupy 8 Gigabytes of memory. Worse, most of that memory would be
 % uselessly storing unseen free space.
 
-For a large-scale real-time suface reconstruction application, a less
+For a large-scale real-time surface reconstruction application, a less
 memory-intensive and more dynamic approach is needed. Confronted with this
 problem, some works have either used  octrees \cite{Wurm2010, Zeng2012,
 Chen2012}, or use a moving volume\cite{Whelan2013}. Neither of these approaches
@@ -775,20 +775,20 @@ performance by an order of magnitude when compared to a fixed grid.
 		 \end{subfigure}  
 		  \begin{subfigure}[b]{0.22\linewidth} \centering
 			\includegraphics[width=1.0\textwidth]{img/memoryusage2.pdf}
-			 \caption{Varying depth frustrum.} 
+			 \caption{Varying depth frustum.} 
 			 \label{fig:memory_data2}
 		 \end{subfigure}
 	  \begin{subfigure}[b]{0.27\linewidth} \centering 
 		\includegraphics[width=1.0\textwidth]{img/freiburg_5m.png}
-		 \caption{5m depth frustrum.}
+		 \caption{5m depth frustum.}
 		 \label{fig:freiburg_5m}
 	 	\end{subfigure} 
  		\begin{subfigure}[b]{0.27\linewidth} \centering
 		\includegraphics[width=1.0\textwidth]{img/freiburg_2m.png}
-		 \caption{2m depth frustrum.} 
+		 \caption{2m depth frustum.} 
 		 \label{fig:freiburg_2m}
 	 \end{subfigure}
-	 \caption{Spatial Hashing (SH) is more memory efficient than Fixed Grid (FG) and provides control over depth frustrum.}
+	 \caption{Spatial Hashing (SH) is more memory efficient than Fixed Grid (FG) and provides control over depth frustum.}
 \end{figure*} 
 
 \begin{table}[t!]
@@ -823,7 +823,7 @@ $p_1, p_2, p_3$ are arbitrary large primes, $\oplus$ is the xor operator, and $n
 the maximum size of the hash map.
 
 Since chunks are a fixed size, querying data from the chunked \TSDF involves
-rounding (or bit-shifing, if $N_v$ is a power of two) a world coordinate to a
+rounding (or bit-shifting, if $N_v$ is a power of two) a world coordinate to a
 chunk and voxel coordinate, and then doing a hash-map lookup followed by an
 array lookup. Hence, querying is $\mathcal{O}(1)$ \cite{NiessnerHashing}.
 Further, since voxels within chunks are stored adjacent to one another in
@@ -859,7 +859,7 @@ culling. We found frustum culling faster than raycasting on the mobile CPU.
 To fuse a depth scan into the \TSDF (\algoref{alg:TSDF}), it is necessary
 to consider each depth reading in each scan and upate each
 voxel intersecting its depth cone according to its distance to an observed
-surface. The most straightfoward way of doing this is to simply step along
+surface. The most straightforward way of doing this is to simply step along
 each cone, and then use a fast rasterization algorithm \cite{RayTracing} to determine which voxels
 intersect with the cone. Most works  approximate the depth cone with a ray
 through the center of the cone \cite{Newcombe, NiessnerHashing}. We will call
@@ -884,7 +884,7 @@ Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
 the number of voxels affected by a depth scan. This value is nearly constant
 over time, and depending on the resolution of the \TSDF, may be significantly
 less than the number of rays in a scan. However, projection mapping suffers from
-resolution-dependant aliasing errors, because the distance to the center of a
+resolution-dependent  aliasing errors, because the distance to the center of a
 voxel may differ from the true length of the ray passing through the voxel by up
 to the length of the diagonal of the voxel. Further, by ignoring the visual
 hull of the voxel and only projecting its center, we ignore the fact that
@@ -1088,7 +1088,7 @@ which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
 %  \noindent where $a, b, c$ are coefficients of a quadratic depth distortion
 %  model, and $\epsilon(z)$ is a random variable drawn from the parametric
 %  Gaussian distribution function $\mathcal{N}(z, \sigma(z))$.
-%  That is, the distribution is mean-centered on $z$, and has a depth-dependant
+%  That is, the distribution is mean-centered on $z$, and has a depth-dependent 
 %  standard deviation $\sigma(z)$.
 %  
 %  We have found that on the \textit{Tango}  Peanut \cite{Tango} device, the
