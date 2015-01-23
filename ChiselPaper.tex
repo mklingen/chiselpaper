@@ -880,8 +880,8 @@ Instead of iterating over each ray, projection mapping iterates over each voxel.
 Like most other works, we approximate each voxel's visual hull by a single point
 at the center of the voxel.
 
-Projection mapping has performance bounded by $\mathcal{O}(N_v)$, where $N_v$ is
-the number of voxels affected by a depth scan. This value is nearly constant
+Projection mapping's performance is bounded by $\mathcal{O}(N_v)$, where $N_v$
+is the number of voxels affected by a depth scan. This value is nearly constant
 over time, and depending on the resolution of the \TSDF, may be significantly
 less than the number of rays in a scan. However, projection mapping suffers from
 resolution-dependent  aliasing errors, because the distance to the center of a
@@ -1143,7 +1143,7 @@ captured at night with the yellowstone device at a 3cm resolution. The yellow
 pyramid represents the depth camera frustum. The white lines show the trajectory
 of the device.
 
-In the course of online mapping, the user has immediate feedback on model
+While mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
 localizing the device using visual-inertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
