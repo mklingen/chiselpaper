@@ -162,12 +162,12 @@ and localization, with applications ranging from mobile robots to handheld,
 wireless augmented reality. 
 
 Real-time 3D reconstruction is a well-known problem in computer vision and
-robotics \cite{Hartley2004}. The task is to extract the true 3D geometry (and
-possibly color) of a real scene from a sequence of noisy sensor readings online.
-Solutions to this problem are useful for navigation, mapping, object scanning,
-and more. The problem can be broken down into two components: localization (\ie
-estimating the sensor's pose and trajectory), and mapping (\ie reconstructing
-the scene geometry and texture).
+robotics \cite{Hartley2004}. The task is to extract the true 3D geometry of a
+real scene from a sequence of noisy sensor readings online. Solutions to this
+problem are useful for navigation, mapping, object scanning, and more. The
+problem can be broken down into two components: localization (\ie estimating
+the sensor's pose and trajectory), and mapping (\ie reconstructing the scene
+geometry and texture).
 
 Consider house-scale (300 square meter) real-time 3D mapping and localization on
 a \Tango device.  A user (or robot) moves around a building, scanning
@@ -185,13 +185,13 @@ streaming sensor data to offboard devices.
 \begin{figure}[t!]
   \centering
     	 \begin{subfigure}{\linewidth} \centering
-		 \includegraphics[width=1\textwidth]{img/mapdevice}
+		 \includegraphics[width=0.75\textwidth]{img/mapdevice}
 		 \caption{\chisel creating a map
       of an entire office building floor on a mobile device in real-time.}
 		 \label{fig:map_device}
 	 \end{subfigure}
       	 \begin{subfigure}{\linewidth} \centering
-		 \includegraphics[width=1\textwidth]{img/apartment_scene_color.png}
+		 \includegraphics[width=0.75\textwidth]{img/apartment_scene_color.png}
 		 \caption{Reconstructed apartment scene at a voxel resolution of 2cm.}
 		 \label{fig:apartment_color}
 	 \end{subfigure}
@@ -247,7 +247,7 @@ and sparse keypoint-based mapping \cite{FastSlam} as a black box
 the IMU, and take in no information from the depth sensor. As a consequence,
 our mapping system  is \textit{open-loop} in the sense that it does not attempt
 to explicitly estimate the pose of the sensor from the 3D reconstruction. In spite
-of this limitation, we found that using only open-loop visual odometry was
+of this limitation, we found that using  open-loop visual odometry was
 sufficient to create high-quality, house-scale reconstructions
 (\figref{fig:night3}). Additionally  the user can post-process the model using
 global optimization of the trajectory through bundle adjustment, which our
@@ -257,11 +257,9 @@ system can also do on-device
  datasets \cite{FREIBURG}, and on datasets collected in real-time from two
  devices (\sref{section:experiments}). We compare different approaches for
  creating (\sref{section:scan_compare}) and storing (\sref{section:memory}) the
- \TSDF in terms of memory efficiency, speed, and reconstruction quality.
- 
- We show that our system (called \chisel), is able to produce high-quality,
- large scale 3D reconstructions of outdoor and indoor scenes in real-time
- onboard a mobile device.
+ \TSDF in terms of memory efficiency, speed, and reconstruction quality. Our
+ system (called \chisel), is able to produce high-quality, large scale 3D
+ reconstructions of outdoor and indoor scenes in real-time onboard a mobile device.
 
 \section{Related Work}
 Mapping paradigms generally fall into one of two categories: landmark-based (or
@@ -280,16 +278,16 @@ such as the Google \Tango devices \cite{Tango}, we do not need to perform
 costly monocular stereo as a pre-requisite to dense reconstruction. This allows
 us to save our memory and CPU budget for the 3D reconstruction itself.
 
-One of the simplest means of dense 3D mapping is to  store multiple registered
-point clouds of the scene. These point-based methods \cite{RusinkiewiczPoints,
+One of the simplest means of dense 3D mapping is storing multiple registered
+point clouds. These point-based methods \cite{RusinkiewiczPoints,
 TanskanenMetric, WeiseScanning, LSDSlam} naturally convert depth data into
-projected 3D points. While simple, point clouds fail to capture local scene structure, are
-highly redundant, noisy, and fail to capture \emph{negative} (non-surface)
-information about the scene. This information is crucial in situations where the sensor is noisy,
-or has large patches of missing data \cite{Klingensmith2014}.
+projected 3D points. While simple, point clouds fail to capture local scene
+structure, are noisy, and fail to capture \emph{negative} (non-surface)
+information about the scene. This information is crucial to scene reconstruction
+under high levels of noise \cite{Klingensmith2014}.
 
 Elfes \cite{Elfes1989} introduced Occupancy Grid Mapping, which divides the
-world into a grid of voxels containing occupancy probabilities. Occupancy grids
+world into a voxel grid containing occupancy probabilities. Occupancy grids
 preserve local structure, and gracefully handle redundant and missing data.  
 While more robust than point clouds, occupancy grids suffer from aliasing, and
 lack information about surface normals and the interior/exterior of obstacles. 
@@ -324,15 +322,15 @@ implicitly stored in the \TSDF to locally optimize robot trajectories. We are
 interested in similarly planning trajectories for autonomous flying robots by
 directly using \TSDF data (\sref{section:robot}). Real-time onboard 3D mapping,
 navigation and odometry has already been achieved on flying robots
-\cite{FlyingNavigation, OSMAV}using occupancy grids. Our system is complimentary to this
-work.
+\cite{FlyingNavigation, OSMAV}using occupancy grids. Our system is
+complimentary to this work.
 
 \emph{Kinect Fusion} \cite{Newcombe} uses a \TSDF to simultanesously extract the
 pose of a moving depth camera and scene geometry in real-time. Making
 heavy use of the GPU for scan fusion and rendering, \textit{Fusion} is capable
 of creating extremely high-quality, high-resolution surface reconstructions within
 a small area. However, like occupancy grid mapping, the algorithm relies on a
-single fixed-size 3D grid of voxels, and thus is not suitable for reconstructing
+single fixed-size 3D voxel grid, and thus is not suitable for reconstructing
 very large scenes due to memory constraints. This limitation has generated
 interest in extending  \TSDF fusion to larger scenes. 
 Moving window approaches, such as \emph{Kintinuous} \cite{Whelan2013} extend
@@ -344,7 +342,7 @@ used later for post-processing, motion planning, and other applications, a
 moving window approach is not suitable.
 
 Recent works have focused on extending \TSDF fusion to larger scenes by
-compressing the distance field representation to avoid storing and iterating
+compressing the distance field to avoid storing and iterating
 over empty space. Many have used \textit{hierarichal} data structures such as
 octrees or KD-trees to store the \TSDF \cite{Zeng2012, Chen2012}. However, these
 structures suffer from high complexity and complications with parallelism. 
@@ -612,13 +610,10 @@ is updated according to the scale-invariant weighting function $\alpha_{\tau}(u)
  $\alpha_{\tau}$ from the hit probability \eref{eqn:hitprobability} of the
  sensor; but in favor of better performance, linear, exponential, and constant
  approximations of $\alpha_{\tau}$ can be used \cite{Curless1996, Newcombe,
- Whelan2013, Bylow2013}.
-
-Here, we simply use a constant approximation $\alpha_{\tau}(u) = \frac{1}{2
-\tau}$, and use the hit probability of the sensor instead to  dynamically select
-the value of $\tau$, as in \cite{Nguyen2012} (\figref{fig:integration_diagram}).
-This results in poorer surface reconstruction quality in areas of high noise
-than methods which more closely approximate the hit probability of the sensor.
+ Whelan2013, Bylow2013}. We use the constant  approximation
+ $\alpha_{\tau}(u) = \frac{1}{2 \tau}$. This results in poorer surface
+ reconstruction quality in areas of high noise than methods which more closely
+ approximate the hit probability of the sensor.
 
 Generally, either the weight $\alpha_{\tau}$ \cite{Newcombe, Whelan2013}, or
 the distance update of the ray (\algoref{alg:TSDF} line
@@ -647,14 +642,16 @@ W_c(\mathbf{v}) \gets W_c(\mathbf{v}) + \alpha_c(u)
 
 \noindent where $\mathbf{v} = \mathbf{x} - u\mathbf{\hat{r}}$,  $\mathbf{c}
 \in \mathbf{R}^{3+}$ is the color of the ray in color space, and $\alpha_c$ is a
-color weighting function. In both \cite{Bylow2013} and \cite{Whelan2013}, the
-color weighting function is proportional to the dot product of the ray's
-direction and an estimate of the surface normal. But since surface normal
-estimation is computationally expensive, we instead use the same weight for
-both distance and color. As in \cite{Bylow2013},
+color weighting function.  As in \cite{Bylow2013},
 we have chosen RGB color space for the sake of simplicity, at the expense of
 color consistency with changes in illumination.
 
+
+% In both \cite{Bylow2013} and \cite{Whelan2013}, the
+% color weighting function is proportional to the dot product of the ray's
+% direction and an estimate of the surface normal. But since surface normal
+% estimation is computationally expensive, we instead use the same weight for
+% both distance and color.
 % We must also deal with the fact that color images and depth data may be
 % asynchronous. In our case, depth data is often delayed behind color data by as
 % much as 30 milliseconds. So, for each depth scan, we project the endpoints of
@@ -816,16 +813,10 @@ into a dynamic hash map.  Each chunk consists of a fixed grid of ${N_v}^3$
 voxels, which are stored in a monolithic memory block. Chunks are allocated
 dynamically from a growing pool of heap memory as data is added, and are
 indexed in a spatial 3D hash map \cite{SpatialHashing} by their spatial
-coordinates. As in cite{SpatialHashing, NiessnerHashing} we use the hashing
-function:
-
-\begin{equation}
-\textbf{hash}(x, y, z) = p_1 x\oplus p_2 y \oplus p_3 z
-~\text{mod}~n
-\end{equation}
-
-\noindent where $x, y, z$ are the 3D integer coordinates of the chunk, $p_1,
-p_2, p_3$ are arbitrary large primes, $\oplus$ is the xor operator, and $n$ is
+coordinates. As in \cite{SpatialHashing, NiessnerHashing} we use the hash
+function:  $ \textbf{hash}(x, y, z) = p_1 x\oplus p_2 y \oplus p_3 z
+~\text{mod}~n $, where $x, y, z$ are the 3D integer coordinates of the chunk,
+$p_1, p_2, p_3$ are arbitrary large primes, $\oplus$ is the xor operator, and $n$ is
 the maximum size of the hash map.
 
 Since chunks are a fixed size, querying data from the chunked \TSDF involves
@@ -932,13 +923,10 @@ For each chunk, we store a triangle mesh. Meshing is done asynchronously with
 the depth scan fusion, and is performed lazily (\ie, only when chunks need to
 be rendered).
 
-Triangle meshes are generated at the isosurface
-$\Phi_{\tau}(\mathbf{x}) = 0$ whenever the chunk has been updated by a depth
-scan since the last time the chunk was rendered. As in \cite{Bylow2013,
-Whelan2013},  colors are computed for each vertex by trilinear interpolation of
-the color map. At the borders of chunks, vertices are duplicated to reduce
-co-dependence between the chunks, at the expense of causing slight seams
-between chunk meshes. Only those meshes which are visible to the virtual camera
+Triangle meshes are generated at the zero isosurface whenever the chunk has been
+updated by a depth scan. As in \cite{Bylow2013, Whelan2013},  colors are
+computed for each vertex by trilinear interpolation. At the borders of chunks,
+vertices are duplicated. Only those meshes which are visible to the virtual camera
 frustum are rendered. Meshes that are very far away from the camera are
 rendered as a colored bounding box. Meshes far away from the virtual camera are
 destroyed once the number of allocated meshes exceeds some threshold.
@@ -1017,9 +1005,9 @@ optimized offline using bundle adjustment, overlaid on the floorplan of
 % surface mesh generated by marching cubes to disk. 
 
  \begin{figure} [t!]\centering
-		 \includegraphics[width=1.0\linewidth]{img/colorbalance3}
-		 \includegraphics[width=0.48\linewidth]{img/colorbalance2}
-		 \includegraphics[width=0.48\linewidth]{img/colorbalance1} 
+		 \includegraphics[width=0.9\linewidth]{img/colorbalance3}
+		 \includegraphics[width=0.45\linewidth]{img/colorbalance2}
+		 \includegraphics[width=0.45\linewidth]{img/colorbalance1} 
 		 \caption{Outdoor scene reconstruction.}
 		 \label{fig:night3}
 \end{figure}
@@ -1171,7 +1159,7 @@ paused. After mapping is complete, the user can save the map to disk.
 	 \caption{An aerial robot with a tablet device attached.}
 	 \label{fig:robot}
   \end{subfigure}
-	\begin{subfigure}{1.0\columnwidth}\centering
+	\begin{subfigure}{0.8\columnwidth}\centering
 	 \includegraphics[width=1\textwidth]{img/path_plan.pdf}
 	 \caption{A 3D motion plan through the \TSDF}
 	 \label{fig:path_plan}
@@ -1189,13 +1177,9 @@ paused. After mapping is complete, the user can save the map to disk.
  As in \cite{FlyingNavigation}, we simulate a motion planning problem for an
  aerial robot by planning for a sphere-shaped robot in 3D. Note that a sphere-shaped robot can be
  represented as a point when planning in a distance field. The distance to the
- nearest surface for a robot with radius $\epsilon$ is:
- 
- \begin{equation}
-   d_{\epsilon}(x) = \Phi_\tau(x) - \epsilon
- \end{equation}
- 
- \noindent We want to find a 3D trajectory $\xi$ which minimizes:
+ nearest surface for a robot with radius $\epsilon$ is $d_{\epsilon}(x) =
+ \Phi_\tau(x) - \epsilon$. We want to find a 3D trajectory $\xi$ which
+ minimizes:
  
  \begin{equation}
       c_{\epsilon}(\xi) = a \sum_{x \in \xi} \left(\tau -
@@ -1407,11 +1391,11 @@ reduce pose drift. Future research must adapt SLAM techniques combining visual
 intertial odometry, sparse landmark localization and dense 3D reconstruction in
 a way that is efficient enough to allow real-time relocalization on a mobile device.
 
-A further area of potential research is in global loop closure and
-relocalization. Whelan \etal\cite{WhelanLoopClose} introduced a means of warping
-the mesh output by \textit{Kintinuous} consistently with global pose updates
- involving loop closures. But the 3D volumetric data from the \TSDF is lost in
- this process. Is it possible to warp the \TSDF data directly?
+% A further area of potential research is in global loop closure and
+% relocalization. Whelan \etal\cite{WhelanLoopClose} introduced a means of warping
+% the mesh output by \textit{Kintinuous} consistently with global pose updates
+%  involving loop closures. But the 3D volumetric data from the \TSDF is lost in
+%  this process. Is it possible to warp the \TSDF data directly?
 
 Finally, our task of using onboard \TSDF mapping for aerial robot navigation
 remains incomplete. Further work is needed to allow an aerial robot to navigate
