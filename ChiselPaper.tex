@@ -46,6 +46,7 @@
 \newcommand{\etal}{\textit{et al.}\xspace}
 \newcommand{\Tango}{\textit{Tango}\xspace}
 \newcommand{\TSDF}{TSDF\xspace}
+\newcommand{\Niessner}{Nie{\ss}ner}
 
 \newif\iffinalcopy
 \finalcopyfalse % or
@@ -235,7 +236,7 @@ Experimentally, we found that most ( $\sim 93\%$) of the space in a typical
 scene is in fact empty (\tabref{table:volumecount}). Iterating over empty space
 for the purposes of reconstruction and rendering wastes computation time; and storing it
 wastes memory. Noting this fact, we make use of a data structure introduced by
-Niessner \etal \cite{NiessnerHashing}, the Dynamic spatially-hashed
+\Niessner \etal \cite{NiessnerHashing}, the Dynamic spatially-hashed
 \cite{SpatialHashing} \TSDF (\sref{section:spatialhash}), which stores the
 distance field data as a two-level structure in which static 3D voxel
 \textit{chunks} are dynamically allocated according to observations
@@ -350,14 +351,14 @@ over empty space. Many have used \textit{hierarchal} data structures such as
 octrees or KD-trees to store the \TSDF \cite{Zeng2012, Chen2012}. However, these
 structures suffer from high complexity and complications with parallelism. 
 
-An approach by Niessner \etal \cite{NiessnerHashing} uses a two-layer
+An approach by \Niessner \etal \cite{NiessnerHashing} uses a two-layer
 hierarchal data structure that uses spatial hashing \cite{SpatialHashing} to
 store the \TSDF data. This approach avoids the needless complexity of other
 hierarchical data structures, boasting $\mathcal{O}(1)$ queries, and avoids
 storing or updating empty space far away from surfaces.
 
 Our system adapts the spatially-hashed data structure of
-Niessner \etal \cite{NiessnerHashing} to \Tango devices. By carefully
+\Niessner \etal \cite{NiessnerHashing} to \Tango devices. By carefully
 considering what parts of the space should be turned into distance fields at
 each timestep, we avoid needless computation (\tabref{table:meshingtimes}) and
 memory allocation (\figref{fig:memory_data}) in areas far away from the sensor.
@@ -372,7 +373,8 @@ mapping (\sref{section:carving}) and dynamic truncation
 (\sref{section:dynamic_trunc}) into the \TSDF fusion algorithm to improve
 reconstruction quality under conditions of high noise. The space carving and
 truncation algorithms are informed by a parametric noise model trained for the
-sensor using the method of Nguyen \etal \cite{Nguyen2012}.
+sensor using the method of Nguyen \etal \cite{Nguyen2012}, which is also used
+by \cite{NiessnerHashing}..
 
 \section{System Implementation} 
 \subsection{Preliminaries}
@@ -808,7 +810,7 @@ performance by an order of magnitude when compared to a fixed grid.
 \end{table}
 
 Instead of using an Octree, moving volume, or a fixed grid, we use a hybrid data
-structure introduced by Niessner \etal \cite{NiessnerHashing}. We divide
+structure introduced by \Niessner \etal \cite{NiessnerHashing}. We divide
 the world into a two-level tree. In the first level we have \emph{chunks} of
 voxels.  In \figref{fig:chunks}, voxel chunks (grey) are allocated near the
 surface (blue) of the scene. Chunks are spatially-hashed \cite{SpatialHashing}
@@ -834,13 +836,14 @@ memory on empty or unknown voxels.
 
 \subsection{Frustum Culling and Garbage Collection}
 \label{section:frustum}
-To determine which chunks should be updated by a depth scan and drawn, we use
-frustum culling, a well known technique in computer graphics. We  create a
-camera frustum with a far plane at the maximum depth reading of the camera, and
+To determine which chunks should be allocated, updated by a depth scan and
+drawn, we use frustum culling (a well known technique in computer graphics). We 
+create a camera frustum with a far plane at the maximum depth reading of the camera, and
 the near plane at the minimum depth of the camera. We then take the 
 axis-aligned bounding box of the camera frustum, and check each chunk inside the
 axis-aligned bounding box for intersection with the camera frustum. Only those
-which intersect the frustum are updated.
+which intersect the frustum are updated. Chunks are allocated when they first
+interesect a camera frustum.
 
 Since the frustum is a conservative approximation of the space that could be
 updated by a depth scan, some of the chunks that are visible to the frustum will
@@ -936,29 +939,23 @@ destroyed once the number of allocated meshes exceeds some threshold.
 
 \subsection{Pose Estimation}
 \label{section:pose}
-We assume we  have \textit{a priori} black-box pose estimation of the
-sensor from a seperate pose tracking system. Specifically, in our experiments,
-pose data is estimated from an onboard visual-inertial odometry system that fuses
-data from a wide-angle camera, an inertial measurement unit, and a gyroscope at
+Pose data is estimated first from an onboard visual-inertial odometry system
+that fuses data from a wide-angle camera, an inertial measurement unit, and a gyroscope at
 60 Hz using 2D feature tracking and an Extended Kalman Filter. A more detailed
 discussion of this system can be found in \cite{VINS, VINS2}.  Unlike
 most other \TSDF fusion methods \cite{Newcombe, Whelan2013,
-Bylow2013, NiessnerHashing} , our implementation makes no attempt to estimate
-the pose of the sensor directly from depth data. Instead, we use depth data 
-only for surface reconstruction. Unfortunately, decoupling the pose estimation
-and surface reconstruction results in failure to correct for drift in the pose
-estimation using depth data, and can result in mis-alignment of depth scans
-\figref{fig:drift} shows a top down view of a $\sim
-175$ meter long corridor reconstructed by a user holding the device. The
-left figure shows the reconstruction achieved by visual odometry alone,
-with $\sim 5$ meter drift present at the end of the corridor. The right 
-figure shows the reconstruction after the trajectory has been globally
-optimized offline using bundle adjustment, overlaid on the floorplan of
- the building. We found that using direct scan-to-model ICP (as in
- \cite{Newcombe}) to augment visual odometry and sparse keypoint mapping to be
- too slow to run in real-time on the device along with \TSDF fusion. This is not
- to say that another approach combining sparse keypoints with occlusion data
- from the \TSDF (as in \cite{StuecklerSparseDense}), would not work.
+Bylow2013, NiessnerHashing} , we are unable to directly estimate the pose of
+the sensor using the depth data and scan-to-model ICP, since the depth data is
+hardware-limited to only 3-6Hz, which is too slow to directly estimate the pose.
+Instead, we use depth data only for surface reconstruction. Unfortunately,
+decoupling the pose estimation and surface reconstruction results in failure to
+correct for drift in the pose estimation using depth data, and can result in
+mis-alignment of depth scans \figref{fig:drift} shows a top down view of a
+$\sim 175$ meter long corridor reconstructed by a user holding the device. The left figure shows the
+reconstruction achieved by visual odometry alone, with $\sim 5$ meter drift
+present at the end of the corridor. The right figure shows the reconstruction 
+after the trajectory has been globally optimized offline using bundle
+adjustment, overlaid on the floorplan of the building.  
 
 % Section removed to save space
 % \subsubsection{Pose Interpolation}
@@ -1382,7 +1379,7 @@ necessity to meet the computing requirements of a mobile device.
 
 Admittedly, our reconstructions are much lower resolution than state-of-the-art
 \TSDF mapping techniques, which typically push for sub-centimeter resolution. In
-particular, Niessner \etal \cite{NiessnerHashing} produce $4mm$ resolution maps
+particular, \Niessner \etal \cite{NiessnerHashing} produce $4mm$ resolution maps
 of comparable or larger size than our own through the use of commodity GPU
 hardware and a dynamic spatial hash map. Ultimately, as more powerful mobile
 GPUs become available, reconstructions at these resolutions will become
