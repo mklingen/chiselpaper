@@ -225,12 +225,12 @@ signed distance field (\TSDF) \cite{Curless1996} of the scene. The \TSDF stores 
 discretized estimate of the distance to the nearest surface in the scene. While
 allowing for very high-quality reconstructions, the \TSDF is very
 memory-intensive. The size of the \TSDF needed to reconstruct an entire house
-may be on the order of several gigabytes  (\sref{section:memory}), and
-rendering the resulting reconstruction in real-time would certainly overwhelm
-the graphics capabilities of a mobile phone. Previous works \cite{Whelan2013,
-WhelanLoopClose} have extended the \TSDF to larger scenes by storing a
-\textit{moving} voxelization and throwing away data incrementally -- but we are
-interested in preserving the volumetric data for later use.
+may be on the order of several gigabytes  (\sref{section:memory}), and the
+resulting reconstructed mesh has on the order of 1 million vertices.  Previous
+works \cite{Whelan2013, WhelanLoopClose} have extended the \TSDF to larger
+scenes by storing a \textit{moving} voxelization and throwing away data
+incrementally -- but we are interested in preserving the volumetric data for
+later use.
 
 Experimentally, we found that most ( $\sim 93\%$) of the space in a typical
 scene is in fact empty (\tabref{table:volumecount}). Iterating over empty space
@@ -874,10 +874,10 @@ and do not perform space carving, $l_{\text{ray}} = \tau$.
 However, with space-carving (\sref{section:carving}), the length of a ray
 being integrated is potentially unbounded.
 
-A useful approximation of raycasting is \textit{projection mapping}. Used in
+A useful alternative to raycasting is \textit{projection mapping}. Used in
 \cite{Newcombe,Nguyen2012, Bylow2013, Klingensmith2014}, projection mapping
 works by projecting the visual hull of each voxel onto the depth image and
-comparing the depth value there with the geometric distance from the voxel to
+comparing the depth value there with the geometric range from the voxel to
 the camera plane. \algoref{alg:projection_mapping} describes projection mapping.
 Instead of iterating over each ray, projection mapping iterates over each voxel.
 Like most other works, we approximate each voxel's visual hull by a single point
@@ -922,20 +922,24 @@ multiple depth cones may intersect a voxel during each scan.
 \subsection{Rendering}
 \label{section:render}
 Most other \TSDF fusion methods \cite{Newcombe, NiessnerHashing} render the
-scene by directly raytracing it on the GPU. Hardware limitations prevent us from doing
-this. Instead, we use an approach from computer graphics for rendering large
-terrains \cite{GPUGEMS3} using incremental Marching Cubes \cite{Lorensen1987}.
-For each chunk, we store a triangle mesh. Meshing is done asynchronously with
-the depth scan fusion, and is performed lazily (\ie, only when chunks need to
-be rendered).
+scene by directly raytracing it on the GPU. This has the advantage of having
+rendering time independent of the reconstruction size, but requires TSDf data to
+be stored on the GPU.  Since all of our computation is performed on the CPU,
+we instead use an approach from computer graphics for rendering large terrains
+\cite{GPUGEMS3} using incremental Marching Cubes \cite{Lorensen1987}.
+For each chunk, we store a triangle mesh segment (\figref{fig:chunks}).
+Meshing is done asynchronously with the depth scan fusion, and is performed
+lazily (\ie, only when chunks need to be rendered).
 
-Triangle meshes are generated at the zero isosurface whenever the chunk has been
-updated by a depth scan. As in \cite{Bylow2013, Whelan2013},  colors are
+Triangle meshes are generated at the zero isosurface of the \TSDF whenever the
+chunk has been updated by a depth scan. As in \cite{Bylow2013, Whelan2013},  colors are
 computed for each vertex by trilinear interpolation. At the borders of chunks,
 vertices are duplicated. Only those meshes which are visible to the virtual camera
 frustum are rendered. Meshes that are very far away from the camera are
-rendered as a colored bounding box. Meshes far away from the virtual camera are
-destroyed once the number of allocated meshes exceeds some threshold.
+rendered as a colored bounding box. Meshes far away from the user are
+destroyed once the number of allocated meshes exceeds some threshold. In this
+way, only a very small number of mesh segments are being updated and/or sent to
+the GPU in each frame.
 
 \subsection{Pose Estimation}
 \label{section:pose}
