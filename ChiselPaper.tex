@@ -943,23 +943,52 @@ the GPU in each frame.
 
 \subsection{Pose Estimation}
 \label{section:pose}
-Pose data is estimated first from an onboard visual-inertial odometry system
-that fuses data from a wide-angle camera, an inertial measurement unit, and a gyroscope at
-60 Hz using 2D feature tracking and an Extended Kalman Filter. A more detailed
-discussion of this system can be found in \cite{VINS, VINS2}.  Unlike
-most other \TSDF fusion methods \cite{Newcombe, Whelan2013,
-Bylow2013, NiessnerHashing} , we are unable to directly estimate the pose of
-the sensor using the depth data and scan-to-model ICP, since the depth data is
-hardware-limited to only 3-6Hz, which is too slow to directly estimate the pose.
-Instead, we use depth data only for surface reconstruction. Unfortunately,
-decoupling the pose estimation and surface reconstruction results in failure to
-correct for drift in the pose estimation using depth data, and can result in
-mis-alignment of depth scans \figref{fig:drift} shows a top down view of a
-$\sim 175$ meter long corridor reconstructed by a user holding the device. The left figure shows the
-reconstruction achieved by visual odometry alone, with $\sim 5$ meter drift
-present at the end of the corridor. The right figure shows the reconstruction 
-after the trajectory has been globally optimized offline using bundle
-adjustment, overlaid on the floorplan of the building.  
+Pose data is estimated first from an onboard visual-inertial odometry
+(VIO) system that fuses data from a wide-angle camera, an inertial measurement
+unit, and a gyroscope at 60 Hz using 2D feature tracking and an Extended Kalman Filter. A more detailed
+discussion of this system can be found in \cite{VINS, VINS2}. We treat the VIO
+system as a black box, and do not feed any data back into it. Unlike most other
+\TSDF fusion methods \cite{Newcombe, Whelan2013, Bylow2013, NiessnerHashing} ,
+we are unable to directly estimate the pose of the sensor using the depth data
+and scan-to-model ICP, since the depth data is hardware-limited to only 3-6Hz,
+which is too slow to directly estimate the pose. Instead, we incrementally
+adjust the VIO pose estimate by registering each new depth scan with to model
+built up over time.
+
+Given a pose estimate of the sensor at time $t$, $H_{t}$, we define a cost
+function of the pose and scan $Z_t$:
+
+\begin{equation}
+	c(H_{t}, Z_t) = \sum_{\mathbf{x}_i \in Z_{t}} \Phi_{\tau}(H_{t} \mathbf{x}_i)^2
+\end{equation}
+
+\noindent which can be minimized by setting its partial derivative with respect
+to the pose to zero:
+
+\begin{align}
+     \frac{\partial c}{\partial H_t} &= \sum_{\mathbf{x}_i \in Z_{t}}
+     \frac{\partial}{\partial H_t} \Phi_{\tau}(H_{t} \mathbf{x}_i)^2 \\
+        &= \frac{1}{2}\sum_{\mathbf{x}_i \in Z_{t}} \Phi_{\tau}(H_{t}
+        \mathbf{x}_i) \mathbf{J}_i^T \nabla\Phi_{\tau}(H_{t} \mathbf{x}_i)
+\end{align}
+
+\noindent where $\mathbf{J}_i$ is the Jacobian $\frac{\partial
+\mathbf{x_i}}{\partial H_t}$, and $\nabla \Phi_{\tau}$ is the gradient of the
+\TSDF computed via central finite differencing.  We can minimize the error of
+each scan through gradient descent, applying a correction of $H_t^{(k + 1)} = H_t^{(k)}
+-\lambda\frac{\partial c}{\partial H_t}$ with $\lambda$ as a convergence rate,
+until convergence. To prevent the system from drifting too far from the VIO
+trajectory, we reset the pose offset each time we begin gradient descent.
+
+By registering each new depth scan to the global model, we can
+correct for small frame-to-frame errors in system drift in a
+small area. However, as the trajectory becomes longer , the system can still
+encounter drift. \figref{fig:drift} shows a top down view of a $\sim 175$ meter
+long  corridor reconstructed by a user holding the device. The left figure
+shows the reconstruction achieved by visual odometry and dense alignment alone,
+with $\sim 5$ meter drift present at the end of the corridor. The right figure
+shows the reconstruction after the trajectory has been globally optimized
+offline using bundle adjustment, overlaid on the floorplan of the building.
 
 % Section removed to save space
 % \subsubsection{Pose Interpolation}
