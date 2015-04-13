@@ -945,6 +945,12 @@ the GPU in each frame.
 
 \subsection{Online Pose Estimation}
 \label{section:pose}
+ \begin{figure}
+	\centering
+ 	 \includegraphics[width=1\columnwidth]{img/corridor_composite.png}
+ 	 \caption{System pose drift in a long corridor.}
+ 	 \label{fig:drift}
+\end{figure}
 Pose data is estimated first from an onboard visual-inertial odometry
 (VIO) system that fuses data from a wide-angle camera, an inertial measurement
 unit, and a gyroscope at 60 Hz using 2D feature tracking and an Extended Kalman Filter. A more detailed
@@ -1212,6 +1218,7 @@ While mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
 localizing the device using visual-inertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
+ 
  
 %  \subsection{Use Case: Aerial Robot Motion Planning}
 %  \label{section:robot}
