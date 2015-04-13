@@ -180,11 +180,13 @@ of about 2-3 cm (walls, floors, furniture, appliances, etc.). To facilitate
 scanning, real-time feedback is given to the user on the device's screen.  The
 user can export the resulting 3D scan without losing any data.
 \figref{fig:first_figure} shows an example of this use case (\sref{section:mapping})
-in progress. As an application of house-scale mapping, we consider a small
-flying robot equipped with a \Tango sensor onboard (\figref{fig:robot}). The
-robot must navigate indoor spaces by mapping them online (\sref{section:robot}).
-Having all of the sensing and processing onboard the robot reduces the need for
-streaming sensor data to offboard devices.
+in progress. 
+
+% As an application of house-scale mapping, we consider a small
+% flying robot equipped with a \Tango sensor onboard (\figref{fig:robot}). The
+% robot must navigate indoor spaces by mapping them online (\sref{section:robot}).
+% Having all of the sensing and processing onboard the robot reduces the need for
+% streaming sensor data to offboard devices.
 
 \begin{figure}[t!]
   \centering
@@ -324,7 +326,7 @@ A recent work by Wagner \etal \cite{WagnerICRA13} explores the direct use of a
 \TSDF for robot arm motion planning; making use of the gradient information
 implicitly stored in the \TSDF to locally optimize robot trajectories. We are
 interested in similarly planning trajectories for autonomous flying robots by
-directly using \TSDF data (\sref{section:robot}). Real-time onboard 3D mapping,
+directly using \TSDF data. Real-time onboard 3D mapping,
 navigation and odometry has already been achieved on flying robots
 \cite{FlyingNavigation, OSMAV}using occupancy grids. Our system is
 complimentary to this work.
@@ -941,7 +943,7 @@ destroyed once the number of allocated meshes exceeds some threshold. In this
 way, only a very small number of mesh segments are being updated and/or sent to
 the GPU in each frame.
 
-\subsection{Pose Estimation}
+\subsection{Online Pose Estimation}
 \label{section:pose}
 Pose data is estimated first from an onboard visual-inertial odometry
 (VIO) system that fuses data from a wide-angle camera, an inertial measurement
@@ -955,30 +957,33 @@ which is too slow to directly estimate the pose. Instead, we incrementally
 adjust the VIO pose estimate by registering each new depth scan with to model
 built up over time.
 
-Given a pose estimate of the sensor at time $t$, $H_{t}$, we define a cost
+Given a pose estimate of the sensor at time $t$, $H_{t}$, we can define a cost
 function of the pose and scan $Z_t$:
 
 \begin{equation}
 	c(H_{t}, Z_t) = \sum_{\mathbf{x}_i \in Z_{t}} \Phi_{\tau}(H_{t} \mathbf{x}_i)^2
 \end{equation}
 
-\noindent which can be minimized by setting its partial derivative with respect
-to the pose to zero:
+\noindent this cost function implies that each of the data points in the scan
+are associated with its nearest point on the surface of the reconstruction
+$\Phi_{\tau}$ (which has distance 0). This is similar to the ICP cost function, where the
+corresponding point is implicitly described by the signed distance function.
+Using a first order Taylor approximation of the signed distance field, we can
+estimate th nearest point on the surface to $z_i$ by looking at
+the gradient of the signed distance function, and stepping along the direction
+of the  gradient once to directly minimize the distance:
 
-\begin{align}
-     \frac{\partial c}{\partial H_t} &= \sum_{\mathbf{x}_i \in Z_{t}}
-     \frac{\partial}{\partial H_t} \Phi_{\tau}(H_{t} \mathbf{x}_i)^2 \\
-        &= \frac{1}{2}\sum_{\mathbf{x}_i \in Z_{t}} \Phi_{\tau}(H_{t}
-        \mathbf{x}_i) \mathbf{J}_i^T \nabla\Phi_{\tau}(H_{t} \mathbf{x}_i)
-\end{align}
+\begin{equation}
+ 	m_i \approx -\frac{\nabla \Phi_{\tau} (H_t z _i)}{\|\nabla\Phi_{\tau}(H_t
+ 	z_i)\|} \Phi_{\tau}(H_t z_i)
+\end{equation}
 
-\noindent where $\mathbf{J}_i$ is the Jacobian $\frac{\partial
-\mathbf{x_i}}{\partial H_t}$, and $\nabla \Phi_{\tau}$ is the gradient of the
-\TSDF computed via central finite differencing.  We can minimize the error of
-each scan through gradient descent, applying a correction of $H_t^{(k + 1)} = H_t^{(k)}
--\lambda\frac{\partial c}{\partial H_t}$ with $\lambda$ as a convergence rate,
-until convergence. To prevent the system from drifting too far from the VIO
-trajectory, we reset the pose offset each time we begin gradient descent.
+\noindent then, to align the current depth scan with the global model, we use
+this first-order approximation as the model to register the point cloud against.
+The gradient of the \TSDF is recomputed at each step of ICP using central
+finite differencing, which has $\mathcal{O}(1)$ performance. We then iterate
+until $c$ is minimized. Corrective transforms are accumulated as each depth
+scans arrives.
 
 By registering each new depth scan to the global model, we can
 correct for small frame-to-frame errors in system drift in a
@@ -1208,56 +1213,56 @@ completeness, and can pause mapping for live inspection. The system continues
 localizing the device using visual-inertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
  
- \subsection{Use Case: Aerial Robot Motion Planning}
- \label{section:robot}
-  \begin{figure}
-  \centering
-   	 \begin{subfigure}{0.55\columnwidth}\centering
- 	 \includegraphics[width=1\textwidth]{img/corridor_composite.png}
- 	 \caption{System pose drift in a long corridor.}
- 	 \label{fig:drift}
- 	 \end{subfigure}
-  \begin{subfigure}{0.43\columnwidth}\centering
-	 \includegraphics[width=1.0\textwidth]{img/aerial.jpg}
-	 \caption{An aerial robot with a tablet device attached.}
-	 \label{fig:robot}
-  \end{subfigure}
-	\begin{subfigure}{0.8\columnwidth}\centering
-	 \includegraphics[width=1\textwidth]{img/path_plan.pdf}
-	 \caption{A 3D motion plan through the \TSDF}
-	 \label{fig:path_plan}
-	 \end{subfigure}
-      \caption{}
-  \label{fig:robot_figure}
-\end{figure} 
- One of the main advantages of fully-integrated hardware systems such as the
-\Tango device is that they are light enough to mount on small mobile
- robots. As a motivating example, consider the problem of motion planning in
- a scene created onboard the device using \chisel. \figref{fig:robot} shows a
- robot on which we mounted a tablet device. The device is light enough to allow
- the robot to fly.
- 
- As in \cite{FlyingNavigation}, we simulate a motion planning problem for an
- aerial robot by planning for a sphere-shaped robot in 3D. Note that a sphere-shaped robot can be
- represented as a point when planning in a distance field. The distance to the
- nearest surface for a robot with radius $\epsilon$ is $d_{\epsilon}(x) =
- \Phi_\tau(x) - \epsilon$. We want to find a 3D trajectory $\xi$ which
- minimizes:
- 
- \begin{equation}
-      c_{\epsilon}(\xi) = a \sum_{x \in \xi} \left(\tau -
-      d_{\epsilon}(x)\right) + b\|\xi\|_2
- \end{equation} 
- 
-\noindent where $\|\xi\|_2$ is the length of the trajectory, and $a, b$ are
-positive weights. This can be accomplished using the A* algorithm on a
-26-conntected lattice grid, with a simple Euclidean heuristic function. Note
-that the edge weights are garunteed to be positive (because all distances in the
-\TSDF are $\leq\tau$). Whenever $d < 0$, the robot is considered to be in
-collision, and no expansions are made.
-\figref{fig:path_plan} shows two example paths through a pre-scanned \TSDF scene.
-Notice that by varying $\epsilon$, trajectories can be made to skirt closer or further from obstacles without
-additional computation cost.
+%  \subsection{Use Case: Aerial Robot Motion Planning}
+%  \label{section:robot}
+%   \begin{figure}
+%   \centering
+%    	 \begin{subfigure}{0.55\columnwidth}\centering
+%  	 \includegraphics[width=1\textwidth]{img/corridor_composite.png}
+%  	 \caption{System pose drift in a long corridor.}
+%  	 \label{fig:drift}
+%  	 \end{subfigure}
+%   \begin{subfigure}{0.43\columnwidth}\centering
+% 	 \includegraphics[width=1.0\textwidth]{img/aerial.jpg}
+% 	 \caption{An aerial robot with a tablet device attached.}
+% 	 \label{fig:robot}
+%   \end{subfigure}
+% 	\begin{subfigure}{0.8\columnwidth}\centering
+% 	 \includegraphics[width=1\textwidth]{img/path_plan.pdf}
+% 	 \caption{A 3D motion plan through the \TSDF}
+% 	 \label{fig:path_plan}
+% 	 \end{subfigure}
+%       \caption{}
+%   \label{fig:robot_figure}
+% \end{figure} 
+%  One of the main advantages of fully-integrated hardware systems such as the
+% \Tango device is that they are light enough to mount on small mobile
+%  robots. As a motivating example, consider the problem of motion planning in
+%  a scene created onboard the device using \chisel. \figref{fig:robot} shows a
+%  robot on which we mounted a tablet device. The device is light enough to allow
+%  the robot to fly.
+%  
+%  As in \cite{FlyingNavigation}, we simulate a motion planning problem for an
+%  aerial robot by planning for a sphere-shaped robot in 3D. Note that a sphere-shaped robot can be
+%  represented as a point when planning in a distance field. The distance to the
+%  nearest surface for a robot with radius $\epsilon$ is $d_{\epsilon}(x) =
+%  \Phi_\tau(x) - \epsilon$. We want to find a 3D trajectory $\xi$ which
+%  minimizes:
+%  
+%  \begin{equation}
+%       c_{\epsilon}(\xi) = a \sum_{x \in \xi} \left(\tau -
+%       d_{\epsilon}(x)\right) + b\|\xi\|_2
+%  \end{equation} 
+%  
+% \noindent where $\|\xi\|_2$ is the length of the trajectory, and $a, b$ are
+% positive weights. This can be accomplished using the A* algorithm on a
+% 26-conntected lattice grid, with a simple Euclidean heuristic function. Note
+% that the edge weights are garunteed to be positive (because all distances in the
+% \TSDF are $\leq\tau$). Whenever $d < 0$, the robot is considered to be in
+% collision, and no expansions are made.
+% \figref{fig:path_plan} shows two example paths through a pre-scanned \TSDF scene.
+% Notice that by varying $\epsilon$, trajectories can be made to skirt closer or further from obstacles without
+% additional computation cost.
  
 \subsection{Comparing Depth Scan Fusion Algorithms} 
 \label{section:scan_compare}
@@ -1460,9 +1465,9 @@ a way that is efficient enough to allow real-time relocalization on a mobile dev
 %  involving loop closures. But the 3D volumetric data from the \TSDF is lost in
 %  this process. Is it possible to warp the \TSDF data directly?
 
-Finally, our task of using onboard \TSDF mapping for aerial robot navigation
-remains incomplete. Further work is needed to allow an aerial robot to navigate
-autonomously using our system.
+% Finally, our task of using onboard \TSDF mapping for aerial robot navigation
+% remains incomplete. Further work is needed to allow an aerial robot to navigate
+% autonomously using our system.
 
 % Finally, there is the question of applications. What can be done with a
 % real-time dense 3D reconstruction on a mobile device? Applications ranging from
