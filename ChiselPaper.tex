@@ -113,8 +113,8 @@ available at:} \url{http://vimeo.com/117544631}}}
 \thispagestyle{empty}
 
 \begin{abstract}
-We describe a system for real-time house-scale (300 square meter or more)
-dense 3D reconstruction  onboard a  Google \Tango
+We describe \chisel :  a system for real-time house-scale (300 square meter or
+more) dense 3D reconstruction  onboard a  Google \Tango
 \cite{Tango} mobile device by using a dynamic spatially-hashed truncated
 signed distance field\cite{NiessnerHashing} for mapping, and visual-inertial
 odometry for localization. By aggressively culling parts of
@@ -227,52 +227,49 @@ Whelan2013,WhelanLoopClose,Bylow2013,NiessnerHashing} compute a truncated
 signed distance field (\TSDF) \cite{Curless1996} of the scene. The \TSDF stores a
 discretized estimate of the distance to the nearest surface in the scene. While
 allowing for very high-quality reconstructions, the \TSDF is very
-memory-intensive. The size of the \TSDF needed to reconstruct an entire house
-may be on the order of several gigabytes  (\sref{section:memory}), and the
-resulting reconstructed mesh has on the order of 1 million vertices.  Previous
-works \cite{Whelan2013, WhelanLoopClose} have extended the \TSDF to larger
-scenes by storing a \textit{moving} voxelization and throwing away data
-incrementally -- but we are interested in preserving the volumetric data for
-later use.
+memory-intensive. Previous works \cite{Whelan2013, WhelanLoopClose} have
+extended the \TSDF to larger scenes by storing a \textit{moving} voxelization
+and throwing away data incrementally -- but we are interested in preserving the
+volumetric data for later use. The size of the \TSDF needed to reconstruct an
+entire house may be on the order of several gigabytes  (\sref{section:memory}), and the
+resulting reconstructed mesh has on the order of 1 million vertices.  
 
-Experimentally, we found that most ( $\sim 93\%$) of the space in a typical
-scene is in fact empty (\tabref{table:volumecount}). Iterating over empty space
-for the purposes of reconstruction and rendering wastes computation time; and storing it
-wastes memory. Noting this fact, we make use of a data structure introduced by
-\Niessner \etal \cite{NiessnerHashing}, the Dynamic spatially-hashed
+In, this work, we detail a realtime house-scale 3D reconstruction system
+(called \chisel) which runs on mobile devices. Experimentally, we found that
+most ( $\sim 93\%$) of the space in a typical scene is in fact empty
+(\tabref{table:volumecount}). Iterating over empty space for the purposes of
+reconstruction and rendering wastes computation time; and storing it wastes
+memory. Because of this, \chisel makes use of a data structure introduced by
+\Niessner \etal \cite{NiessnerHashing}, the dynamic spatially-hashed
 \cite{SpatialHashing} \TSDF (\sref{section:spatialhash}), which stores the
 distance field data as a two-level structure in which static 3D voxel
-\textit{chunks} are dynamically allocated according to observations
-of the scene. Because the data structure has $\mathcal{O}(1)$ access
-performance, we are able to quickly identify which parts of the scene should be
-rendered, updated, or deleted. This allows us to minimize the amount of time we
-spend on each depth scan and keep the reconstruction running in real-time on the device.
+\textit{chunks} are dynamically allocated according to observations of the
+scene. Because the data structure has $\mathcal{O}(1)$ access performance, we
+are able to quickly identify which parts of the scene should be rendered, 
+updated, or deleted. This allows us to minimize the amount of time we spend on
+each depth scan and keep the reconstruction running in real-time on the device
+(\tabref{table:timing}).
 
-For localization, we use a mix of  visual-inertial odometry \cite{VINS, VINS2}
-and sparse keypoint-based mapping \cite{FastSlam} as a black box
-(\sref{section:pose}). These approaches use only the 2D wide-angle camera and
-the IMU, and take in no information from the depth sensor. As a consequence,
-our mapping system  is \textit{open-loop} in the sense that it does not attempt
-to explicitly estimate the pose of the sensor from the 3D reconstruction. In spite
-of this limitation, we found that using  open-loop visual odometry was
-sufficient to create high-quality, house-scale reconstructions
-(\figref{fig:night3}). Additionally  the user can post-process the model using
-global optimization of the trajectory through bundle adjustment, which our
-system can also do on-device
+For localization, \chisel uses a mix of  visual-inertial odometry \cite{VINS,
+VINS2} and sparse 2D keypoint-based mapping \cite{FastSlam} as a black box input
+(\sref{section:pose}), combined with incremental scan-to-model ICP
+\cite{BeslICP} to correct for drift. Additionally the user can
+post-process the model using global optimization of the trajectory through
+bundle adjustment, which \chisel can also compute on-device
 
  We provide qualitative and  quantitative results on publicly available RGB-D
  datasets \cite{FREIBURG}, and on datasets collected in real-time from two
  devices (\sref{section:experiments}). We compare different approaches for
  creating (\sref{section:scan_compare}) and storing (\sref{section:memory}) the
- \TSDF in terms of memory efficiency, speed, and reconstruction quality. Our
- system (called \chisel), is able to produce high-quality, large scale 3D
- reconstructions of outdoor and indoor scenes in real-time onboard a mobile device.
+ \TSDF in terms of memory efficiency, speed, and reconstruction quality.
+ \chisel, is able to produce high-quality, large scale 3D reconstructions of
+ outdoor and indoor scenes in real-time onboard a mobile device.
 
 \section{Related Work}
 \label{sec:related_work}
 \begin{figure*}\centering
 	      \includegraphics[width=1.0\textwidth]{img/system_diagram}
-	      \caption{system diagram.}
+	      \caption{\chisel system diagram}
 	 	 \label{fig:system_diagram}
 \end{figure*}
 Mapping paradigms generally fall into one of two categories: landmark-based (or
@@ -335,7 +332,7 @@ implicitly stored in the \TSDF to locally optimize robot trajectories. We are
 interested in similarly planning trajectories for autonomous flying robots by
 directly using \TSDF data. Real-time onboard 3D mapping,
 navigation and odometry has already been achieved on flying robots
-\cite{FlyingNavigation, OSMAV}using occupancy grids. Our system is
+\cite{FlyingNavigation, OSMAV}using occupancy grids. \chisel is
 complimentary to this work.
 
 \emph{Kinect Fusion} \cite{Newcombe} uses a \TSDF to simultaneously extract the
@@ -366,7 +363,7 @@ store the \TSDF data. This approach avoids the needless complexity of other
 hierarchical data structures, boasting $\mathcal{O}(1)$ queries, and avoids
 storing or updating empty space far away from surfaces.
 
-Our system adapts the spatially-hashed data structure of
+\chisel adapts the spatially-hashed data structure of
 \Niessner \etal \cite{NiessnerHashing} to \Tango devices. By carefully
 considering what parts of the space should be turned into distance fields at
 each timestep, we avoid needless computation (\tabref{table:meshingtimes}) and
@@ -871,18 +868,16 @@ culling. We found frustum culling faster than raycasting on the mobile CPU.
 \label{section:scan_integration}
 To fuse a depth scan into the \TSDF (\algoref{alg:TSDF}), it is necessary
 to consider each depth reading in each scan and upate each
-voxel intersecting its depth cone according to its distance to an observed
-surface. The most straightforward way of doing this is to simply step along
-each cone, and then use a fast rasterization algorithm \cite{RayTracing} to determine which voxels
-intersect with the cone. Most works  approximate the depth cone with a ray
-through the center of the cone \cite{Newcombe, NiessnerHashing}. We will call
-this the Raycasting approach. However, has performance bound by
-$\mathcal{O}(N_{\text{ray}} \times l_{\text{ray}})$, where $N_{\text{ray}}$ is
-the number of rays in a scan, and $l_{\text{ray}}$  is proportional to the
-length of a ray being integrated. If we use a fixed-size truncation distance
-and do not perform space carving, $l_{\text{ray}} = \tau$.
-However, with space-carving (\sref{section:carving}), the length of a ray
-being integrated is potentially unbounded.
+voxel intersecting its visual cone. Most works  approximate the depth cone with
+a ray through the center of the cone \cite{Newcombe, NiessnerHashing}, and use
+a fast rasterization algorithm to determine which voxels intersect with the
+rays \cite{RayTracing}. We will call this the \textit{raycasting} approach.
+Its performance is bouned by $\mathcal{O}(N_{\text{ray}} \times l_{\text{ray}})$, 
+where $N_{\text{ray}}$ is the number of rays in a scan, and $l_{\text{ray}}$ 
+is proportional to the length of a ray being integrated. If we use a fixed-size
+truncation distance and do not perform space carving, $l_{\text{ray}} = \tau$.
+However, with space-carving (\sref{section:carving}), the length of a ray being
+integrated is potentially unbounded. 
 
 A useful alternative to raycasting is \textit{projection mapping}. Used in
 \cite{Newcombe,Nguyen2012, Bylow2013, Klingensmith2014}, projection mapping
@@ -891,18 +886,17 @@ comparing the depth value there with the geometric range from the voxel to
 the camera plane. \algoref{alg:projection_mapping} describes projection mapping.
 Instead of iterating over each ray, projection mapping iterates over each voxel.
 Like most other works, we approximate each voxel's visual hull by a single point
-at the center of the voxel.
-
-Projection mapping's performance is bounded by $\mathcal{O}(N_v)$, where $N_v$
-is the number of voxels affected by a depth scan. This value is nearly constant
-over time, and depending on the resolution of the \TSDF, may be significantly
-less than the number of rays in a scan. However, projection mapping suffers from
-resolution-dependent  aliasing errors, because the distance to the center of a
-voxel may differ from the true length of the ray passing through the voxel by up
-to the length of the diagonal of the voxel. Further, by ignoring the visual
-hull of the voxel and only projecting its center, we ignore the fact that
-multiple depth cones may intersect a voxel during each scan.
-\sref{section:scan_compare} compares the performance and quality of these methods.
+at the center of the voxel. Projection mapping's performance is bounded by
+$\mathcal{O}(N_v)$, where $N_v$ is the number of voxels affected by a depth
+scan. This value is nearly constant over time, and depending on the resolution
+of the \TSDF, may be significantly less than the number of rays in a scan. 
+However, projection mapping suffers from resolution-dependent  aliasing errors,
+because the distance to the center of a voxel may differ from the true length 
+of the ray passing through the voxel by up to half the length of the diagonal of
+the voxel.  Further, by ignoring the visual hull of the voxel and only projecting
+its center, we ignore the fact that multiple depth cones may intersect a voxel
+during each scan. \sref{section:scan_compare} compares the performance and
+quality of these methods.
 
 \begin{algorithm} 
 	\caption{Projection Mapping}
@@ -1138,7 +1132,8 @@ view tracking camera which refreshes at 60Hz, a projective depth sensor which
 refreshes at 6Hz, and a 4 megapixel color sensor which refreshes at 30Hz. The
 tablet device has 4GB of ram, a quadcore CPU, an Nvidia Tegra K1 graphics card,
 an identical tracking camera to the phone device, a projective depth sensor
-which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
+which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz
+(\figref{fig:system_diagram}).
 %Devices were depth calibrated \ref{subsection:calibration} prior to testing. 
 
 %  \subsection{Sensor Calibration}
@@ -1200,7 +1195,7 @@ which refreshes at 3Hz, and a 4 megapixel color sensor which refreshes at 30Hz.
 %  basis.
 %  
 \subsection{Use Case: House Scale Online Mapping}
-Using our system, we are able to create and display large scale maps at a
+Using \chisel we are able to create and display large scale maps at a
 resolution as small as 2cm in real-time on board the device.
 \figref{fig:map_device} shows a map of an office building floor being
 reconstructed in real-time using the phone device.  This scenario is also shown
@@ -1209,9 +1204,7 @@ of a $\sim 175m$ office corridor. Using the tablet device, we have reconstructed
 (night time) outdoor scenes in real-time.\figref{fig:night3} shows an outdoor scene
 captured at night with the yellowstone device at a 3cm resolution. The yellow
 pyramid represents the depth camera frustum. The white lines show the trajectory
-of the device.
-
-While mapping, the user has immediate feedback on model
+of the device. While mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
 localizing the device using visual-inertial odometry even when the mapping is
 paused. After mapping is complete, the user can save the map to disk.
@@ -1274,21 +1267,17 @@ We implemented both the raycasting and voxel projection modes of depth scan
 fusion (\sref{section:scan_integration}), and compared them in terms of speed
 and quality. \tabref{table:timing} shows timing data for different scan
 insertion methods is shown for the ``Room'' dataset
-(\figref{fig:apartment_color}) in milliseconds. Raycasting (\algoref{alg:TSDF})
-is compared with Projection Mapping (\algoref{alg:projection_mapping}) on both a
+(\figref{fig:apartment_color}) in milliseconds.  Raycasting (\algoref{alg:TSDF})
+is compared with projection mapping (\algoref{alg:projection_mapping}) on both a
 desktop machine and a \Tango tablet. Results are shown with and without
 space carving (\sref{section:carving}) and colorization
 (\sref{section:color}).The fastest method in each category is shown in bold. We
-found that projection mapping was far more efficient than raycasting when space
-carving was used. However, projection mapping results undesirable aliasing
-artifacts; especially on surfaces nearly parallel with the camera's visual axis.
-Additionally, color consistency suffers with projection carving, because rather
-than color being averaged by all the rays passing through each voxel, only a
-single color is used for each projected voxel center. The use of space carving
-drastically reduces noise artifacts, especially around the silhouettes of
-objects (\figref{fig:device_data}). We note that using both space carving
-\emph{and} raycasting is not fast enough for real-time mapping on the device
-using our system.
+found that projection mapping was slightly more efficient than raycasting when
+space carving was used, but raycasting was nearly twice as fast when space
+carving wa not used. At a 3cm resolution, projection mapping results undesirable
+aliasing artifacts; especially on surfaces nearly parallel with the camera's
+visual axis. The use of space carving drastically reduces noise artifacts,
+especially around the silhouettes of objects (\figref{fig:device_data}).
 
 \begin{table}
 \centering
@@ -1327,9 +1316,9 @@ that in \figref{fig:memory_data}, the \naive data structure uses nearly 300MB of
 whereas the spatial hashing data structure never allocates more than 47MB of RAM
 for the entire scene, which is a 15 meter long hallway.
 
-We tested the spatial hashing data structure (SH) on the publicly available Freiburg
+We tested the spatial hashing data structure (SH) on the Freiburg
 RGB-D dataset \cite{FREIBURG}, which contains ground truth pose information from a motion
-capture system (\figref{fig:freiburg_2m}). In the Freiburg office dataset, a
+capture system (\figref{fig:freiburg_2m}). In this dataset, a
 \textit{Kinect} sensor makes a loop around a central desk scene. The room is
 roughly 12 by 12 meters in area.  Memory usage statistics (Fig.
 \ref{fig:memory_data2}) reveal that when all of the depth data is used
@@ -1443,7 +1432,7 @@ cubes on a fixed grid rather than incrementally on spatially-hashed chunks
 %\end{itemize}
  
 \section{Discussion and Future Work}
-Our system is able to create and render large-scale 3D reconstructions of
+\chisel is able to create and render large-scale 3D reconstructions of
 scenes in real-time using only the limited computational resources of a
 \Tango device. We accomplish this without any GPU computing, and use
 only the fixed function pipeline to render the scene. We do this out of
