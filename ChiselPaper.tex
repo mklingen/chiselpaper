@@ -192,13 +192,13 @@ in progress.
 \begin{figure}[t!]
   \centering
     	 \begin{subfigure}{\linewidth} \centering
-		 \includegraphics[width=0.75\textwidth]{img/mapdevice}
+		 \includegraphics[width=0.6\textwidth]{img/mapdevice}
 		 \caption{\chisel creating a map
       of an entire office building floor on a mobile device in real-time.}
 		 \label{fig:map_device}
 	 \end{subfigure}
       	 \begin{subfigure}{\linewidth} \centering
-		 \includegraphics[width=0.75\textwidth]{img/apartment_scene_color.png}
+		 \includegraphics[width=0.6\textwidth]{img/apartment_scene_color.png}
 		 \caption{Reconstructed apartment scene at a voxel resolution of 2cm.}
 		 \label{fig:apartment_color}
 	 \end{subfigure}
@@ -216,11 +216,10 @@ rendering the 3D reconstruction.
 
 3D mapping algorithms involving occupancy grids \cite{Elfes1989}, keypoint
 mapping \cite{KleinSparse} or point clouds \cite{RusinkiewiczPoints,
-TanskanenMetric, WeiseScanning} already exist for mobile phones at small scale
--- but at the scales we are interested in, their reconstruction quality is
-limited. Occupancy grids suffer from aliasing and are memory-dense, while
-point-based methods cannot reproduce surface or volumetric features of the scene
-without intensive post-processing.
+TanskanenMetric, WeiseScanning} already exist for mobile phones at small scale.
+But most existing approaches either require offline post-processing or cloud
+computing to create high-quality 3D reconstructions at the scale we are
+interested in.
 
 Many state-of-the-art real-time 3D reconstruction algorithms \cite{Newcombe,
 Whelan2013,WhelanLoopClose,Bylow2013,NiessnerHashing} compute a truncated
@@ -234,7 +233,7 @@ volumetric data for later use. The size of the \TSDF needed to reconstruct an
 entire house may be on the order of several gigabytes  (\sref{section:memory}), and the
 resulting reconstructed mesh has on the order of 1 million vertices.  
 
-In, this work, we detail a realtime house-scale 3D reconstruction system
+In, this work, we detail a realtime house-scale \TSDF 3D reconstruction system
 (called \chisel) which runs on mobile devices. Experimentally, we found that
 most ( $\sim 93\%$) of the space in a typical scene is in fact empty
 (\tabref{table:volumecount}). Iterating over empty space for the purposes of
@@ -268,7 +267,7 @@ bundle adjustment, which \chisel can also compute on-device
 \section{Related Work}
 \label{sec:related_work}
 \begin{figure*}\centering
-	      \includegraphics[width=1.0\textwidth]{img/system_diagram}
+	      \includegraphics[width=0.75\textwidth]{img/system_diagram}
 	      \caption{\chisel system diagram}
 	 	 \label{fig:system_diagram}
 \end{figure*}
@@ -758,22 +757,15 @@ the scene isn't known beforehand, the memory block must be resized.
 % with color would occupy 8 Gigabytes of memory. Worse, most of that memory would be
 % uselessly storing unseen free space.
 
-For a large-scale real-time surface reconstruction application, a less
-memory-intensive and more dynamic approach is needed. Confronted with this
-problem, some works have either used  octrees \cite{Wurm2010, Zeng2012,
-Chen2012}, or use a moving volume\cite{Whelan2013}. Neither of these approaches
-is desirable for our application. Octrees, while maximally memory efficient,
-have significant drawbacks when it comes to accessing and iterating over the
-volumetric data \cite{NiessnerHashing}. Every time an octree is queried,  a
-logarithmic $\mathcal{O}(M)$ cost is incurred, where $M$ is the depth of the
-Octree. In contrast, queries in a flat array are $\mathcal{O}(1)$. An octree
-stores pointers to child octants in each parent octant. The octants themselves
-may be dynamically allocated on the heap. Each traversal through the tree
-requires $\mathcal{O}(M)$ heap pointer dereferences in the worst case.
-Even worse, adjacent voxels may not be adjacent in memory, resulting in very
-poor caching performance \cite{CacheStructures}.  Like \cite{NiessnerHashing},
-we found that using an octree to store the \TSDF data to reduce iteration
-performance by an order of magnitude when compared to a fixed grid.
+For large-scale reconstructions, a less memory-intensive and more dynamic
+approach is needed. Some works have either used  octrees \cite{Wurm2010,
+Zeng2012, Chen2012}, or use a moving volume\cite{Whelan2013}. Neither of these
+approaches is desirable for our application. Octrees, while maximally memory
+efficient, have significant drawbacks when it comes to accessing and iterating over the
+volumetric data \cite{NiessnerHashing, CacheStructures}.  Like
+\cite{NiessnerHashing}, we found that using an octree to store the \TSDF data
+to reduce iteration performance by an order of magnitude when compared to a
+fixed grid.
 
 \begin{figure*}[t!]
   \centering
@@ -816,16 +808,15 @@ performance by an order of magnitude when compared to a fixed grid.
 	\label{table:volumecount}  
 \end{table}
 
-Instead of using an Octree, moving volume, or a fixed grid, we use a hybrid data
-structure introduced by \Niessner \etal \cite{NiessnerHashing}. We divide
-the world into a two-level tree. In the first level we have \emph{chunks} of
-voxels.  In \figref{fig:chunks}, voxel chunks (grey) are allocated near the
-surface (blue) of the scene. Chunks are spatially-hashed \cite{SpatialHashing}
+Instead of using an Octree, moving volume, or a fixed grid,  \chisel uses a
+hybrid data structure introduced by \Niessner \etal \cite{NiessnerHashing}. We
+divide the world into a two-level tree. In the first level we have \emph{chunks} of
+voxels (\figref{fig:chunks}). Chunks are spatially-hashed \cite{SpatialHashing}
 into a dynamic hash map.  Each chunk consists of a fixed grid of ${N_v}^3$
 voxels, which are stored in a monolithic memory block. Chunks are allocated
 dynamically from a growing pool of heap memory as data is added, and are
-indexed in a spatial 3D hash map \cite{SpatialHashing} by their spatial
-coordinates. As in \cite{SpatialHashing, NiessnerHashing} we use the hash
+indexed in a spatial 3D hash map based on their integer
+coordinates.  As in \cite{SpatialHashing, NiessnerHashing} we use the hash
 function:  $ \textbf{hash}(x, y, z) = p_1 x\oplus p_2 y \oplus p_3 z
 ~\text{mod}~n $, where $x, y, z$ are the 3D integer coordinates of the chunk,
 $p_1, p_2, p_3$ are arbitrary large primes, $\oplus$ is the xor operator, and $n$ is
@@ -1091,7 +1082,7 @@ offline using bundle adjustment, overlaid on the floorplan of the building.
 	 			 \label{fig:ray-carv}
 	 		\end{subfigure}
  		\end{minipage}
- 	  \begin{subtable}[b]{1.0\linewidth} \centering
+ 	  \begin{subtable}[b]{0.75\linewidth} \centering
 	\newcommand{\no}{{\ensuremath{\times}}}
 	\newcommand{\yes}{{\ensuremath{\checkmark}}}
 	\resizebox{\linewidth}{!}{
