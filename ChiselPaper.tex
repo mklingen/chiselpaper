@@ -160,15 +160,15 @@ real-time from two devices.
 
 \section{Introduction}
 Recently, mobile phone manufacturers have started adding
-high-quality depth and  inertial sensors to mobile phones and tablets. In
-particular, the devices we use in this work, Google's \Tango \cite{Tango}
-phone and tablet have very small active infrared projection depth sensors
-combined with high-performance IMUs and wide field of view cameras
-(\sref{section:hardware}). Other devices, such as the Occiptal Inc.
-\textit{Structure Sensor} \cite{StructureSensor} have similar capabilities.
-These devices offer an onboard, fully integrated sensing platform for 3D mapping
-and localization, with applications ranging from mobile robots to handheld,
-wireless augmented reality. 
+high-quality depth and  inertial sensors to mobile phones and tablets. The
+devices we use in this work, Google's \Tango \cite{Tango} phone and tablet have
+very small active infrared projection depth sensors combined with
+high-performance IMUs and wide field of view cameras (\sref{section:hardware}).
+Other devices, such as the Occiptal Inc. \textit{Structure Sensor}
+\cite{StructureSensor} have similar capabilities. These devices offer an
+onboard, fully integrated sensing platform for 3D mapping and localization,
+with applications ranging from mobile robots to handheld, wireless augmented
+reality.
 
 Real-time 3D reconstruction is a well-known problem in computer vision and
 robotics \cite{Hartley2004}. The task is to extract the true 3D geometry of a
@@ -179,7 +179,7 @@ the sensor's pose and trajectory), and mapping (\ie reconstructing the scene
 geometry and texture).
 
 Consider house-scale (300 square meter) real-time 3D mapping and localization on
-a \Tango device.  A user (or robot) moves around a building, scanning
+a \Tango-like device.  A user (or robot) moves around a building, scanning
 the scene. At house-scale, we are only concerned with features with a resolution
 of about 2-3 cm (walls, floors, furniture, appliances, etc.). To facilitate
 scanning, real-time feedback is given to the user on the device's screen.  The
@@ -196,13 +196,13 @@ in progress.
 \begin{figure}[t!]
   \centering
     	 \begin{subfigure}{\linewidth} \centering
-		 \includegraphics[width=0.6\textwidth]{img/mapdevice}
+		 \includegraphics[width=0.75\textwidth]{img/mapdevice}
 		 \caption{\chisel creating a map
       of an entire office building floor on a mobile device in real-time.}
 		 \label{fig:map_device}
 	 \end{subfigure}
       	 \begin{subfigure}{\linewidth} \centering
-		 \includegraphics[width=0.6\textwidth]{img/apartment_scene_color.png}
+		 \includegraphics[width=0.65\textwidth]{img/apartment_scene_color.png}
 		 \caption{Reconstructed apartment scene at a voxel resolution of 2cm.}
 		 \label{fig:apartment_color}
 	 \end{subfigure}
@@ -210,9 +210,9 @@ in progress.
   \label{fig:first_figure}
 \end{figure} 
 
-These use cases require that the 3D reconstruction algorithm must run entirely
-onboard; fast enough to allow real-time interaction. Importantly, the entire
-dense 3D reconstruction must fit inside the device's limited (2-4GB) memory
+House-scale mapping requires that the 3D reconstruction algorithm run entirely
+onboard; and fast enough to allow real-time interaction. Importantly, the
+entire dense 3D reconstruction must fit inside the device's limited (2-4GB) memory
 (\sref{section:hardware}). Because some mobile devices  lack sufficiently
 powerful discrete graphics processing units (GPU), we choose not to rely on general
 purpose GPU computing to make the problem tractable in either creating or
@@ -237,8 +237,8 @@ volumetric data for later use. The size of the \TSDF needed to reconstruct an
 entire house may be on the order of several gigabytes  (\sref{section:memory}), and the
 resulting reconstructed mesh has on the order of 1 million vertices.  
 
-In, this work, we detail a realtime house-scale \TSDF 3D reconstruction system
-(called \chisel) which runs on mobile devices. Experimentally, we found that
+In this work, we detail a realtime house-scale \TSDF 3D reconstruction system
+(called \chisel) for mobile devices. Experimentally, we found that
 most ( $\sim 93\%$) of the space in a typical scene is in fact empty
 (\tabref{table:volumecount}). Iterating over empty space for the purposes of
 reconstruction and rendering wastes computation time; and storing it wastes
@@ -256,9 +256,7 @@ each depth scan and keep the reconstruction running in real-time on the device
 For localization, \chisel uses a mix of  visual-inertial odometry \cite{VINS,
 VINS2} and sparse 2D keypoint-based mapping \cite{FastSlam} as a black box input
 (\sref{section:pose}), combined with incremental scan-to-model ICP
-\cite{BeslICP} to correct for drift. Additionally the user can
-post-process the model using global optimization of the trajectory through
-bundle adjustment, which \chisel can also compute on-device
+\cite{BeslICP} to correct for drift. 
 
  We provide qualitative and  quantitative results on publicly available RGB-D
  datasets \cite{FREIBURG}, and on datasets collected in real-time from two
@@ -271,7 +269,7 @@ bundle adjustment, which \chisel can also compute on-device
 \section{Related Work}
 \label{sec:related_work}
 \begin{figure*}\centering
-	      \includegraphics[width=0.75\textwidth]{img/system_diagram}
+	      \includegraphics[width=0.9\textwidth]{img/system_diagram}
 	      \caption{\chisel system diagram}
 	 	 \label{fig:system_diagram}
 \end{figure*}
@@ -346,6 +344,7 @@ a small area. However, like occupancy grid mapping, the algorithm relies on a
 single fixed-size 3D voxel grid, and thus is not suitable for reconstructing
 very large scenes due to memory constraints. This limitation has generated
 interest in extending  \TSDF fusion to larger scenes. 
+
 Moving window approaches, such as \emph{Kintinuous} \cite{Whelan2013} extend
 Kinect Fusion to larger scenes by storing  a moving voxel grid in the GPU. As
 the camera moves outside of the grid, areas which are no longer visible are
@@ -383,7 +382,7 @@ mapping (\sref{section:carving}) and dynamic truncation
 reconstruction quality under conditions of high noise. The space carving and
 truncation algorithms are informed by a parametric noise model trained for the
 sensor using the method of Nguyen \etal \cite{Nguyen2012}, which is also used
-by \cite{NiessnerHashing}..
+by \cite{NiessnerHashing}.
 
 \section{System Implementation} 
 \label{section:mapping}
@@ -419,7 +418,7 @@ z \sim \mathcal{N}(d, \sigma_d)
 true depth $d$. We train this model using a method from \textit{Nguyen} \etal
 \cite{Nguyen2012}.
 
-Another complication is that since depth sensors are not ideal, an actual depth
+Since depth sensors are not ideal, an actual depth
 reading corresponds to many possible rays through the scene. Therefore, each
 depth reading represents a \textit{cone}, rather than a ray. The ray passing
 through the center of the cone closely approximates it near the sensor, but the
@@ -598,13 +597,12 @@ point.
 \end{algorithm}
 
 The algorithm for updating the \TSDF given a depth scan used in
-\cite{Curless1996} is outlined in
-\algoref{alg:TSDF}. For each voxel in the scene, we store a signed distance
-value, and a weight $W : \mathbf{R}^3 \to \mathbf{R^{+}}$ representing the confidence
-in the distance measurement. Curless and Levoy show that by taking a weighted
-running average of the distance measurements over time,  the resulting
-zero-isosurface of the \TSDF minimizes the sum-squared distances to all the ray
-endpoints.
+\cite{Curless1996} is outlined in \algoref{alg:TSDF}. For each voxel in the
+scene, we store a signed distance value, and a weight $W : \mathbf{R}^3 \to
+\mathbf{R^{+}}$ representing the confidence in the distance measurement.
+Curless and Levoy show that by taking a weighted running average of the
+distance measurements over time,  the resulting zero-isosurface of the \TSDF
+minimizes the sum-squared distances to all the ray endpoints.
 
 We initialize the \TSDF to an undefined value with a
 weight of $0$, then for each depth scan, we update the weight and \TSDF value
@@ -630,14 +628,14 @@ is updated according to the scale-invariant weighting function $\alpha_{\tau}(u)
  reconstruction quality in areas of high noise than methods which more closely
  approximate the hit probability of the sensor.
 
-Generally, either the weight $\alpha_{\tau}$ \cite{Newcombe, Whelan2013}, or
-the distance update of the ray (\algoref{alg:TSDF} line
-\ref{alg:line:tsdf_update}) \cite{Curless1996, Bylow2013} ought to be scaled by
-the dot product of the local surface normal (computed by differentiating the
-depth image) and the direction of the ray to improve reconstruction of surfaces
-that are not perpendicular to the image plane. However, we found computing
-surface normals to be computationally infeasible on the mobile device, and so
-neglect this in our implementation.
+% Generally, either the weight $\alpha_{\tau}$ \cite{Newcombe, Whelan2013}, or
+% the distance update of the ray (\algoref{alg:TSDF} line
+% \ref{alg:line:tsdf_update}) \cite{Curless1996, Bylow2013} ought to be scaled by
+% the dot product of the local surface normal (computed by differentiating the
+% depth image) and the direction of the ray to improve reconstruction of surfaces
+% that are not perpendicular to the image plane. However, we found computing
+% surface normals to be computationally infeasible on the mobile device, and so
+% neglect this in our implementation.
 
 \subsection{Colorization}
 \label{section:color}
@@ -679,15 +677,12 @@ color consistency with changes in illumination.
 As in\cite{Nguyen2012, NiessnerHashing}, we use a dynamic truncation distance based on the
 noise model of the sensor rather than a fixed truncation distance to account for
 noisy data far from the sensor. The truncation distance is given as a function
-of depth:
-
-\begin{equation} \mathcal{T} (z) = \beta\sigma_{z} \end{equation}
-
-\noindent where $\sigma_{z}$ is the standard deviation of the noise for a depth
-reading of $z$ \eref{eqn:hitprobability}, and $\beta$ is a scaling
-parameter which represents the number of standard deviations of the noise we
-are willing to consider. Algorithm \ref{alg:TSDF}, line
-\ref{alg:line:dynamic_tsdf} shows how this is used.
+of depth, $\mathcal{T} (z) = \beta\sigma_{z}$, where $\sigma_{z}$ is the
+standard deviation of the noise for a depth reading of $z$
+\eref{eqn:hitprobability}, and $\beta$ is a scaling parameter which represents
+the number of standard deviations of the noise we are willing to consider.
+Algorithm \ref{alg:TSDF}, line \ref{alg:line:dynamic_tsdf} shows how this is
+used.
 % 
 % Using the dynamic truncation distance has the effect that further away from the
 % sensor, where depth measurements are less certain and sparser, depth
@@ -728,21 +723,14 @@ instance, a person walking in front of the sensor will only briefly effect the
 \subsection{The Dynamic Spatially-Hashed \TSDF}
 \label{section:spatialhash}
 
-\begin{figure}[t!] \centering
+\begin{figure}\centering
  	  	\begin{subfigure}{1.0\columnwidth} \centering
  	    \includegraphics[width=1.0\textwidth]{img/fig-volume-grid.pdf}
  	      \caption{spatial hashing.}
  	  	\label{fig:chunks}  
  	  \end{subfigure} 
- 	  \begin{subfigure}{0.475\columnwidth} \centering 
- 	  	  %\hspace{-5em}
-	      \includegraphics[width=1.0\textwidth]{img/frustum_cull}
-	      \caption{frustum culling.}
-	 	 \label{fig:frustum_cull}
-	  \end{subfigure}
 	  \caption{\figref{fig:chunks}: chunks are spatially-hashed \cite{SpatialHashing} into a
-      dynamic hash map. 
-      \figref{fig:frustum_cull}: only voxels within the frustum (in green) are stored in memory.}
+      dynamic hash map. }
 \end{figure} 
 
 Each voxel contains an estimate of the signed distance field and an
@@ -838,6 +826,14 @@ memory on empty or unknown voxels.
 
 \subsection{Frustum Culling and Garbage Collection}
 \label{section:frustum}
+
+\begin{figure} \centering
+      \includegraphics[width=0.5\columnwidth]{img/frustum_cull}
+      \caption{Only chunks which intersect both intersect the camera frustum and
+      contain sensor data (green) are updated/allocated.}
+ 	 \label{fig:frustum_cull}
+  \end{figure}
+	  
 To determine which chunks should be allocated, updated by a depth scan and
 drawn, we use frustum culling (a well known technique in computer graphics). We 
 create a camera frustum with a far plane at the maximum depth reading of the camera, and
@@ -958,10 +954,8 @@ we are unable to directly estimate the pose of the sensor using the depth data
 and scan to model iterative closest point (ICP)\cite{BeslICP}, since the depth
 data is hardware-limited to only 3-6Hz, which is too slow to directly estimate the pose. Instead, we incrementally
 adjust the VIO pose estimate by registering each new depth scan with to model
-built up over time.
-
-Given a pose estimate of the sensor at time $t$, $H_{t}$, we can define a cost
-function of the pose and scan $Z_t$:
+built up over time. Given a pose estimate of the sensor at time $t$, $H_{t}$, we
+can define a cost function of the pose and scan $Z_t$:
 
 \begin{equation}
 	c(H_{t}, Z_t) = \sum_{\mathbf{x}_i \in Z_{t}} \Phi_{\tau}(H_{t} \mathbf{x}_i)^2
@@ -996,7 +990,7 @@ long  corridor reconstructed by a user holding the device. The left figure
 shows the reconstruction achieved by visual odometry and dense alignment alone,
 with $\sim 5$ meter drift present at the end of the corridor. The right figure
 shows the reconstruction after the trajectory has been globally optimized
-offline using bundle adjustment, overlaid on the floorplan of the building.
+offline using bundle adjustment, overlaid on the floorplan of the building.  
 
 % Section removed to save space
 % \subsubsection{Pose Interpolation}
@@ -1201,8 +1195,8 @@ captured at night with the yellowstone device at a 3cm resolution. The yellow
 pyramid represents the depth camera frustum. The white lines show the trajectory
 of the device. While mapping, the user has immediate feedback on model
 completeness, and can pause mapping for live inspection. The system continues
-localizing the device using visual-inertial odometry even when the mapping is
-paused. After mapping is complete, the user can save the map to disk.
+localizing the device even while the mapping is paused. After mapping is
+complete, the user can save the map to disk.
  
  
 %  \subsection{Use Case: Aerial Robot Motion Planning}
@@ -1269,8 +1263,8 @@ space carving (\sref{section:carving}) and colorization
 (\sref{section:color}).The fastest method in each category is shown in bold. We
 found that projection mapping was slightly more efficient than raycasting when
 space carving was used, but raycasting was nearly twice as fast when space
-carving wa not used. At a 3cm resolution, projection mapping results undesirable
-aliasing artifacts; especially on surfaces nearly parallel with the camera's
+carving was not used. At a 3cm resolution, projection mapping results
+undesirable aliasing artifacts; especially on surfaces nearly parallel with the camera's
 visual axis. The use of space carving drastically reduces noise artifacts,
 especially around the silhouettes of objects (\figref{fig:device_data}).
 
@@ -1426,26 +1420,31 @@ cubes on a fixed grid rather than incrementally on spatially-hashed chunks
  %   incorporate the VIO pose with dense alignment (like they do in Kintinuous).
 %\end{itemize}
  
-\section{Discussion and Future Work}
-\chisel is able to create and render large-scale 3D reconstructions of
-scenes in real-time using only the limited computational resources of a
-\Tango device. We accomplish this without any GPU computing, and use
-only the fixed function pipeline to render the scene. We do this out of
-necessity to meet the computing requirements of a mobile device. 
+\section{Limitations and Future Work}
+% \chisel is able to create and render large-scale 3D reconstructions of
+% scenes in real-time using only the limited computational resources of a
+% \Tango device. We accomplish this without any GPU computing, and use
+% only the fixed function pipeline to render the scene. We do this out of
+% necessity to meet the computing requirements of a mobile device. 
 
-Admittedly, our reconstructions are much lower resolution than state-of-the-art
-\TSDF mapping techniques, which typically push for sub-centimeter resolution. In
+Admittedly, \chisel 's reconstructions are much lower resolution than
+state-of-the-art \TSDF mapping techniques, which typically push for sub-centimeter resolution. In
 particular, \Niessner \etal \cite{NiessnerHashing} produce $4mm$ resolution maps
 of comparable or larger size than our own through the use of commodity GPU
 hardware and a dynamic spatial hash map. Ultimately, as more powerful mobile
 GPUs become available, reconstructions at these resolutions will become
 feasible on mobile devices. 
 
-Many previous works \cite{StuecklerSparseDense, niessner2014combining} have
-combined sparse keypoint mapping, visual odometry and dense reconstruction to
-reduce pose drift. Future research must adapt SLAM techniques combining visual
-intertial odometry, sparse landmark localization and dense 3D reconstruction in
-a way that is efficient enough to allow real-time relocalization on a mobile device.
+\chisel cannot guarantee global map consistency, and drifts over time. Many
+previous works \cite{StuecklerSparseDense, niessner2014combining} have combined
+sparse keypoint mapping, visual odometry and dense reconstruction to reduce
+pose drift. Future research must adapt SLAM techniques combining visual
+inertial odometry, sparse landmark localization and dense 3D reconstruction in
+a way that is efficient enough to allow real-time relocalization and loop
+closure on a mobile device.
+
+We have implemented an open-source ROS-based reference implementation of \chisel
+intended for desktop platforms here \cite{OpenChisel}.
 
 % A further area of potential research is in global loop closure and
 % relocalization. Whelan \etal\cite{WhelanLoopClose} introduced a means of warping
@@ -1466,8 +1465,9 @@ a way that is efficient enough to allow real-time relocalization on a mobile dev
 	\section*{Acknowledgements}
 	This work was done as part of Google's Advanced Technologies and Projects
 	division (ATAP) for \Tango. Thanks to Johnny Lee, Joel Hesch, Esha
-	Nerurkar, and Simon Lynen and other ATAP members for their close collaboration
-	and support on this project. Thanks to Ryan Hickman for collecting outdoor data.
+	Nerurkar, and Simon Lynen and other ATAP members for their essential
+	collaboration and support on this project. Thanks to Ryan Hickman for
+	collecting outdoor data.
 \fi
 
 
